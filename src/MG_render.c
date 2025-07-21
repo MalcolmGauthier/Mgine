@@ -1,9 +1,12 @@
 #include "MG_render.h"
 
-void MG_render_object(MG_Object* object, MG_RenderData* render_data);
-void MG_RenderComponents(MG_Component* component, MG_RenderData* render_data);
-void MG_RenderModel(MG_Model* model, MG_RenderData* render_data);
+// kept here to keep private
+static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
+static void MG_render_components(MG_RenderData* render_data, MG_Component* component);
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model);
 
+// The main render loop of the game engine. This renders the game objects to the screen.
+// It iterates down the component tree of each object and renders the found models.
 int MG_render_loop(void* MG_instance)
 {
 	if (!MG_instance)
@@ -18,6 +21,7 @@ int MG_render_loop(void* MG_instance)
 	if (!transparency_ll)
 	{
 		printf("Render loop crash: Failed to allocate memory for transparency list\n");
+		instance->active = false;
 		return -2;
 	}
 	render_data->transparency_list = transparency_ll;
@@ -29,17 +33,19 @@ int MG_render_loop(void* MG_instance)
 
 	while (instance->active)
 	{
-		//TODO: remove color clear when background added
+		// [TODO] remove color clear when background added
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glEnable(GL_CULL_FACE);
 
-		struct MG_Object_LL* current = render_data->latest_data.object_list;
+		//MG_render_update_data();
+
+		MG_Object_LL* current = render_data->latest_data.object_list;
 		while (current)
 		{
-			if (current->object)
+			if (current->data)
 			{
-				MG_render_object(current->object, &transparency_ll);
+				//MG_render_object(current->data, &transparency_ll);
 			}
 
 			current = current->next;
@@ -51,11 +57,12 @@ int MG_render_loop(void* MG_instance)
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	free(transparency_ll);
+	MG_render_free_transparency_ll(transparency_ll);
 	return 0;
 }
 
-void MG_OIT_init(MG_RenderData* render_data)
+// Initializes the OIT (Order Independent Transparency) rendering system.
+static void MG_render_OIT_init(MG_RenderData* render_data)
 {
 	glGenTextures(1, &render_data->accum_tex);
 	glBindTexture(GL_TEXTURE_2D, render_data->accum_tex);
@@ -77,34 +84,34 @@ void MG_OIT_init(MG_RenderData* render_data)
 	glDrawBuffers(2, attachments);
 }
 
-void MG_render_object(MG_Object* object, MG_RenderData* render_data)
+static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 {
 	if (object->flags & MG_OBJECT_FLAG_INVISIBLE)
 		return;
 
 
 
-	MG_RenderComponents(&object->self, render_data);
+	//MG_render_component(render_data, object->components->data);
 }
 
-void MG_RenderComponents(MG_Component* component, MG_RenderData* render_data)
+static void MG_render_component(MG_RenderData* render_data, MG_Component* component)
 {
 	if (!component) return;
 
 	if (component->model)
 	{
-		MG_RenderModel(component->model, render_data);
+		MG_render_model(render_data, component->model);
 	}
 
-	struct MG_Component_LL* children = component->children;
+	MG_Component_LL* children = component->children;
 	while (children)
 	{
-		MG_RenderComponents(children->component, render_data);
+		MG_render_components(render_data, children->component);
 		children = children->next;
 	}
 }
 
-void MG_RenderModel(MG_Model* model, MG_RenderData* render_data)
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model)
 {
 	if (!model) return;
 
@@ -113,6 +120,7 @@ void MG_RenderModel(MG_Model* model, MG_RenderData* render_data)
 	{
 		mesh = &model->meshes[i];
 
+		// if the mesh contains transparency, add it to the transparency list for later
 		if (mesh->contains_transparency)
 		{
 			struct MG_Mesh_LL* new_node = calloc(1, sizeof(struct MG_Mesh_LL));
@@ -137,7 +145,7 @@ void MG_RenderModel(MG_Model* model, MG_RenderData* render_data)
 	}
 }
 
-void MG_render_OIT(MG_RenderData* render_data)
+static void MG_render_OIT(MG_RenderData* render_data)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
 	glClearBufferfv(GL_COLOR, 0, (GLfloat[]) { 0, 0, 0, 0 });
@@ -182,4 +190,30 @@ void MG_render_OIT(MG_RenderData* render_data)
 	//glUniform1i(glGetUniformLocation(compositeShader, "uReveal"), 1);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+static void MG_render_update_data(MG_RenderData* render_data)
+{
+	while (render_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD) ;
+	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
+
+	if (render_data->instance->game_data.global_timer == render_data->latest_data.global_timer)
+	{
+		render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+		return;
+	}
+
+
+}
+
+static void MG_render_free_transparency_ll(struct MG_Mesh_LL* transparency_ll)
+{
+	struct MG_Mesh_LL* next;
+
+	while (transparency_ll)
+	{
+		next = transparency_ll->next;
+		free(transparency_ll);
+		transparency_ll = next;
+	}
 }

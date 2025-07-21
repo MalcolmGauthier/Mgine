@@ -1,5 +1,6 @@
 #include "MG_logic.h"
 
+// The main logic loop of the game engine. This processes game logic at a fixed tick rate.
 int MG_logic_loop(void* MG_instance)
 {
 	if (!MG_instance)
@@ -9,137 +10,78 @@ int MG_logic_loop(void* MG_instance)
 	}
 
 	MG_GameData* game_data = &((MG_Instance*)MG_instance)->game_data;
-	game_data->delta_time = 1.0f / game_data->tickrate;
+
+	if (game_data->tickrate > 0)
+		game_data->delta_time = 1.0f / game_data->tickrate;
+	else
+		game_data->delta_time = FLT_EPSILON;
 
 	uint64_t last_tick_time = SDL_GetPerformanceCounter();
 	uint64_t timer_frequency = SDL_GetPerformanceFrequency();
 
 	while (game_data->instance->active)
 	{
-		struct MG_Object_LL* current = game_data->object_list;
+		MG_Object_LL* current = game_data->object_list;
+		MG_Object* object = NULL;
 		while (current)
 		{
-			if (current->object && current->object->on_tick)
+			object = (MG_Object*)current->data;
+
+			if (!object)
 			{
-				current->object->on_tick(current->object);
+				current = current->next;
+				continue;
 			}
+
+			if (object->on_tick)
+			{
+				object->on_tick(object);
+			}
+
+			if (object->components)
+			{
+				MG_Component_LL* current_comp = object->components;
+				MG_Component* component = NULL;
+				while (current_comp)
+				{
+					component = (MG_Component*)current_comp->data;
+
+					if (component && component->type == MG_COMPONENT_TYPE_SCRIPT)
+					{
+						component->on_update(component, component->data, game_data->delta_time);
+					}
+					current_comp = current_comp->next;
+				}
+			}
+
+			if (object->flags & MG_OBJECT_FLAG_MARKED_FOR_DELETION)
+			{
+				MG_delete_object(game_data->instance, object->id);
+			}
+
 			current = current->next;
 		}
 
-		while ((SDL_GetPerformanceCounter() - last_tick_time) < timer_frequency / game_data->tickrate);
+		if (game_data->tickrate > 0)
+		{
+			uint64_t counter_ticks_per_game_tick = timer_frequency / game_data->tickrate;
+			uint64_t time_remaining = counter_ticks_per_game_tick - (SDL_GetPerformanceCounter() - last_tick_time);
+			
+			// sleep as much as possible to reduce CPU usage
+			uint32_t sleep_ms = (uint32_t)((time_remaining * 1000) / timer_frequency);
+			if (sleep_ms > 1) SDL_Delay(sleep_ms - 1);
+				
+			while ((SDL_GetPerformanceCounter() - last_tick_time) < counter_ticks_per_game_tick);
+		}
+
 		last_tick_time = SDL_GetPerformanceCounter();
 		game_data->global_timer++;
+
+		if (game_data->tickrate <= 0)
+		{
+			game_data->delta_time = (float)(SDL_GetPerformanceCounter() - last_tick_time) / timer_frequency;
+		}
 	}
 
 	return 0;
-}
-
-int MG_create_object(MG_Instance* instance, MG_Component root_component, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
-{
-	MG_Object* object = calloc(1, sizeof(MG_Object));
-	struct MG_Object_LL* new_node = malloc(sizeof(struct MG_Object_LL));
-	if (!object || !new_node)
-	{
-		printf("Failed to allocate memory for object\n");
-		if (object) free(object);
-		if (new_node) free(new_node);
-		return -1;
-	}
-
-	object->instance = instance;
-	object->self = root_component;
-	object->flags = flags;
-	object->id = instance->game_data.next_object_id;
-	instance->game_data.next_object_id++;
-	object->on_load = on_load;
-	object->on_tick = on_tick;
-
-	new_node->object = object;
-	new_node->next = NULL;
-	instance->game_data.object_count++;
-	if (!instance->game_data.object_list)
-	{
-		instance->game_data.object_list = new_node;
-	}
-	else
-	{
-		struct MG_Object_LL* current = instance->game_data.object_list;
-		while (current->next) current = current->next;
-		current->next = new_node;
-	}
-
-	if (object->on_load)
-	{
-		object->on_load(object);
-	}
-
-	return object->id;
-}
-
-int MG_create_object_by_copy(MG_Object* object)
-{
-	if (!object)
-	{
-		printf("Failed to copy object: object is NULL\n");
-		return -1;
-	}
-
-	return MG_create_object(object->instance, object->self, object->flags, object->on_load, object->on_tick);
-}
-
-MG_Object* MG_get_object_by_id(MG_Instance* instance, uint32_t id)
-{
-	if (!instance)
-	{
-		printf("Failed to get object: instance is NULL\n");
-		return NULL;
-	}
-
-	struct MG_Object_LL* current = instance->game_data.object_list;
-	while (current)
-	{
-		if (current->object->id == id)
-		{
-			return current->object;
-		}
-		current = current->next;
-	}
-
-	printf("Failed to get object with ID %u: not found\n", id);
-	return NULL;
-}
-
-int MG_delete_object(MG_Instance* instance, uint32_t id)
-{
-	if (!instance)
-	{
-		printf("Failed to delete object: instance is NULL\n");
-		return -1;
-	}
-
-	struct MG_Object_LL* current = instance->game_data.object_list;
-	struct MG_Object_LL* previous = NULL;
-	while (current)
-	{
-		if (current->object->id == id)
-		{
-			if (previous)
-			{
-				previous->next = current->next;
-			}
-			else
-			{
-				instance->game_data.object_list = current->next;
-			}
-
-			instance->game_data.object_count--;
-			free(current->object);
-			free(current);
-			return 0;
-		}
-		previous = current;
-		current = current->next;
-	}
-
-	return 1;
 }

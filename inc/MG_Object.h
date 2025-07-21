@@ -1,36 +1,22 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_Instance.h"
-#include "MG_Model.h"
-#include "MG_Component.h"
+#include "stc/MG_object.h"
 
-typedef enum MG_ObjectFlags
-{
-	MG_OBJECT_FLAG_DYNAMIC = 1 << 0,
-	MG_OBJECT_FLAG_SOLID = 1 << 1,
-	MG_OBJECT_FLAG_INVISIBLE = 1 << 2,
-	//MG_OBJECT_FLAG_TRANSPARENCY = 1 << 3,
-	MG_OBJECT_FLAG_MARKED_FOR_DELETION = 1 << 4,
-}
-MG_ObjectFlags;
+uint64_t MG_create_object(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*));
+uint64_t MG_create_object_by_copy(MG_Object* object);
+uint64_t MG_create_object_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*));
 
-typedef struct MG_Object
-{
-	MG_Component self;
+MG_Object* MG_get_object_by_id(MG_Instance* instance, uint64_t id);
+MG_Object_LL* MG_get_all_objects(MG_Instance* instance);
+MG_Object_LL* MG_get_all_object_orphans(MG_Instance* instance);
+MG_Object_LL* MG_get_all_objects_with_flags(MG_Instance* instance, uint32_t flags);
+MG_Object_LL* MG_get_all_objects_with_component(MG_Instance* instance, MG_ComponentTypes type);
+MG_Object_LL* MG_get_all_objects_with_component_flags(MG_Instance* instance, uint32_t flags);
 
-	MG_Instance* instance;
-
-	uint32_t id;
-	uint32_t flags;
-
-	void (*on_load)(struct MG_Object* self);
-	void (*on_tick)(struct MG_Object* self);
-}
-MG_Object;
-
-struct MG_Object_LL
-{
-	MG_Object* object;
-	struct MG_Object_LL* next;
-};
+int MG_delete_object(MG_Instance* instance, uint64_t id);
+int MG_delete_object_by_ptr(MG_Instance* instance, MG_Object* object);
+int MG_delete_object_non_recursive(MG_Instance* instance, uint64_t id);
+int MG_delete_all_objects_with_flags(MG_Instance* instance, uint32_t flags);
+int MG_delete_all_objects_with_component(MG_Instance* instance, MG_ComponentTypes type);
+int MG_delete_all_objects_with_component_flags(MG_Instance* instance, uint32_t flags);

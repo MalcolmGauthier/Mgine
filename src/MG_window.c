@@ -4,8 +4,10 @@ int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_eve
 int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle);
 void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEvent button_event, bool toggle);
 
+// Main loop for the window and I/O events.
 int MG_window_loop(void* MG_instance)
 {
+	// default exit info. If these values are not altered, the loop was ended by another thread.
 	int exit_code = 0;
 	const char* exit_type = "REQUESTED BY ANOTHER THREAD";
 	if (!MG_instance)
@@ -18,98 +20,108 @@ int MG_window_loop(void* MG_instance)
 	MG_Instance* instance = (MG_Instance*)MG_instance;
 	SDL_Event event;
 
-	while (instance->active) {
-		SDL_Delay(1);
-	while (SDL_PollEvent(&event)) {
-		//printf("event type: %d\n", event.type);
-	switch (event.type)
+	while (instance->active)
 	{
-	case SDL_QUIT:
-		instance->active = false;
-		exit_code = 1;
-		exit_type = "FORCED QUIT";
-		break;
-
-	case SDL_WINDOWEVENT:
-		if (MG_window_event_parse(&instance->window_data, event.window))
+		// delay is used to prevent the event loop from hogging the CPU.
+		SDL_Delay(1);
+		while (SDL_PollEvent(&event))
 		{
-			instance->active = false;
-			exit_code = 2;
-			exit_type = "WINDOW CLOSED";
+			//printf("event type: %d\n", event.type);
+			switch (event.type)
+			{
+			case SDL_QUIT:
+				instance->active = false;
+				exit_code = 1;
+				exit_type = "QUIT REQUESTED BY OS";
+				break;
+
+			case SDL_WINDOWEVENT:
+				if (MG_window_event_parse(&instance->window_data, event.window))
+				{
+					instance->active = false;
+					exit_code = 2;
+					exit_type = "WINDOW CLOSED";
+				}
+				break;
+
+			case SDL_KEYDOWN:
+				MG_key_event_parse(&instance->window_data, event.key.keysym.scancode, true);
+				break;
+			case SDL_KEYUP:
+				// check for window closing through ESC. is only done on key up
+				// [TODO] this is for debugging, and should be replaced later with a proper exit menu.
+				if (MG_key_event_parse(&instance->window_data, event.key.keysym.scancode, false))
+				{
+					instance->active = false;
+					exit_code = 3;
+					exit_type = "ESCAPE KEY";
+				}
+				break;
+
+			case SDL_MOUSEMOTION:
+				// mouse movement is cumulative until polled by another thread.
+				instance->window_data.mouse_x_rel += event.motion.xrel;
+				instance->window_data.mouse_y_rel += event.motion.yrel;
+				// if the mouse is grabbed, warp it to the center of the window.
+				if (instance->window_data.mouse_grabbed)
+				{
+					SDL_WarpMouseInWindow(instance->window, instance->window_data.width / 2, instance->window_data.height / 2);
+				}
+				else
+				{
+					instance->window_data.mouse_x = event.motion.x;
+					instance->window_data.mouse_y = event.motion.y;
+				}
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				MG_mouse_button_event_parse(&instance->window_data, event.button, true);
+				break;
+			case SDL_MOUSEBUTTONUP:
+				MG_mouse_button_event_parse(&instance->window_data, event.button, false);
+				break;
+
+			case SDL_MOUSEWHEEL:
+				instance->window_data.mouse_wheel_rel += event.wheel.preciseY;
+				break;
+
+				// [TODO] add controller support
+			case SDL_JOYAXISMOTION:
+			case SDL_JOYBALLMOTION:
+			case SDL_JOYHATMOTION:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+			case SDL_JOYDEVICEADDED:
+			case SDL_JOYDEVICEREMOVED:
+			case SDL_JOYBATTERYUPDATED:
+
+			case SDL_CONTROLLERAXISMOTION:
+			case SDL_CONTROLLERBUTTONDOWN:
+			case SDL_CONTROLLERBUTTONUP:
+			case SDL_CONTROLLERDEVICEADDED:
+			case SDL_CONTROLLERDEVICEREMOVED:
+			case SDL_CONTROLLERDEVICEREMAPPED:
+			case SDL_CONTROLLERTOUCHPADDOWN:
+			case SDL_CONTROLLERTOUCHPADMOTION:
+			case SDL_CONTROLLERTOUCHPADUP:
+
+				// intentionally unused
+			case SDL_TEXTEDITING:
+			case SDL_TEXTINPUT:
+			case SDL_SYSWMEVENT:
+			case SDL_DISPLAYEVENT:
+				break;
+			}
 		}
-		break;
-
-	case SDL_KEYDOWN:
-		MG_key_event_parse(&instance->window_data, event.key.keysym.scancode, true);
-		break;
-	case SDL_KEYUP:
-		// check for window closing through ESC. is only done on key up
-		if (MG_key_event_parse(&instance->window_data, event.key.keysym.scancode, false))
-		{
-			instance->active = false;
-			exit_code = 3;
-			exit_type = "ESCAPE KEY";
-		}
-		break;
-
-	case SDL_MOUSEMOTION:
-		instance->window_data.mouse_x_rel += event.motion.xrel;
-		instance->window_data.mouse_y_rel += event.motion.yrel;
-		if (instance->window_data.mouse_grabbed)
-		{
-			SDL_WarpMouseInWindow(instance->window, instance->window_data.width / 2, instance->window_data.height / 2);
-		}
-		else
-		{
-			instance->window_data.mouse_x = event.motion.x;
-			instance->window_data.mouse_y = event.motion.y;
-		}
-		break;
-
-	case SDL_MOUSEBUTTONDOWN:
-		MG_mouse_button_event_parse(&instance->window_data, event.button, true);
-		break;
-	case SDL_MOUSEBUTTONUP:
-		MG_mouse_button_event_parse(&instance->window_data, event.button, false);
-		break;
-
-	case SDL_MOUSEWHEEL:
-		instance->window_data.mouse_wheel_rel += event.wheel.preciseY;
-		break;
-
-	case SDL_JOYAXISMOTION:
-	case SDL_JOYBALLMOTION:
-	case SDL_JOYHATMOTION:
-	case SDL_JOYBUTTONDOWN:
-	case SDL_JOYBUTTONUP:
-	case SDL_JOYDEVICEADDED:
-	case SDL_JOYDEVICEREMOVED:
-	case SDL_JOYBATTERYUPDATED:
-
-	case SDL_CONTROLLERAXISMOTION:
-	case SDL_CONTROLLERBUTTONDOWN:
-	case SDL_CONTROLLERBUTTONUP:
-	case SDL_CONTROLLERDEVICEADDED:
-	case SDL_CONTROLLERDEVICEREMOVED:
-	case SDL_CONTROLLERDEVICEREMAPPED:
-	case SDL_CONTROLLERTOUCHPADDOWN:
-	case SDL_CONTROLLERTOUCHPADMOTION:
-	case SDL_CONTROLLERTOUCHPADUP:
-
-	case SDL_TEXTEDITING:
-	case SDL_TEXTINPUT:
-	case SDL_SYSWMEVENT:
-	case SDL_DISPLAYEVENT:
-		break;
-	}
-	}
 	}
 
 	printf("Event loop ended. Exit type: %d \"%s\"\n", exit_code, exit_type);
 	return exit_code;
 }
 
-int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_event)
+// Parses the SDL_WindowEvent and updates the MG_WindowData accordingly.
+// Calls the respective callbacks if they are set.
+static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_event)
 {
 	if (!window_data) return -1;
 
@@ -204,7 +216,8 @@ int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_eve
 	return 0;
 }
 
-int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle)
+// Parses the SDL_Keycode and updates the MG_WindowData accordingly.
+static int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle)
 {
 	if (!window_data) return 0;
 
@@ -407,7 +420,8 @@ int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool t
 	return 0;
 }
 
-void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEvent button_event, bool toggle)
+// Parses the SDL_MouseButtonEvent and updates the MG_WindowData accordingly.
+static void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEvent button_event, bool toggle)
 {
 	if (!window_data) return;
 
@@ -425,29 +439,27 @@ void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEven
 	}
 }
 
-static union Keyboard keyboard_prev = { 0 };
-static struct Mouse mouse_prev = { 0 };
 // Call this at the start of every logic frame to update the pressed keys and mouse button flags.
 // Not calling this will cause keyboard_pressed to contain old data. Held keys/buttons will still work fine however.
-void MG_input_update_pressed(MG_WindowData* window_data)
+void MG_input_poll_pressed(MG_WindowData* window_data)
 {
 	if (!window_data) return;
 
 	for (int i = 0; i < sizeof(window_data->keyboard_held.raw) * 8; i++)
 	{
-		if ((keyboard_prev.raw & (1ULL << i)) && (window_data->keyboard_held.raw & (1ULL << i)))
+		if ((window_data->keyboard_prev.raw & (1ULL << i)) && (window_data->keyboard_held.raw & (1ULL << i)))
 			window_data->keyboard_pressed.raw &= ~(1ULL << i);
-		else if (!(keyboard_prev.raw & (1ULL << i)) && (window_data->keyboard_held.raw & (1ULL << i)))
+		else if (!(window_data->keyboard_prev.raw & (1ULL << i)) && (window_data->keyboard_held.raw & (1ULL << i)))
 			window_data->keyboard_pressed.raw |= (1ULL << i);
 		else
 			window_data->keyboard_pressed.raw &= ~(1ULL << i);
 	}
 
 	// this is ugly. but it works.
-	#define NUM_MOUSE_BUTTONS 3
+#define NUM_MOUSE_BUTTONS 3
 	bool* mouse_held_buttons[NUM_MOUSE_BUTTONS] = { &window_data->mouse_held.LEFT, &window_data->mouse_held.MIDDLE, &window_data->mouse_held.RIGHT };
 	bool* mouse_pressed_buttons[NUM_MOUSE_BUTTONS] = { &window_data->mouse_pressed.LEFT, &window_data->mouse_pressed.MIDDLE, &window_data->mouse_pressed.RIGHT };
-	bool* mouse_prev_buttons[NUM_MOUSE_BUTTONS] = { &mouse_prev.LEFT, &mouse_prev.MIDDLE, &mouse_prev.RIGHT };
+	bool* mouse_prev_buttons[NUM_MOUSE_BUTTONS] = { &window_data->mouse_prev.LEFT, &window_data->mouse_prev.MIDDLE, &window_data->mouse_prev.RIGHT };
 	for (int i = 0; i < NUM_MOUSE_BUTTONS; i++)
 	{
 		if (mouse_prev_buttons[i] && mouse_held_buttons[i])
@@ -457,14 +469,14 @@ void MG_input_update_pressed(MG_WindowData* window_data)
 		else
 			*mouse_pressed_buttons[i] = false;
 	}
-	#undef NUM_MOUSE_BUTTONS
+#undef NUM_MOUSE_BUTTONS
 
-	keyboard_prev = window_data->keyboard_held;
-	mouse_prev = window_data->mouse_held;
+	window_data->keyboard_prev = window_data->keyboard_held;
+	window_data->mouse_prev = window_data->mouse_held;
 }
 
 // Puts into out_x_rel and out_y_rel the relative mouse position since the last call to this function.
-// This also resets the relative mouse position to 0, so set the pointer variables to NULL to simply reset the relative mouse position tracker.
+// This also resets the relative mouse position to 0, so set the out_rel variables to NULL to simply reset the relative mouse position tracker.
 void MG_input_poll_mouse_relative_pos(MG_WindowData* window_data, int32_t* out_x_rel, int32_t* out_y_rel)
 {
 	if (!window_data) return;
@@ -476,7 +488,7 @@ void MG_input_poll_mouse_relative_pos(MG_WindowData* window_data, int32_t* out_x
 }
 
 // Puts into out_rel_scroll the relative scroll amount since the last call to this function.
-// This also resets the relative mouse position to 0, so set the pointer variables to NULL to simply reset the relative mouse position tracker.
+// This also resets the relative mouse position to 0, so set the out_rel_scroll variable to NULL to simply reset the relative mouse position tracker.
 void MG_input_poll_mouse_scroll(MG_WindowData* window_data, float* out_rel_scroll)
 {
 	if (!window_data) return;

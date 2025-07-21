@@ -2,6 +2,9 @@
 
 typedef struct MG_Instance MG_Instance;
 
+// This is a union that represents the keyboard state.
+// Currently supported keys include A-Z, 0-9, numpad 0-9, arrow keys, .,;`/, ret, bksp, tab, space, ctrl, shift, alt.
+// Left and right keyboard modifiers are not distinguished.
 union Keyboard
 {
 	uint64_t raw;
@@ -94,9 +97,15 @@ typedef struct MG_WindowData
 	int32_t width;
 	int32_t height;
 
-	union Keyboard keyboard_pressed, keyboard_held;
+	// pressed = pressed since last poll when not held before
+	// held = currently held down
+	// prev = held down before the last poll
+	union Keyboard keyboard_pressed, keyboard_held, keyboard_prev;
 
-	struct Mouse mouse_pressed, mouse_held;
+	// mouse_pressed = pressed since last poll when not held before
+	// mouse_held = currently held down
+	// mouse_prev = held down before the last poll
+	struct Mouse mouse_pressed, mouse_held, mouse_prev;
 
 	// only updated when mouse is not captured
 	int32_t mouse_x;

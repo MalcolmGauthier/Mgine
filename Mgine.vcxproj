@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>shaders;glad\include\glad;cglm;glad\include;inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>shaders;glad\include\glad;cglm;glad\include;inc;inc\stc</AdditionalIncludeDirectories>
       <CompileAs>Default</CompileAs>
     </ClCompile>
     <Link>
@@ -140,29 +140,35 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c" />
-    <ClCompile Include="MG_load_model.c" />
-    <ClCompile Include="MG_main.c" />
-    <ClCompile Include="MG_logic.c" />
-    <ClCompile Include="MG_render.c" />
-    <ClCompile Include="MG_shaders.c" />
-    <ClCompile Include="MG_window.c" />
+    <ClCompile Include="MG_LL.c" />
+    <ClCompile Include="src\MG_load_model.c" />
+    <ClCompile Include="src\MG_logic.c" />
+    <ClCompile Include="src\MG_main.c" />
+    <ClCompile Include="src\MG_object.c" />
+    <ClCompile Include="src\MG_render.c" />
+    <ClCompile Include="src\MG_shaders.c" />
+    <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MG_Component.h" />
-    <ClInclude Include="MG_GameData.h" />
-    <ClInclude Include="MG_load_model.h" />
-    <ClInclude Include="MG_main.h" />
-    <ClInclude Include="MG_Instance.h" />
-    <ClInclude Include="MG_include.h" />
-    <ClInclude Include="MG_logic.h" />
-    <ClInclude Include="MG_Model.h" />
-    <ClInclude Include="MG_Object.h" />
-    <ClInclude Include="MG_render.h" />
-    <ClInclude Include="MG_RenderData.h" />
-    <ClInclude Include="MG_Shader.h" />
-    <ClInclude Include="MG_shaders.h" />
-    <ClInclude Include="MG_WindowData.h" />
-    <ClInclude Include="MG_window.h" />
+    <ClInclude Include="inc\MG_include.h" />
+    <ClInclude Include="inc\MG_load_model.h" />
+    <ClInclude Include="inc\MG_logic.h" />
+    <ClInclude Include="inc\MG_main.h" />
+    <ClInclude Include="inc\MG_object.h" />
+    <ClInclude Include="inc\MG_render.h" />
+    <ClInclude Include="inc\MG_shaders.h" />
+    <ClInclude Include="inc\MG_transform.h" />
+    <ClInclude Include="inc\MG_window.h" />
+    <ClInclude Include="inc\stc\MG_Component.h" />
+    <ClInclude Include="inc\stc\MG_GameData.h" />
+    <ClInclude Include="inc\stc\MG_Instance.h" />
+    <ClInclude Include="inc\stc\MG_Model.h" />
+    <ClInclude Include="inc\stc\MG_Object.h" />
+    <ClInclude Include="inc\stc\MG_RenderData.h" />
+    <ClInclude Include="inc\stc\MG_Shader.h" />
+    <ClInclude Include="inc\stc\MG_Transform.h" />
+    <ClInclude Include="inc\stc\MG_WindowData.h" />
+    <ClInclude Include="MG_LL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

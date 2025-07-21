@@ -1,12 +1,27 @@
+/////////////////////////////////
+//                             //
+//  MGINE BY MALCOLM GAUTHIER  //
+//             2025            //
+//                             //
+/////////////////////////////////
+
 #include "MG_main.h"
 
-int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context);
-int MG_gl_init(SDL_GLContext gl_context);
-void MG_instance_init(MG_Instance* instance);
+// kept here to keep private
+static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context);
+static int MG_gl_init(SDL_GLContext gl_context);
+static void MG_instance_init(MG_Instance* instance);
 
 int main(int argc, char* argv[])
 {
+    // There are no global variables in Mgine to leave the door open for the engine 
+    // being able to create new instances of itself in the future.
     MG_Instance inst = { 0 };
+
+    // Mgine operates on 3 threads. 
+    // The event thread handles I/O. It responds to window events and any keyboard/mouse/controller inputs.
+    // The logic thread runs the game's logic. By default it runs at 60 ticks per second.
+    // The render thread renders the game to the screen at a rate hopefully higher than that of the logic thread, using interpolation.
 	SDL_Thread* event_thread = NULL;
 	SDL_Thread* logic_thread = NULL;
 	SDL_Thread* render_thread = NULL;
@@ -27,10 +42,13 @@ int main(int argc, char* argv[])
 
 	MG_instance_init(&inst);
 
+    // here the threads are created. This main thread here counts as a 4th thread, but it's only used for
+	// debugging and error monitoring.
 	event_thread = SDL_CreateThread(MG_window_loop, "MGine WindowEvents", &inst);
 	logic_thread = SDL_CreateThread(MG_logic_loop, "MGine Logic", &inst);
 	render_thread = SDL_CreateThread(MG_render_loop, "MGine Render", &inst);
 
+    // This loop here checks for GL errors at the moment. Debug tools could be added in the future.
     while (inst.active)
     {
 		if (inst.gl_error_code = glGetError())
@@ -65,6 +83,7 @@ int main(int argc, char* argv[])
 			inst.active = 0;
 		}
 
+		// Without this, the event loop will not be able to process events properly.
 		SDL_PumpEvents();
         SDL_Delay(1);
     }
@@ -78,7 +97,8 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context)
+// Initializes SDL and creates a window with an OpenGL context.
+static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -115,7 +135,8 @@ int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context)
     return 0;
 }
 
-int MG_gl_init(SDL_GLContext gl_context)
+// Initializes OpenGL using GLAD and sets the viewport.
+static int MG_gl_init(SDL_GLContext gl_context)
 {
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
     {
@@ -132,7 +153,8 @@ int MG_gl_init(SDL_GLContext gl_context)
     return 0;
 }
 
-void MG_instance_init(MG_Instance* instance)
+// Initializes the MG_Instance structure with initialization values.
+static void MG_instance_init(MG_Instance* instance)
 {
 	if (!instance)
 		return;

@@ -10,8 +10,10 @@
 
 #pragma once
 
+#define _MATH_DEFINES_DEFINED
+
 #include <SDL.h>
-#include <glad.h>
+#include <glad/glad.h>
 #include <cglm.h>
 
 #include <stdio.h>
@@ -19,6 +21,8 @@
 
 ///////////////////////////////
 // DEFAULT SETTINGS
+
+#define MG_DEBUG true
 
 // WINDOW
 #define MG_W_NAME "Mgine prototype"
@@ -34,3 +38,4 @@
 #define MG_L_TRICKRATE 60
 
 // RENDERING
+#define MG_R_OIT_ENABLED true

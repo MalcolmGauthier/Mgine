@@ -13,6 +13,7 @@ typedef struct MG_Instance
 	MG_WindowData window_data;
 	MG_GameData game_data;
 	MG_RenderData render_data;
+	MG_GameDataLockOwner lock_owner;
 
 	int gl_error_code;
 

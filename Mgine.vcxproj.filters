@@ -16,6 +16,9 @@
     <Filter Include="Fichiers shaders">
       <UniqueIdentifier>{46a745f9-55a4-4502-a45a-d037bab37b7b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Fichiers d%27en-tête\Structs">
+      <UniqueIdentifier>{317e09c3-4175-41f7-8d8e-70d8bf4e9afe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -39,72 +42,90 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MG_main.c">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
     <ClCompile Include="glad\src\glad.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_window.c">
+    <ClCompile Include="src\MG_load_model.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_logic.c">
+    <ClCompile Include="src\MG_logic.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_load_model.c">
+    <ClCompile Include="src\MG_main.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_render.c">
+    <ClCompile Include="src\MG_render.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_shaders.c">
+    <ClCompile Include="src\MG_shaders.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_window.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_object.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="MG_LL.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MG_Instance.h">
+    <ClInclude Include="inc\MG_include.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_include.h">
+    <ClInclude Include="inc\MG_load_model.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_window.h">
+    <ClInclude Include="inc\MG_logic.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_main.h">
+    <ClInclude Include="inc\MG_main.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_WindowData.h">
+    <ClInclude Include="inc\MG_render.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_logic.h">
+    <ClInclude Include="inc\MG_shaders.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_GameData.h">
+    <ClInclude Include="inc\MG_window.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_Object.h">
+    <ClInclude Include="inc\stc\MG_Component.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_GameData.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Instance.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Model.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Object.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_RenderData.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Shader.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_WindowData.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="MG_LL.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_Model.h">
+    <ClInclude Include="inc\stc\MG_Transform.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_transform.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="MG_Component.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="MG_load_model.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="MG_render.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="MG_RenderData.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="MG_Shader.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="MG_shaders.h">
+    <ClInclude Include="inc\MG_object.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>
