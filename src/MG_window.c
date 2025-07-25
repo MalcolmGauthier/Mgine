@@ -439,7 +439,7 @@ static void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseBut
 	}
 }
 
-// Call this at the start of every logic frame to update the pressed keys and mouse button flags.
+// Call this to update the pressed keys and mouse button flags.
 // Not calling this will cause keyboard_pressed to contain old data. Held keys/buttons will still work fine however.
 void MG_input_poll_pressed(MG_WindowData* window_data)
 {

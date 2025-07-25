@@ -1,6 +1,6 @@
 #include "MG_object.h"
 
-uint64_t MG_create_object(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
+uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
 {
 	MG_Object* object = calloc(1, sizeof(MG_Object));
 	MG_Object_LL* new_node = malloc(sizeof(MG_Object_LL));
@@ -42,7 +42,7 @@ uint64_t MG_create_object(MG_Instance* instance, MG_Object* parent, uint32_t fla
 	return object->id;
 }
 
-uint64_t MG_create_object_by_copy(MG_Object* object)
+uint64_t MG_object_create_by_copy(MG_Object* object)
 {
 	if (!object)
 	{
@@ -50,10 +50,11 @@ uint64_t MG_create_object_by_copy(MG_Object* object)
 		return -1;
 	}
 
+	// [TODO] copy linked lists
 	return MG_create_object(object->instance, object->parent, object->flags, object->on_load, object->on_tick);
 }
 
-uint64_t MG_create_object_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
+uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
 {
 	if (!parent_object)
 	{
@@ -64,8 +65,32 @@ uint64_t MG_create_object_with_parent(MG_Object* parent_object, uint32_t flags, 
 	return MG_create_object(parent_object->instance, parent_object, flags, on_load, on_tick);
 }
 
+MG_Object* MG_object_create_untracked_copy(MG_Object* source)
+{
+	if (!source)
+	{
+		printf("Failed to create untracked copy: source is NULL\n");
+		return NULL;
+	}
 
-MG_Object* MG_get_object_by_id(MG_Instance* instance, uint64_t id)
+	MG_Object* object = calloc(1, sizeof(MG_Object));
+	if (!object)
+	{
+		printf("Failed to allocate memory for untracked object copy\n");
+		return NULL;
+	}
+	memcpy_s(object, sizeof(MG_Object), source, sizeof(MG_Object));
+	object->children = NULL;
+	object->components = NULL;
+
+	if (source->children)
+		object->children = MG_LL_Copy(source->children, MG_object_create_untracked_copy);
+	if (source->components)
+		object->components = MG_LL_Copy(source->components, NULL);
+}
+
+
+MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id)
 {
 	if (!instance)
 	{
@@ -87,7 +112,7 @@ MG_Object* MG_get_object_by_id(MG_Instance* instance, uint64_t id)
 	return NULL;
 }
 
-MG_Object_LL* MG_get_all_objects(MG_Instance* instance)
+MG_Object_LL* MG_object_get_all(MG_Instance* instance)
 {
 	if (!instance)
 	{
@@ -99,7 +124,32 @@ MG_Object_LL* MG_get_all_objects(MG_Instance* instance)
 }
 
 
-int MG_delete_object(MG_Instance* instance, uint64_t id)
+void MG_object_free_components(MG_Object* object)
+{
+	if (!object)
+	{
+		printf("Failed to free components: object is NULL\n");
+		return;
+	}
+
+	// first, recurisvely free the data variable in each component
+	MG_Component_LL* current = object->components;
+	while (current)
+	{
+		MG_Component* component = (MG_Component*)current->data;
+		if (component && component->data)
+		{
+			free(component->data);
+		}
+		current = current->next;
+	}
+
+	MG_LL_Free(object->components);
+	object->components = NULL;
+}
+
+
+int MG_object_delete(MG_Instance* instance, uint64_t id)
 {
 	if (!instance)
 	{
@@ -160,7 +210,7 @@ int MG_delete_object(MG_Instance* instance, uint64_t id)
 	return 1;
 }
 
-int MG_delete_object_by_ptr(MG_Instance* instance, MG_Object* object)
+int MG_object_delete_by_ptr(MG_Instance* instance, MG_Object* object)
 {
 	if (!instance || !object)
 	{
@@ -170,7 +220,7 @@ int MG_delete_object_by_ptr(MG_Instance* instance, MG_Object* object)
 	return MG_delete_object(instance, object->id);
 }
 
-int MG_delete_object_non_recursive(MG_Instance* instance, uint64_t id)
+int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)
 {
 	if (!instance)
 	{

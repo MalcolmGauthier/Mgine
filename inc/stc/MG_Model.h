@@ -61,11 +61,7 @@ typedef struct MG_Mesh
 }
 MG_Mesh;
 
-struct MG_Mesh_LL
-{
-	MG_Mesh* mesh;
-	struct MG_Mesh_LL* next;
-};
+typedef MG_Generic_LL MG_Mesh_LL;
 
 typedef struct MG_Model
 {
