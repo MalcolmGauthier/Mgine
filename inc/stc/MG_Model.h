@@ -33,17 +33,6 @@ struct MG_AABB
 	float max[3];
 };
 
-//struct MG_Triangle
-//{
-//	MG_Vertex vertices[3];
-//	float normal[3];
-//	float UV[2];
-//
-//	float dist_to_camera;
-//	MG_Material* material;
-//	MG_Shader* shader;
-//};
-
 typedef struct MG_Mesh
 {
 	MG_Vertex* vertices;

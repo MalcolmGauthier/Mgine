@@ -86,7 +86,9 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* source)
 	if (source->children)
 		object->children = MG_LL_Copy(source->children, MG_object_create_untracked_copy);
 	if (source->components)
-		object->components = MG_LL_Copy(source->components, NULL);
+		object->components = MG_LL_Copy(source->components, MG_component_copy_untracked);
+
+	return object;
 }
 
 
@@ -132,19 +134,7 @@ void MG_object_free_components(MG_Object* object)
 		return;
 	}
 
-	// first, recurisvely free the data variable in each component
-	MG_Component_LL* current = object->components;
-	while (current)
-	{
-		MG_Component* component = (MG_Component*)current->data;
-		if (component && component->data)
-		{
-			free(component->data);
-		}
-		current = current->next;
-	}
-
-	MG_LL_Free(object->components);
+	MG_LL_Free(object->components, MG_component_free);
 	object->components = NULL;
 }
 
@@ -196,8 +186,8 @@ int MG_object_delete(MG_Instance* instance, uint64_t id)
 				object->components = object->components->next;
 			}
 
-			MG_LL_Free(object->children);
-			MG_LL_Free(object->components);
+			MG_LL_Free(object->children, MG_object_delete_by_ptr);
+			MG_LL_Free(object->components, MG_component_free);
 			free(object);
 			free(current);
 			return 0;
@@ -210,14 +200,15 @@ int MG_object_delete(MG_Instance* instance, uint64_t id)
 	return 1;
 }
 
-int MG_object_delete_by_ptr(MG_Instance* instance, MG_Object* object)
+void MG_object_delete_by_ptr(MG_Object* object)
 {
-	if (!instance || !object)
+	if (!object)
 	{
 		printf("Failed to delete object: instance or object is NULL\n");
-		return -1;
+		return;
 	}
-	return MG_delete_object(instance, object->id);
+
+	MG_object_delete(object->instance, object->id);
 }
 
 int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)

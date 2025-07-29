@@ -48,8 +48,6 @@ void* MG_LL_Remove(MG_Generic_LL* head, void* find)
     return NULL; // Not found
 }
 
-// copies a linked list by value.
-// the copy_func is used to copy the data pointer of each node. if null, standard pointer assignment is used.
 MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
 {
     if (!head)
@@ -67,7 +65,8 @@ MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
         MG_Generic_LL* new_node = calloc(1, sizeof(MG_Generic_LL));
         if (!new_node)
         {
-            MG_LL_Free(new_head);
+            // [TODO] this causes a memory leak if the data contains dynamic alloc.
+            MG_LL_Free(new_head, NULL);
             return NULL;
         }
         new_node->data = copy_func ? copy_func(current_src->data) : current_src->data;
@@ -80,15 +79,25 @@ MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
 
 }
 
-// goes recursively through the linked list and frees all nodes along with their data pointer.
-// do not use this function if the data pointers are still in use.
-void MG_LL_Free(MG_Generic_LL* head)
+
+void MG_LL_Free(MG_Generic_LL* head, void (*free_func)(void* data))
 {
     MG_Generic_LL* current = head;
     while (current)
     {
         MG_Generic_LL* next = current->next;
-        free(current->data);
+        free_func ? free_func(current->data) : free(current->data);
+        free(current);
+        current = next;
+    }
+}
+
+void MG_LL_Free_LL_Only(MG_Generic_LL* head)
+{
+    MG_Generic_LL* current = head;
+    while (current)
+    {
+        MG_Generic_LL* next = current->next;
         free(current);
         current = next;
     }

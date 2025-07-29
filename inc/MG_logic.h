@@ -6,3 +6,5 @@
 #include "MG_object.h"
 
 int MG_logic_loop(void* instance);
+
+void MG_logic_free(MG_GameData* game_data);

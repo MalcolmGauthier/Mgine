@@ -66,7 +66,13 @@
     <ClCompile Include="src\MG_object.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="MG_LL.c">
+    <ClCompile Include="src\MG_LL.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_transform.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_component.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -116,9 +122,6 @@
     <ClInclude Include="inc\stc\MG_WindowData.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
     </ClInclude>
-    <ClInclude Include="MG_LL.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="inc\stc\MG_Transform.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
     </ClInclude>
@@ -126,6 +129,12 @@
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\MG_object.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_LL.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_component.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>

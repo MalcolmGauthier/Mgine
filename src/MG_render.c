@@ -2,7 +2,7 @@
 
 // kept here to keep private
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
-static void MG_render_components(MG_RenderData* render_data, MG_Component* component);
+static void MG_render_component(MG_RenderData* render_data, MG_Component* component);
 static void MG_render_model(MG_RenderData* render_data, MG_Model* model);
 
 // The main render loop of the game engine. This renders the game objects to the screen.
@@ -58,9 +58,39 @@ int MG_render_loop(void* MG_instance)
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	MG_render_free_transparency_ll(transparency_ll);
+	MG_LL_Free(transparency_ll);
 	return 0;
 }
+
+static void MG_render_update_data(MG_RenderData* render_data)
+{
+	while (render_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD);
+	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
+
+	if (render_data->instance->game_data.global_timer == render_data->latest_data.global_timer)
+	{
+		render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+		return;
+	}
+
+	MG_logic_free(&render_data->old_data);
+	memcpy_s(&render_data->old_data, sizeof(MG_GameData), &render_data->latest_data, sizeof(MG_GameData));
+	memcpy_s(&render_data->latest_data, sizeof(MG_GameData), &render_data->instance->game_data, sizeof(MG_GameData));
+
+	// copy the object list from the game data to the render data
+	render_data->latest_data.object_list = MG_LL_Copy(render_data->instance->game_data.object_list, MG_object_create_untracked_copy);
+
+	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+	return;
+}
+
+static void MG_render_update_interp_value(MG_RenderData* render_data)
+{
+	// this is used to interpolate the values between frames
+	// for now, we just set it to the delta time
+	render_data->latest_data.delta_time = render_data->instance->game_data.delta_time;
+}
+
 
 // Initializes the OIT (Order Independent Transparency) rendering system.
 static void MG_render_OIT_init(MG_RenderData* render_data)
@@ -99,17 +129,10 @@ static void MG_render_component(MG_RenderData* render_data, MG_Component* compon
 {
 	if (!component) return;
 
-	if (component->model)
-	{
-		MG_render_model(render_data, component->model);
-	}
+	if (!(component->flags & MG_COMPONENT_TYPE_MODEL))
+		return;
 
-	MG_Component_LL* children = component->children;
-	while (children)
-	{
-		MG_render_components(render_data, children->component);
-		children = children->next;
-	}
+	MG_Model model = *(MG_Model*)component->data;
 }
 
 static void MG_render_model(MG_RenderData* render_data, MG_Model* model)
@@ -124,13 +147,13 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model)
 		// if the mesh contains transparency, add it to the transparency list for later
 		if (mesh->contains_transparency)
 		{
-			struct MG_Mesh_LL* new_node = calloc(1, sizeof(struct MG_Mesh_LL));
+			MG_Mesh_LL* new_node = calloc(1, sizeof(MG_Mesh_LL));
 			if (!new_node) return;
 			while (render_data->transparency_list->next)
 			{
 				render_data->transparency_list = render_data->transparency_list->next;
 			}
-			new_node->mesh = mesh;
+			new_node->data = mesh;
 			render_data->transparency_list->next = new_node;
 			return;
 		}
@@ -160,7 +183,8 @@ static void MG_render_OIT(MG_RenderData* render_data)
 	while (render_data->transparency_list->next)
 	{
 		render_data->transparency_list = render_data->transparency_list->next;
-		mesh = render_data->transparency_list->mesh;
+		mesh = (MG_Mesh*)render_data->transparency_list->data;
+		if (!mesh) continue;
 
 		if (mesh->shader)
 		{
@@ -191,39 +215,4 @@ static void MG_render_OIT(MG_RenderData* render_data)
 	//glUniform1i(glGetUniformLocation(compositeShader, "uReveal"), 1);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-
-static void MG_render_update_data(MG_RenderData* render_data)
-{
-	while (render_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD);
-	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
-
-	if (render_data->instance->game_data.global_timer == render_data->latest_data.global_timer)
-	{
-		render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
-		return;
-	}
-
-	MG_LL_Free(&render_data->old_data);
-	memcpy_s(&render_data->old_data, sizeof(MG_GameData), &render_data->latest_data, sizeof(MG_GameData));
-	memcpy_s(&render_data->latest_data, sizeof(MG_GameData), &render_data->instance->game_data, sizeof(MG_GameData));
-
-	// copy the object list from the game data to the render data
-	render_data->latest_data.object_list = NULL;
-	MG_Object_LL* current = render_data->instance->game_data.object_list;
-	while (current)
-	{
-		if (current->data)
-		{
-			MG_Object_LL* new_node = calloc(1, sizeof(MG_Object_LL));
-			if (!new_node) return;
-			new_node->data = current->data;
-			new_node->next = render_data->latest_data.object_list;
-			render_data->latest_data.object_list = new_node;
-		}
-		current = current->next;
-	}
-
-	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
-	return;
 }

@@ -38,6 +38,8 @@ int MG_logic_loop(void* MG_instance)
 
 			// render thread only gets to interact with objects between every object process
 			// this waits until render thread is done copying object data
+			// this also means that a frame render could happen between any object processes
+			// [TODO] see if this causes a problem
 			while (game_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD);
 			game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD;
 
@@ -49,7 +51,7 @@ int MG_logic_loop(void* MG_instance)
 				{
 					component = (MG_Component*)current_comp->data;
 
-					if (component && component->type == MG_COMPONENT_TYPE_SCRIPT)
+					if (component && component->on_update)
 					{
 						component->on_update(component, component->data, game_data->delta_time);
 					}
@@ -104,19 +106,9 @@ int MG_logic_loop(void* MG_instance)
 
 void MG_logic_free(MG_GameData* game_data)
 {
-	if (!game_data) return;
-	// free all objects
-	MG_Object_LL* current = game_data->object_list;
-	MG_Object_LL* next = NULL;
-	while (current)
-	{
-		next = current->next;
-		MG_object_free_components((MG_Object*)current->data);
-		free(current->data);
-		free(current);
-		current = next;
-	}
-	game_data->object_list = NULL;
-	game_data->object_count = 0;
-	game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+	if (!game_data)
+		return;
+
+	MG_LL_Free(game_data->object_list, MG_object_delete_by_ptr);
+	free(game_data);
 }

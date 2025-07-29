@@ -2,14 +2,11 @@
 
 #include "MG_Model.h"
 
-#define MG_COMPONENT_TYPES_RESERVED 0xF0000000
 typedef enum
 {
-	MG_COMPONENT_TYPE_NONE = 0 | MG_COMPONENT_TYPES_RESERVED,
-	MG_COMPONENT_TYPE_MODEL = 1 | MG_COMPONENT_TYPES_RESERVED,
-	MG_COMPONENT_TYPE_SCRIPT = 2 | MG_COMPONENT_TYPES_RESERVED,
-} MG_ComponentTypes;
-#undef MG_COMPONENT_TYPES_RESERVED
+	MG_COMPONENT_TYPE_MODEL = 1 << 1,
+	MG_COMPONENT_TYPE_TRANSFORM = 1 << 2,
+} MG_ComponentFlags;
 
 typedef enum
 {
@@ -21,10 +18,11 @@ typedef enum
 
 typedef struct MG_Component
 {
-	MG_ComponentTypes type;
+	uint32_t id;
 	struct MG_Object* owner;
 
 	void* data;
+	size_t data_size;
 	MG_ComponentFuncResult (*on_update)(struct MG_Component* self, void* data, float delta_time);
 	void (*on_destroy)(struct MG_Component* self, void* data);
 

@@ -140,17 +140,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c" />
-    <ClCompile Include="MG_LL.c" />
+    <ClCompile Include="src\MG_component.c" />
+    <ClCompile Include="src\MG_LL.c" />
     <ClCompile Include="src\MG_load_model.c" />
     <ClCompile Include="src\MG_logic.c" />
     <ClCompile Include="src\MG_main.c" />
     <ClCompile Include="src\MG_object.c" />
     <ClCompile Include="src\MG_render.c" />
     <ClCompile Include="src\MG_shaders.c" />
+    <ClCompile Include="src\MG_transform.c" />
     <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\MG_component.h" />
     <ClInclude Include="inc\MG_include.h" />
+    <ClInclude Include="inc\MG_LL.h" />
     <ClInclude Include="inc\MG_load_model.h" />
     <ClInclude Include="inc\MG_logic.h" />
     <ClInclude Include="inc\MG_main.h" />
@@ -168,7 +172,6 @@
     <ClInclude Include="inc\stc\MG_Shader.h" />
     <ClInclude Include="inc\stc\MG_Transform.h" />
     <ClInclude Include="inc\stc\MG_WindowData.h" />
-    <ClInclude Include="MG_LL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

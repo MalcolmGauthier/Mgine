@@ -2,6 +2,7 @@
 
 #include "MG_include.h"
 #include "stc/MG_object.h"
+#include "MG_component.h"
 
 uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*));
 uint64_t MG_object_create_by_copy(MG_Object* object);
@@ -14,15 +15,16 @@ MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id);
 MG_Object_LL* MG_object_get_all(MG_Instance* instance);
 MG_Object_LL* MG_object_get_all_orphans(MG_Instance* instance);
 MG_Object_LL* MG_object_get_all_with_flags(MG_Instance* instance, uint32_t flags);
-MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, MG_ComponentTypes type);
+MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, uint32_t type);
 MG_Object_LL* MG_object_get_all_with_component_flags(MG_Instance* instance, uint32_t flags);
 
 // frees the memory used by the component linked list. this does not call the component's on_destroy functions.
 void MG_object_free_components(MG_Object* object);
 
 int MG_object_delete(MG_Instance* instance, uint64_t id);
-int MG_object_delete_by_ptr(MG_Instance* instance, MG_Object* object);
+// returns void for compatibility with LL functions
+void MG_object_delete_by_ptr(MG_Object* object);
 int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id);
 int MG_object_delete_all_with_flags(MG_Instance* instance, uint32_t flags);
-int MG_object_delete_all_with_component(MG_Instance* instance, MG_ComponentTypes type);
+int MG_object_delete_all_with_component(MG_Instance* instance, uint32_t type);
 int MG_object_delete_all_with_component_flags(MG_Instance* instance, uint32_t flags);

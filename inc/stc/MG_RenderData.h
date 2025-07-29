@@ -8,8 +8,10 @@ typedef struct MG_RenderData
 
 	MG_GameData old_data;
 	MG_GameData latest_data;
+	// 0 = old data, 1 = latest data; 0 <= interp_value <= 1
+	float interp_value;
 
-	struct MG_Mesh_LL* transparency_list;
+	MG_Mesh_LL* transparency_list;
 	GLuint accum_tex;
 	GLuint reveal_tex;
 	GLuint OIT_FBO;
