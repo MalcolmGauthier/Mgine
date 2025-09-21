@@ -53,7 +53,7 @@ int MG_logic_loop(void* MG_instance)
 
 					if (component && component->on_update)
 					{
-						component->on_update(component, component->data, game_data->delta_time);
+						component->on_update(component, game_data->delta_time);
 					}
 					current_comp = current_comp->next;
 				}
@@ -92,10 +92,12 @@ int MG_logic_loop(void* MG_instance)
 			uint32_t sleep_ms = (uint32_t)((time_remaining * 1000) / timer_frequency);
 			if (sleep_ms > 1) SDL_Delay(sleep_ms - 1);
 				
-			while ((current_time - last_tick_time) < counter_ticks_per_game_tick);
+			while ((SDL_GetPerformanceCounter() - last_tick_time) < counter_ticks_per_game_tick);
+			current_time = SDL_GetPerformanceCounter();
 		}
 
 		game_data->delta_time = (float)(current_time - last_tick_time) / timer_frequency;
+		game_data->uptime = current_time / timer_frequency;
 
 		last_tick_time = current_time;
 		game_data->global_timer++;
@@ -110,5 +112,6 @@ void MG_logic_free(MG_GameData* game_data)
 		return;
 
 	MG_LL_Free(game_data->object_list, MG_object_delete_by_ptr);
-	free(game_data);
+	// at the moment this function is only used with copies and not pointers
+	//free(game_data);
 }

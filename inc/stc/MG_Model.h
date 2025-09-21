@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_Model.h"
 #include "MG_Component.h"
 #include "MG_Object.h"
 #include "MG_Shader.h"
@@ -24,17 +23,17 @@ typedef struct MG_Material
 	GLuint diffuse_texture;
 	char* specular_texture_path;
 	GLuint specular_texture;
+
+	bool contains_transparency;
+
+	MG_Shader* shader;
 }
 MG_Material;
 
-struct MG_AABB
-{
-	float min[3];
-	float max[3];
-};
-
 typedef struct MG_Mesh
 {
+	struct MG_Model* parent;
+
 	MG_Vertex* vertices;
 	uint32_t vertex_count;
 
@@ -43,14 +42,27 @@ typedef struct MG_Mesh
 
 	GLuint VAO, VBO, EBO;
 	MG_Material* material;
-	MG_Shader* shader;
 
-	struct MG_AABB bounding_box;
-	bool contains_transparency;
+	struct MG_AABB
+	{
+		MG_Vec3 min;
+		MG_Vec3 max;
+	} bounding_box;
+
+	bool double_sided;
 }
 MG_Mesh;
 
+// for use in the render loop, where unsorted meshes still need info on where they are
+typedef struct MG_TransparentDraw
+{
+	MG_Mesh* mesh;
+	MG_Matrix* model_matrix;
+}
+MG_TransparentDraw;
+
 typedef MG_Generic_LL MG_Mesh_LL;
+typedef MG_Generic_LL MG_TransparentDraw_LL;
 
 typedef struct MG_Model
 {

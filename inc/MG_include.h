@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdarg.h>
+
+#include <Windows.h>
+#include <timeapi.h>
 
 ///////////////////////////////
 // DEFAULT SETTINGS
@@ -41,5 +45,5 @@
 // RENDERING
 #define MG_R_OIT_ENABLED true
 #define MG_R_INTERPOLATION_ENABLED true
-#define MG_R_INTERPOLATION_PREDICTION true
-#define MG_R_INTERPOLATION_TRIPLE_BUFFER false
+#define MG_R_INTERPOLATION_PREDICTION false
+#define MG_R_INTERPOLATION_TRIPLE_BUFFER true

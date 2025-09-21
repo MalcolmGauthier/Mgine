@@ -16,7 +16,10 @@ typedef struct MG_Instance
 	MG_GameDataLockOwner lock_owner;
 
 	int gl_error_code;
+	int instance_exit_code;
+	uint64_t instance_id;
 
 	bool active : 1;
+	bool initialized : 1;
 }
 MG_Instance;

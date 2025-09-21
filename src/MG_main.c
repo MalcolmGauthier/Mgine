@@ -7,8 +7,7 @@
 
 #include "MG_main.h"
 
-// kept here to keep private
-static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context);
+static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context, bool no_window);
 static int MG_gl_init(SDL_GLContext gl_context);
 static void MG_instance_init(MG_Instance* instance);
 
@@ -18,7 +17,7 @@ int main(int argc, char* argv[])
     // being able to create new instances of itself in the future.
     MG_Instance inst = { 0 };
 
-    // Mgine operates on 3 threads. 
+    // Mgine operates on 3 threads (4 if you include this one, which is the debug/root thread). 
     // The event thread handles I/O. It responds to window events and any keyboard/mouse/controller inputs.
     // The logic thread runs the game's logic. By default it runs at 60 ticks per second.
     // The render thread renders the game to the screen at a rate hopefully higher than that of the logic thread, using interpolation.
@@ -26,7 +25,7 @@ int main(int argc, char* argv[])
 	SDL_Thread* logic_thread = NULL;
 	SDL_Thread* render_thread = NULL;
 
-    if (MG_sdl_init(&inst, inst.gl_context))
+    if (MG_sdl_init(&inst, inst.gl_context, false))
     {
 		printf("Failed to initialize SDL\n");
 		return -1;
@@ -41,6 +40,10 @@ int main(int argc, char* argv[])
     }
 
 	MG_instance_init(&inst);
+
+    // windows is stupid, and without this any sleep calls cannot be guarenteed to last less than ~16ms
+    // a single call to this is enough to set the option for all threads, but i couldn't cleanly fit this into the main thread
+    timeBeginPeriod(1);
 
     // here the threads are created. This main thread here counts as a 4th thread, but it's only used for
 	// debugging and error monitoring.
@@ -94,17 +97,86 @@ int main(int argc, char* argv[])
     SDL_GL_DeleteContext(inst.gl_context);
     SDL_DestroyWindow(inst.window);
     SDL_Quit();
+    timeEndPeriod(1);
     return 0;
 }
 
+// creates a new instance of the engine, using the memory provided in out_instance.
+// this uses alot of memory and processing power, whatever you're doing better be worth it.
+// turning on no_window will make this instance invisible and in the background.
+// it is highly advised to not lose track of the pointer to this, and to make sure to free it by changing the active boolean.
+// code-wise, it's nearly indentical to main. I would've had main just call this function then do nothing, but that would be a waste of a root thread.
+ void MG_create_instance(MG_Instance* out_instance, bool no_window)
+{
+    MG_Instance* inst;
+    // if out_instance is null, the creator cannot keep track of it. very unlikely to be useful, so we don't risk a memory leak.
+    if (!out_instance)
+        return;
+
+    // zero out to prevent initialization errors. it would be cool to provide your own starting point, but then
+    // dumb people could mess with the gl_context pointers or something. plus, i don't want to take the time to verify that
+    // doing such a stupid move would always work.
+    *out_instance = (MG_Instance){ 0 };
+    inst = out_instance;
+
+    SDL_Thread* event_thread = NULL;
+    SDL_Thread* logic_thread = NULL;
+    SDL_Thread* render_thread = NULL;
+
+    if (MG_sdl_init(inst, inst->gl_context, no_window))
+    {
+        printf("Failed to initialize SDL\n");
+        inst->instance_exit_code = -1;
+        return;
+    }
+
+    if (!no_window && MG_gl_init(inst->gl_context))
+    {
+        printf("Failed to initialize OpenGL\n");
+        SDL_DestroyWindow(inst->window);
+        SDL_Quit();
+        inst->instance_exit_code = -2;
+        return;
+    }
+
+    MG_instance_init(inst);
+
+    event_thread = SDL_CreateThread(MG_window_loop, "MGine WindowEvents", inst);
+    logic_thread = SDL_CreateThread(MG_logic_loop, "MGine Logic", inst);
+    if (!no_window)
+        render_thread = SDL_CreateThread(MG_render_loop, "MGine Render", inst);
+
+    // no debugging in child instances
+    while (inst->active)
+    {
+        SDL_PumpEvents();
+        SDL_Delay(1);
+    }
+
+    SDL_WaitThread(event_thread, NULL);
+    SDL_WaitThread(logic_thread, NULL);
+    if (!no_window)
+    {
+        SDL_WaitThread(render_thread, NULL);
+        SDL_GL_DeleteContext(inst->gl_context);
+        SDL_DestroyWindow(inst->window);
+    }
+    SDL_Quit();
+    free(inst);
+    return;
+}
+
 // Initializes SDL and creates a window with an OpenGL context.
-static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context)
+static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_window)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("SDL_Init failed: %s\n", SDL_GetError());
         return -1;
     }
+
+    if (no_window)
+        return 0;
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -159,8 +231,6 @@ static void MG_instance_init(MG_Instance* instance)
 	if (!instance)
 		return;
 
-    instance->active = true;
-
 	instance->window_data.instance = instance;
     instance->window_data.width = MG_W_WIDTH;
 	instance->window_data.height = MG_W_HEIGHT;
@@ -175,4 +245,13 @@ static void MG_instance_init(MG_Instance* instance)
 
 	instance->render_data.instance = instance;
 	instance->render_data.transparency_list = NULL;
+
+    instance->active = true;
+    QueryPerformanceCounter(instance->instance_id);
+}
+
+// Frees the memory used by the instance (objects, components, data, etc.)
+static void MG_instance_free(MG_Instance* instance)
+{
+    //TODO
 }

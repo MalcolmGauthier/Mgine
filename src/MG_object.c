@@ -125,6 +125,28 @@ MG_Object_LL* MG_object_get_all(MG_Instance* instance)
 	return instance->game_data.object_list;
 }
 
+MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
+{
+	if (!instance)
+	{
+		printf("Failed to get top-level objects: instance is NULL\n");
+		return NULL;
+	}
+
+	MG_Object_LL* top_level_objects = NULL;
+	MG_Object_LL* current = instance->game_data.object_list;
+	while (current)
+	{
+		if (!((MG_Object*)current->data)->parent)
+		{
+			MG_LL_Add(&top_level_objects, current->data);
+		}
+		current = current->next;
+	}
+
+	return top_level_objects;
+}
+
 
 void MG_object_free_components(MG_Object* object)
 {

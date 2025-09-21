@@ -13,7 +13,8 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* source);
 
 MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id);
 MG_Object_LL* MG_object_get_all(MG_Instance* instance);
-MG_Object_LL* MG_object_get_all_orphans(MG_Instance* instance);
+// returns a linked list of all top-level objects (objects without a parent)
+MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance);
 MG_Object_LL* MG_object_get_all_with_flags(MG_Instance* instance, uint32_t flags);
 MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, uint32_t type);
 MG_Object_LL* MG_object_get_all_with_component_flags(MG_Instance* instance, uint32_t flags);

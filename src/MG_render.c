@@ -1,6 +1,5 @@
 #include "MG_render.h"
 
-// kept here to keep private
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
 static void MG_render_component(MG_RenderData* render_data, MG_Component* component);
 static void MG_render_model(MG_RenderData* render_data, MG_Model* model);
@@ -17,7 +16,7 @@ int MG_render_loop(void* MG_instance)
 
 	MG_Instance* instance = (MG_Instance*)MG_instance;
 	MG_RenderData* render_data = &instance->render_data;
-	MG_Mesh_LL* transparency_ll = calloc(1, sizeof(MG_Mesh_LL));
+	MG_TransparentDraw_LL* transparency_ll = calloc(1, sizeof(MG_TransparentDraw_LL));
 	if (!transparency_ll)
 	{
 		printf("Render loop crash: Failed to allocate memory for transparency list\n");
@@ -38,27 +37,31 @@ int MG_render_loop(void* MG_instance)
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glEnable(GL_CULL_FACE);
 
+		// STEP 1: UPDATE GAME DATA
 		MG_render_update_data(render_data);
+		// STEP 2: UPDATE INTERPOLATION VALUE
 		MG_render_update_interp_value(render_data);
 
+		// STEP 3: RENDER ALL TOP-LEVEL OBJECTS
 		MG_Object_LL* current = render_data->latest_data.object_list;
 		while (current)
 		{
-			if (current->data)
+			if (current->data && !((MG_Object*)current->data)->parent)
 			{
-				//MG_render_object(current->data, &transparency_ll);
+				MG_render_object(render_data, current->data);
 			}
 
 			current = current->next;
 		}
 
+		// STEP 4: RENDER TRANSPARENCY
 		glDisable(GL_CULL_FACE);
 		MG_render_OIT(render_data);
 
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	MG_LL_Free(transparency_ll);
+	MG_LL_Free_LL_Only(transparency_ll);
 	return 0;
 }
 
@@ -67,14 +70,23 @@ static void MG_render_update_data(MG_RenderData* render_data)
 	while (render_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD);
 	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
 
+	// in the case where for some reason ticks take longer than render frames, this will cause ticks to be skipped,
+	// and interpolation could cause objects to take crazy paths.
 	if (render_data->instance->game_data.global_timer == render_data->latest_data.global_timer)
 	{
 		render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 		return;
 	}
 
-	MG_logic_free(&render_data->old_data);
-	memcpy_s(&render_data->old_data, sizeof(MG_GameData), &render_data->latest_data, sizeof(MG_GameData));
+	if (MG_R_INTERPOLATION_ENABLED)
+	{
+		MG_logic_free(&render_data->old_data);
+		memcpy_s(&render_data->old_data, sizeof(MG_GameData), &render_data->latest_data, sizeof(MG_GameData));
+	}
+	else
+	{
+		MG_logic_free(&render_data->latest_data);
+	}
 	memcpy_s(&render_data->latest_data, sizeof(MG_GameData), &render_data->instance->game_data, sizeof(MG_GameData));
 
 	// copy the object list from the game data to the render data
@@ -86,13 +98,34 @@ static void MG_render_update_data(MG_RenderData* render_data)
 
 static void MG_render_update_interp_value(MG_RenderData* render_data)
 {
-	// this is used to interpolate the values between frames
-	// for now, we just set it to the delta time
-	render_data->latest_data.delta_time = render_data->instance->game_data.delta_time;
+	if (!MG_R_INTERPOLATION_ENABLED || render_data->latest_data.delta_time <= 0)
+	{
+		render_data->interp_value = 1.0f;
+		return;
+	}
+
+	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - render_data->latest_data.uptime;
+
+	if (render_data->latest_data.tickrate != 0)
+	{
+		float tick_len = 1.0f / render_data->latest_data.tickrate;
+		render_data->interp_value = time_since_latest / tick_len;
+	}
+	else
+	{
+		render_data->interp_value = time_since_latest / render_data->latest_data.delta_time;
+	}
+
+	// if it's been more than some time since the latest data, freeze.
+	if (!MG_R_INTERPOLATION_PREDICTION || time_since_latest >= 1.0f)
+	{
+		if (render_data->interp_value < 0.0f) render_data->interp_value = 0.0f;
+		if (render_data->interp_value > 1.0f) render_data->interp_value = 1.0f;
+	}
 }
 
 
-// Initializes the OIT (Order Independent Transparency) rendering system.
+// this needs to be called ... 
 static void MG_render_OIT_init(MG_RenderData* render_data)
 {
 	glGenTextures(1, &render_data->accum_tex);
@@ -120,24 +153,53 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	if (object->flags & MG_OBJECT_FLAG_INVISIBLE)
 		return;
 
+	MG_Object_LL* children = object->children;
+	while (children && children->data)
+	{
+		MG_render_object(render_data, children->data);
+		children = children->next;
+	}
 
-
-	//MG_render_component(render_data, object->components->data);
+	MG_render_components(render_data, object->components->data);
 }
 
-static void MG_render_component(MG_RenderData* render_data, MG_Component* component)
+static void MG_render_components(MG_RenderData* render_data, MG_Component_LL* components)
 {
-	if (!component) return;
+	if (!components) return;
 
-	if (!(component->flags & MG_COMPONENT_TYPE_MODEL))
+	MG_Component_LL* current = components;
+	MG_Model* current_model = NULL;
+	MG_Matrix* current_matrix = NULL;
+
+	while (current && current->data)
+	{
+		MG_Component* component = current->data;
+		current_model = NULL;
+		current_matrix = NULL;
+
+		if (component->id == MG_COMPONENT_TRANSFORM_ID)
+		{
+			current_matrix = &((MG_ComponentTransform*)component)->transform_matrix;
+			continue;
+		}
+
+		if (component->id == MG_COMPONENT_MODEL_ID)
+		{
+			current_model = &((MG_ComponentModel*)component)->model;
+			continue;
+		}
+	}
+
+	if (current_model && current_matrix)
+	{
+		MG_render_model(render_data, current_model, current_matrix);
+	}
+}
+
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos)
+{
+	if (!model)
 		return;
-
-	MG_Model model = *(MG_Model*)component->data;
-}
-
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model)
-{
-	if (!model) return;
 
 	MG_Mesh* mesh;
 	for (uint32_t i = 0; i < model->mesh_count; i++)
@@ -148,20 +210,28 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model)
 		if (mesh->contains_transparency)
 		{
 			MG_Mesh_LL* new_node = calloc(1, sizeof(MG_Mesh_LL));
-			if (!new_node) return;
-			while (render_data->transparency_list->next)
+			if (!new_node)
+				return;
+
+			MG_Mesh_LL* current = render_data->transparency_list;
+			while (current->next)
 			{
-				render_data->transparency_list = render_data->transparency_list->next;
+				current = current->next;
 			}
 			new_node->data = mesh;
 			render_data->transparency_list->next = new_node;
-			return;
+			continue;
 		}
 
 		if (mesh->material)
 		{
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+
+			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
+
+			//TODO: set up shader variables using mesh->material properties
 		}
 
 		glBindVertexArray(mesh->VAO);
@@ -188,12 +258,15 @@ static void MG_render_OIT(MG_RenderData* render_data)
 
 		if (mesh->shader)
 		{
-			//UseShader(mesh->shader);
+			//MG_shader_use(mesh->shader);
 		}
 
 		if (mesh->material)
 		{
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+
+			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
 		}
 
