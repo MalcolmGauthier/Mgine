@@ -29,6 +29,9 @@ MG_Model load_model(const char* path)
         MG_Mesh* mesh = &model.meshes[m];
         mesh->vertex_count = ai_mesh->mNumVertices;
         mesh->vertices = calloc(mesh->vertex_count, sizeof(MG_Vertex));
+        // this prevents the minimum/maximum of being stuck at 0
+        mesh->bounding_box.min = (MG_Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+        mesh->bounding_box.max = (MG_Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
         for (unsigned int i = 0; i < ai_mesh->mNumVertices; i++)
         {
@@ -55,6 +58,13 @@ MG_Model load_model(const char* path)
                 v->color[1] = 1.0f;
                 v->color[2] = 1.0f;
             }*/
+
+			if (v->position[0] < mesh->bounding_box.min.x) mesh->bounding_box.min.x = v->position[0];
+			if (v->position[0] > mesh->bounding_box.max.x) mesh->bounding_box.max.x = v->position[0];
+			if (v->position[1] < mesh->bounding_box.min.y) mesh->bounding_box.min.y = v->position[1];
+			if (v->position[1] > mesh->bounding_box.max.y) mesh->bounding_box.max.y = v->position[1];
+			if (v->position[2] < mesh->bounding_box.min.z) mesh->bounding_box.min.z = v->position[2];
+			if (v->position[2] > mesh->bounding_box.max.z) mesh->bounding_box.max.z = v->position[2];
         }
 
         mesh->index_count = ai_mesh->mNumFaces * 3;

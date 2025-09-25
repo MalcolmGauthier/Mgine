@@ -42,10 +42,12 @@ int MG_render_loop(void* MG_instance)
 		// STEP 2: UPDATE INTERPOLATION VALUE
 		MG_render_update_interp_value(render_data);
 
-		// STEP 3: RENDER ALL TOP-LEVEL OBJECTS
+		// STEP 3: RENDER ALL OPAQUE OBJECTS
 		MG_Object_LL* current = render_data->latest_data.object_list;
 		while (current)
 		{
+			// render function goes down child list, so only call orphan objects
+			// TODO: infinite loop possible here, create something that checks for infinite loops when child is added
 			if (current->data && !((MG_Object*)current->data)->parent)
 			{
 				MG_render_object(render_data, current->data);
@@ -124,6 +126,54 @@ static void MG_render_update_interp_value(MG_RenderData* render_data)
 	}
 }
 
+static MG_Matrix MG_render_calculate_interp_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint32_t obj_id)
+{
+	if (render_data->interp_value == 1.f)
+		return *new_matrix;
+
+	MG_Transform* old_transform = NULL;
+	vec4 old_quat;
+	MG_Transform new_transform = { 0 };
+	vec4 new_quat;
+	MG_Transform interp_transform;
+	vec4 interp_quat;
+	MG_Matrix output;
+
+	// can't call MG_object_find_by_id here because it wants the instance, but we can only provide game data.
+	MG_Object_LL* current = render_data->old_data.object_list;
+	while (current)
+	{
+		if (((MG_Object*)current->data)->id == obj_id)
+		{
+			MG_ComponentTransform* t = MG_object_get_component(current->data, MG_COMPONENT_TRANSFORM_ID);
+			if (!t) return *new_matrix;
+			old_transform = &t->transform;
+			break;
+		}
+		current = current->next;
+	}
+
+	// this happens when an object is brand new or gained a transform component over a frame
+	if (!old_transform)
+		return *new_matrix;
+
+	// can't use glm_decompose because it copies a vec4 into translation, which would be a memory overrun in this scenario
+	glm_vec3_copy(&new_matrix->m30, &new_transform.position);
+	glm_decompose_rs(new_matrix, new_quat, &new_transform.scale);
+	glm_euler_yzx_quat(&new_transform.rotation, new_quat);
+	glm_euler_yzx_quat(&old_transform->rotation, old_quat);
+
+	glm_vec3_lerp(&old_transform->position, &new_transform.position, render_data->interp_value, &interp_transform.position);
+	glm_quat_slerp(old_quat, new_quat, render_data->interp_value, interp_quat);
+	glm_vec3_lerp(&old_transform->scale, &new_transform.scale, render_data->interp_value, &interp_transform.scale);
+
+	glm_mat4_identity(&output);
+	glm_translate(&output, &interp_transform.position);
+	glm_quat_rotate(&output, interp_quat, &output);
+	glm_scale(&output, &interp_transform.scale);
+	return output;
+}
+
 
 // this needs to be called ... 
 static void MG_render_OIT_init(MG_RenderData* render_data)
@@ -160,22 +210,15 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 		children = children->next;
 	}
 
-	MG_render_components(render_data, object->components->data);
-}
+	if (!object->components) return;
 
-static void MG_render_components(MG_RenderData* render_data, MG_Component_LL* components)
-{
-	if (!components) return;
-
-	MG_Component_LL* current = components;
+	MG_Component_LL* current = object->components;
 	MG_Model* current_model = NULL;
 	MG_Matrix* current_matrix = NULL;
 
 	while (current && current->data)
 	{
 		MG_Component* component = current->data;
-		current_model = NULL;
-		current_matrix = NULL;
 
 		if (component->id == MG_COMPONENT_TRANSFORM_ID)
 		{
@@ -192,14 +235,16 @@ static void MG_render_components(MG_RenderData* render_data, MG_Component_LL* co
 
 	if (current_model && current_matrix)
 	{
-		MG_render_model(render_data, current_model, current_matrix);
+		MG_render_model(render_data, current_model, current_matrix, object->id);
 	}
 }
 
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos)
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int32_t obj_id)
 {
 	if (!model)
 		return;
+
+	MG_Matrix render_matrix = MG_render_calculate_interp_matrix(render_data, pos, obj_id);
 
 	MG_Mesh* mesh;
 	for (uint32_t i = 0; i < model->mesh_count; i++)
@@ -207,19 +252,15 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		mesh = &model->meshes[i];
 
 		// if the mesh contains transparency, add it to the transparency list for later
-		if (mesh->contains_transparency)
+		if (mesh->material->contains_transparency)
 		{
-			MG_Mesh_LL* new_node = calloc(1, sizeof(MG_Mesh_LL));
+			MG_TransparentDraw* new_node = calloc(1, sizeof(MG_TransparentDraw));
 			if (!new_node)
 				return;
 
-			MG_Mesh_LL* current = render_data->transparency_list;
-			while (current->next)
-			{
-				current = current->next;
-			}
-			new_node->data = mesh;
-			render_data->transparency_list->next = new_node;
+			new_node->mesh = mesh;
+			new_node->render_matrix = render_matrix;
+			MG_LL_Add(render_data->transparency_list, new_node);
 			continue;
 		}
 
@@ -256,7 +297,7 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		mesh = (MG_Mesh*)render_data->transparency_list->data;
 		if (!mesh) continue;
 
-		if (mesh->shader)
+		if (mesh->material->shader)
 		{
 			//MG_shader_use(mesh->shader);
 		}
@@ -288,4 +329,6 @@ static void MG_render_OIT(MG_RenderData* render_data)
 	//glUniform1i(glGetUniformLocation(compositeShader, "uReveal"), 1);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	MG_LL_Free(render_data->transparency_list, NULL);
 }

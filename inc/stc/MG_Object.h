@@ -36,8 +36,6 @@ typedef struct MG_Object
 	uint64_t id;
 	uint32_t flags;
 
-	MG_Transform transform;
-
 	void (*on_load)(struct MG_Object* self);
 	void (*on_tick)(struct MG_Object* self);
 }

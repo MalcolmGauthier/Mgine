@@ -2,21 +2,6 @@
 
 #include "MG_include.h"
 
-typedef struct MG_Transform
-{
-	float X;
-	float Y;
-	float Z;
-
-	float pitch;
-	float yaw;
-	float roll;
-
-	float scale_x;
-	float scale_y;
-	float scale_z;
-} MG_Transform;
-
 typedef struct
 {
 	union
@@ -36,20 +21,37 @@ typedef struct
 	{
 		float x;
 		float r;
+		float pitch;
 	};
 	union
 	{
 		float y;
 		float g;
+		float yaw;
 	};
 	union
 	{
 		float z;
 		float b;
+		float roll;
 	};
 } MG_Vec3;
 
+typedef struct MG_Transform
+{
+	MG_Vec3 position;
+	MG_Vec3 rotation;
+	MG_Vec3 scale;
+}
+MG_Transform;
+
 typedef struct
 {
-	mat4 matrix;
-} MG_Matrix;
+	float m00, m01, m02, m03;
+	float m10, m11, m12, m13;
+	float m20, m21, m22, m23;
+	float m30, m31, m32, m33;
+	// casting this struct directly to a mat4 is technically UB.
+	// however, patching that out means losing assignment copying.
+}
+MG_Matrix;

@@ -148,6 +148,54 @@ MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
 }
 
 
+int MG_object_add_child(MG_Object* parent, MG_Object* child)
+{
+	if (!parent || !child)
+	{
+		printf("Failed to add child: parent or child is NULL\n");
+		return -1;
+	}
+
+	// check to see if adding child would cause infinite loop
+	MG_Object* current = parent;
+	while (current->parent)
+	{
+		if (current->parent == child)
+		{
+			printf("Failed to add child: child is parent of new parent\n");
+			return -2;
+		}
+
+		current = current->parent;
+	}
+
+
+	if (child->parent)
+	{
+		MG_object_remove_child(child->parent, child->id);
+	}
+
+	child->parent = parent;
+	MG_LL_Add(&parent->children, child);
+	return 0;
+}
+
+int MG_object_remove_child(MG_Object* parent, uint64_t child_id)
+{
+	if (!parent)
+	{
+		printf("Failed to remove child: parent is NULL\n");
+		return -1;
+	}
+
+	if (MG_LL_Remove(parent->children, MG_object_get_by_id(parent->instance, child_id)))
+		return 0;
+
+	printf("Failed to remove child with ID %u: not found\n", (uint32_t)child_id);
+	return -2;
+}
+
+
 void MG_object_free_components(MG_Object* object)
 {
 	if (!object)
@@ -203,7 +251,7 @@ int MG_object_delete(MG_Instance* instance, uint64_t id)
 				MG_Component* component = (MG_Component*)object->components->data;
 				if (component->on_destroy)
 				{
-					component->on_destroy(component, component->data);
+					component->on_destroy(component);
 				}
 				object->components = object->components->next;
 			}

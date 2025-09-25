@@ -167,6 +167,70 @@ int MG_shader_compile(MG_Shader* shader)
 		return -4;
 	}
 
+	glDeleteShader(vertex_shader);
+	glDeleteShader(fragment_shader);
 	shader->status = MG_SHADER_STATUS_OK;
 	return 0;
+}
+
+void MG_shader_use(MG_Shader* shader)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to use shader: shader is NULL or not compiled\n");
+		return;
+	}
+
+	glUseProgram(shader->ID);
+}
+
+void MG_shader_set_int(MG_Shader* shader, const char* name, int value)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to set shader int: shader is NULL or not compiled\n");
+		return;
+	}
+	glUniform1i(glGetUniformLocation(shader->ID, name), value);
+}
+
+void MG_shader_set_float(MG_Shader* shader, const char* name, float value)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to set shader float: shader is NULL or not compiled\n");
+		return;
+	}
+	glUniform1f(glGetUniformLocation(shader->ID, name), value);
+}
+
+void MG_shader_set_vec2(MG_Shader* shader, const char* name, MG_Vec2 vec)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to set shader vec2: shader is NULL or not compiled\n");
+		return;
+	}
+	glUniform2fv(glGetUniformLocation(shader->ID, name), 1, &vec);
+}
+
+void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 vec)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to set shader vec3: shader is NULL or not compiled\n");
+		return;
+	}
+	glUniform3fv(glGetUniformLocation(shader->ID, name), 1, &vec);
+}
+
+void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix mat)
+{
+	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Warning: Failed to set shader mat4: shader is NULL or not compiled\n");
+		return;
+	}
+	
+	glUniformMatrix4fv(glGetUniformLocation(shader->ID, name), 1, false, &mat);
 }

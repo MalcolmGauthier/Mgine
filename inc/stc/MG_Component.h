@@ -35,8 +35,8 @@ typedef struct MG_ComponentTemplate
 	uint32_t id;
 	size_t size;
 
-	MG_ComponentFuncResult(*on_create)(struct MG_Component* self);
-	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time);
+	MG_ComponentFuncResult (*on_create)(struct MG_Component* self);
+	MG_ComponentFuncResult (*on_update)(struct MG_Component* self, float delta_time);
 	void (*on_destroy)(struct MG_Component* self);
 }
 MG_ComponentTemplate;

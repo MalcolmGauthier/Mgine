@@ -57,7 +57,7 @@ MG_Mesh;
 typedef struct MG_TransparentDraw
 {
 	MG_Mesh* mesh;
-	MG_Matrix* model_matrix;
+	MG_Matrix render_matrix;
 }
 MG_TransparentDraw;
 

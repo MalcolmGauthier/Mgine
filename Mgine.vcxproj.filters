@@ -37,9 +37,6 @@
     <None Include="shaders\MG_wboit_t_frag.glsl">
       <Filter>Fichiers shaders</Filter>
     </None>
-    <None Include="shaders\MG_wboit_t_vert.glsl">
-      <Filter>Fichiers shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c">

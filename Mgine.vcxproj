@@ -136,7 +136,6 @@
     <None Include="shaders\MG_wboit_o_frag.glsl" />
     <None Include="shaders\MG_wboit_o_vert.glsl" />
     <None Include="shaders\MG_wboit_t_frag.glsl" />
-    <None Include="shaders\MG_wboit_t_vert.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c" />

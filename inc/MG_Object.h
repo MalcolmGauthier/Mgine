@@ -19,6 +19,14 @@ MG_Object_LL* MG_object_get_all_with_flags(MG_Instance* instance, uint32_t flags
 MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, uint32_t type);
 MG_Object_LL* MG_object_get_all_with_component_flags(MG_Instance* instance, uint32_t flags);
 
+int MG_object_add_child(MG_Object* parent, MG_Object* child);
+int MG_object_remove_child(MG_Object* parent, uint64_t child_id);
+
+int MG_object_add_component(MG_Object* object, MG_Component* component);
+int MG_object_remove_component(MG_Object* object, uint32_t type);
+MG_Component* MG_object_get_component(MG_Object* object, uint32_t type);
+MG_Component_LL* MG_object_get_all_components(MG_Object* object);
+
 // frees the memory used by the component linked list. this does not call the component's on_destroy functions.
 void MG_object_free_components(MG_Object* object);
 

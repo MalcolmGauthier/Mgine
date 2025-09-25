@@ -1,72 +1,71 @@
 #include "MG_transform.h"
 
-MG_Vec3 MG_Get_Position(MG_Transform* transform)
+MG_Vec3 MG_transform_position_get(MG_Transform* transform)
 {
     if (!transform)
         return (MG_Vec3){ 0.0f, 0.0f, 0.0f };
 
-    return (MG_Vec3){ transform->X, transform->Y, transform->Z };
+    return (MG_Vec3){ transform->position.x, transform->position.y, transform->position.z };
 }
 
-MG_Vec3 MG_Get_Rotation(MG_Transform* transform)
+MG_Vec3 MG_transform_rotation_get(MG_Transform* transform)
 {
     if (!transform)
         return (MG_Vec3){ 0.0f, 0.0f, 0.0f };
-
-    return (MG_Vec3){ transform->pitch, transform->yaw, transform->roll };
+    
+    return (MG_Vec3){ transform->rotation.pitch, transform->rotation.yaw, transform->rotation.roll };
 }
 
-MG_Vec3 MG_Get_Scale(MG_Transform* transform)
+MG_Vec3 MG_transform_scale_get(MG_Transform* transform)
 {
     if (!transform)
         return (MG_Vec3){ 1.0f, 1.0f, 1.0f };
 
-    return (MG_Vec3){ transform->scale_x, transform->scale_y, transform->scale_z };
+    return (MG_Vec3){ transform->scale.x, transform->scale.y, transform->scale.z };
 }
 
-void MG_Set_Position(MG_Transform* transform, MG_Vec3 position)
+void MG_transform_position_set(MG_Transform* transform, MG_Vec3 position)
 {
     if (!transform)
         return;
-    transform->X = position.x;
-    transform->Y = position.y;
-    transform->Z = position.z;
+	transform->position = position;
 }
 
-void MG_Set_Rotation(MG_Transform* transform, MG_Vec3 rotation)
+void MG_transform_rotation_set(MG_Transform* transform, MG_Vec3 rotation)
 {
     if (!transform)
         return;
-    transform->pitch = rotation.x;
-    transform->yaw = rotation.y;
-    transform->roll = rotation.z;
+	transform->rotation = rotation;
 }
 
-void MG_Set_Scale(MG_Transform* transform, MG_Vec3 scale)
+void MG_transform_scale_set(MG_Transform* transform, MG_Vec3 scale)
 {
     if (!transform)
         return;
-    transform->scale_x = scale.x;
-    transform->scale_y = scale.y;
-    transform->scale_z = scale.z;
+	transform->scale = scale;
 }
 
-MG_Matrix MG_Get_Transform_Matrix(MG_Transform* transform)  
+MG_Matrix MG_transform_get_matrix(MG_Transform* transform)  
 {  
     if (!transform)  
-        return (MG_Matrix){ .matrix = GLM_MAT4_IDENTITY_INIT };  
+        return (MG_Matrix){ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };  
 
-    mat4 translation, rotation, scale, TR, output;
+    vec4 quat;
+    MG_Matrix result;
 
-    glm_translate_make(translation, (vec3){ transform->X, transform->Y, transform->Z });
-    glm_euler_xyz((vec3){ transform->pitch, transform->yaw, transform->roll }, rotation);
-    glm_scale_make(scale, (vec3){ transform->scale_x, transform->scale_y, transform->scale_z });
+	glm_mat4_identity(&result);
+	glm_translate(&result, &transform->position);
+	glm_euler_yzx_quat(&transform->rotation, quat);
+	glm_quat_rotate(&result, quat, &result);
+	glm_scale(&result, &transform->scale);
 
-    // Combine T * R * S  
-    glm_mul(translation, rotation, TR);
-    glm_mul(TR, scale, output);
-
-    MG_Matrix result = {0};
-    memcpy_s(result.matrix, sizeof(mat4), output, sizeof(mat4));
     return result;  
+}
+
+// update function for the transform component to recalculate the quaternion and matrix
+MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self, float delta_time)
+{
+	MG_ComponentTransform* t_self = (MG_ComponentTransform*)self;
+	t_self->transform_matrix = MG_transform_get_matrix(&t_self->transform);
+	return MG_COMPONENT_FUNC_RESULT_OK;
 }
