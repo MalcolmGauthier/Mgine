@@ -50,8 +50,17 @@ uint64_t MG_object_create_by_copy(MG_Object* object)
 		return -1;
 	}
 
-	// [TODO] copy linked lists
-	return MG_create_object(object->instance, object->parent, object->flags, object->on_load, object->on_tick);
+	MG_LL_Copy(object->children, MG_object_create_by_copy);
+	// can't use real copy function because that takes 2 params and LL_Copy only takes 1
+	MG_LL_Copy(object->components, MG_component_copy_untracked);
+	MG_Component_LL* c = object->components;
+	while (c && c->data)
+	{
+		((MG_Component*)c->data)->owner = object;
+		c = c->next;
+	}
+
+	return MG_object_create(object->instance, object->parent, object->flags, object->on_load, object->on_tick);
 }
 
 uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
@@ -62,7 +71,7 @@ uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, 
 		return -1;
 	}
 
-	return MG_create_object(parent_object->instance, parent_object, flags, on_load, on_tick);
+	return MG_object_create(parent_object->instance, parent_object, flags, on_load, on_tick);
 }
 
 MG_Object* MG_object_create_untracked_copy(MG_Object* source)
@@ -196,6 +205,28 @@ int MG_object_remove_child(MG_Object* parent, uint64_t child_id)
 }
 
 
+MG_Component* MG_object_get_component(MG_Object* object, uint32_t type)
+{
+	if (!object)
+	{
+		printf("Failed to get component: object is NULL\n");
+		return NULL;
+	}
+
+	MG_Component_LL* current = object->components;
+	while (current)
+	{
+		if (current->data && ((MG_Component*)current->data)->base->id == type)
+		{
+			return current->data;
+		}
+		current = current->next;
+	}
+
+	return NULL;
+}
+
+
 void MG_object_free_components(MG_Object* object)
 {
 	if (!object)
@@ -242,16 +273,16 @@ int MG_object_delete(MG_Instance* instance, uint64_t id)
 			{
 				MG_Object* child = (MG_Object*)object->children->data;
 				object->children = object->children->next;
-				MG_delete_object(instance, child->id);
+				MG_object_delete(instance, child->id);
 			}
 
 			// call on_destroy for all components
 			while (object->components && object->components->data)
 			{
 				MG_Component* component = (MG_Component*)object->components->data;
-				if (component->on_destroy)
+				if (component->base->on_destroy)
 				{
-					component->on_destroy(component);
+					component->base->on_destroy(component);
 				}
 				object->components = object->components->next;
 			}
@@ -289,7 +320,7 @@ int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)
 		return -1;
 	}
 
-	MG_Object* object = MG_get_object_by_id(instance, id);
+	MG_Object* object = MG_object_get_by_id(instance, id);
 	if (!object)
 	{
 		printf("Failed to delete object with ID %llu: not found\n", id);
@@ -307,5 +338,5 @@ int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)
 	}
 
 	// delete childless object
-	return MG_delete_object(instance, id);
+	return MG_object_delete(instance, id);
 }

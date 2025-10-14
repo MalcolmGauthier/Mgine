@@ -1,8 +1,9 @@
 #pragma once
 
-#include "MG_Model.h"
-#include "MG_Transform.h"
+#include "stc/MG_Transform.h"
+#include "stc/MG_Model.h"
 
+// UNUSED
 typedef enum
 {
 	MG_COMPONENT_TYPE_MODEL = 1 << 1,
@@ -19,12 +20,8 @@ typedef enum
 
 typedef struct MG_Component
 {
-	uint32_t id;
+	struct MG_ComponentTemplate* base;
 	struct MG_Object* owner;
-
-	MG_ComponentFuncResult (*on_create)(struct MG_Component* self);
-	MG_ComponentFuncResult (*on_update)(struct MG_Component* self, float delta_time);
-	void (*on_destroy)(struct MG_Component* self);
 
 	uint32_t flags;
 }

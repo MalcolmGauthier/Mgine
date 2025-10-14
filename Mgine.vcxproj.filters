@@ -72,6 +72,9 @@
     <ClCompile Include="src\MG_component.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="src\MG_camera.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\MG_include.h">
@@ -133,6 +136,15 @@
     </ClInclude>
     <ClInclude Include="inc\MG_component.h">
       <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Camera.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_camera.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Material.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

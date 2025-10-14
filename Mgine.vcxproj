@@ -104,13 +104,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>shaders;glad\include\glad;cglm;glad\include;inc;inc\stc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>shaders;glad\include\glad;cglm;glad\include;inc</AdditionalIncludeDirectories>
       <CompileAs>Default</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="src\MG_camera.c" />
     <ClCompile Include="src\MG_component.c" />
     <ClCompile Include="src\MG_LL.c" />
     <ClCompile Include="src\MG_load_model.c" />
@@ -151,6 +152,7 @@
     <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\MG_camera.h" />
     <ClInclude Include="inc\MG_component.h" />
     <ClInclude Include="inc\MG_include.h" />
     <ClInclude Include="inc\MG_LL.h" />
@@ -162,9 +164,11 @@
     <ClInclude Include="inc\MG_shaders.h" />
     <ClInclude Include="inc\MG_transform.h" />
     <ClInclude Include="inc\MG_window.h" />
+    <ClInclude Include="inc\stc\MG_Camera.h" />
     <ClInclude Include="inc\stc\MG_Component.h" />
     <ClInclude Include="inc\stc\MG_GameData.h" />
     <ClInclude Include="inc\stc\MG_Instance.h" />
+    <ClInclude Include="inc\stc\MG_Material.h" />
     <ClInclude Include="inc\stc\MG_Model.h" />
     <ClInclude Include="inc\stc\MG_Object.h" />
     <ClInclude Include="inc\stc\MG_RenderData.h" />

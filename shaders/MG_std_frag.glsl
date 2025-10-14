@@ -11,6 +11,7 @@ uniform vec3 camPos;
 
 void main(void)
 {
+    // rainbow mode
 	//outputColor = vec4(abs(normalize(oNormal)), 1.0);
 
     vec3 ambient = vec3(1);

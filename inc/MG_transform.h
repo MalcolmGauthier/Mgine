@@ -12,4 +12,6 @@ void MG_transform_position_set(MG_Transform* transform, MG_Vec3 position);
 void MG_transform_rotation_set(MG_Transform* transform, MG_Vec3 rotation);
 void MG_transform_scale_set(MG_Transform* transform, MG_Vec3 scale);
 
+MG_Vec3 MG_transform_deg_to_rad(MG_Vec3 degrees);
+
 MG_Matrix MG_transform_get_matrix(MG_Transform* transform);

@@ -18,9 +18,10 @@ MG_Model load_model(const char* path)
         return (MG_Model){0};
     }
 
-    MG_Model model;
+    MG_Model model = { 0 };
     model.mesh_count = scene->mNumMeshes;
     model.meshes = calloc(model.mesh_count, sizeof(MG_Mesh));
+    if (!model.meshes) goto done;
 
     for (unsigned int m = 0; m < scene->mNumMeshes; m++)
     {
@@ -29,6 +30,8 @@ MG_Model load_model(const char* path)
         MG_Mesh* mesh = &model.meshes[m];
         mesh->vertex_count = ai_mesh->mNumVertices;
         mesh->vertices = calloc(mesh->vertex_count, sizeof(MG_Vertex));
+		if (!mesh->vertices) goto fail;
+
         // this prevents the minimum/maximum of being stuck at 0
         mesh->bounding_box.min = (MG_Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
         mesh->bounding_box.max = (MG_Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -46,18 +49,22 @@ MG_Model load_model(const char* path)
                 v->UV[1] = ai_mesh->mTextureCoords[0][i].y;
             }
 
-            /*if (ai_mesh->mColors[0])
+#if MG_R_VERTEX_COLOR_ENABLED
+            if (ai_mesh->mColors[0])
             {
                 v->color[0] = ai_mesh->mColors[0][i].r;
                 v->color[1] = ai_mesh->mColors[0][i].g;
                 v->color[2] = ai_mesh->mColors[0][i].b;
+                v->color[3] = ai_mesh->mColors[0][i].a;
             }
             else
             {
                 v->color[0] = 1.0f;
                 v->color[1] = 1.0f;
                 v->color[2] = 1.0f;
-            }*/
+                v->color[3] = 1.0f;
+            }
+#endif
 
 			if (v->position[0] < mesh->bounding_box.min.x) mesh->bounding_box.min.x = v->position[0];
 			if (v->position[0] > mesh->bounding_box.max.x) mesh->bounding_box.max.x = v->position[0];
@@ -68,8 +75,8 @@ MG_Model load_model(const char* path)
         }
 
         mesh->index_count = ai_mesh->mNumFaces * 3;
-        mesh->indices = malloc(sizeof(unsigned int) * mesh->index_count);
-        if (!mesh->indices) return (MG_Model) { 0 };
+        mesh->indices = malloc(sizeof(uint32_t) * mesh->index_count);
+        if (!mesh->indices) goto fail;
 
         const struct aiFace* face;
         for (unsigned int i = 0; i < ai_mesh->mNumFaces; i++)
@@ -81,6 +88,25 @@ MG_Model load_model(const char* path)
         }
     }
 
+    goto done;
+
+fail:
+    for (uint32_t i = 0; i < model.mesh_count; i++)
+    {
+		// vertices being null means we've reached the point where allocation failed
+		if (!model.meshes[i].vertices)
+            break;
+
+		// compiler thinks junk data could be in here, but meshes are allocated with calloc
+#pragma warning(suppress: 6001)
+        free(model.meshes[i].vertices);
+#pragma warning(suppress: 6001)
+		free(model.meshes[i].indices);
+	}
+    free(model.meshes);
+	model = (MG_Model){ 0 };
+
+done:
     aiReleaseImport(scene);
     return model;
 }

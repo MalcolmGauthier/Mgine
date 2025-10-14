@@ -11,7 +11,7 @@ static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context, bool no_wi
 static int MG_gl_init(SDL_GLContext gl_context);
 static void MG_instance_init(MG_Instance* instance);
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
     // There are no global variables in Mgine to leave the door open for the engine 
     // being able to create new instances of itself in the future.

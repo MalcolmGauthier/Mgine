@@ -10,7 +10,7 @@ MG_ComponentTemplate* MG_component_register(MG_GameData* game_data, size_t struc
 	if (!comp_template)
 	{
 		printf("ERROR: out of memory, unable to register new component");
-		return;
+		return NULL;
 	}
 	comp_template->id = game_data->next_component_id++;
 
@@ -30,51 +30,38 @@ MG_Component* MG_component_create(MG_Object* object, MG_ComponentTemplate* templ
 	if (!component)
 	{
 		printf("ERROR: out of memory, unable to allocate new component");
-		return;
+		return NULL;
 	}
 
-	component->id = template->id;
+	component->base = template;
 	component->owner = object;
-	component->on_create = template->on_create;
-	component->on_update = template->on_update;
-	component->on_destroy = template->on_destroy;
 
 	MG_LL_Add(object->components, component);
 
-	if (component->on_create)
-		component->on_create(component);
+	if (component->base->on_create)
+		component->base->on_create(component);
 
 	return component;
 }
 
-
 MG_Component* MG_component_create_copy(MG_Component* src, MG_Object* dst_parent)
 {
+	// dst_parent allowed to be null for untracked copies
 	if (!src)
 	{
 		printf("Failed to create component copy: source/parent is NULL\n");
 		return NULL;
 	}
 
-	MG_Component* component = calloc(1, sizeof(MG_Component));
+	MG_Component* component = calloc(1, _msize(src));
 	if (!component)
 	{
 		printf("Failed to allocate memory for component copy\n");
 		return NULL;
 	}
-	memcpy_s(component, sizeof(MG_Component), src, sizeof(MG_Component));
-	component->data = NULL;
-	if (src->data && src->data_size > 0)
-	{
-		component->data = calloc(1, src->data_size);
-		if (!component->data)
-		{
-			printf("Failed to allocate memory for component data copy\n");
-			free(component);
-			return NULL;
-		}
-		memcpy_s(component->data, src->data_size, src->data, src->data_size);
-	}
+
+	// msize is windows-specific, but who cares at this point. better than trusting the template size
+	memcpy(component, src, _msize(src));
 
 	if (dst_parent)
 	{

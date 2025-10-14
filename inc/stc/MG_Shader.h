@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
+#include "MG_LL.h"
 
 typedef enum
 {
@@ -10,6 +11,16 @@ typedef enum
 }
 MG_ShaderStatus;
 
+typedef struct MG_ShaderVariable
+{
+	const char* name;
+	GLenum type;
+	GLint size;
+}
+MG_ShaderVariable;
+
+typedef MG_Generic_LL MG_ShaderVariable_LL;
+
 typedef struct MG_Shader
 {
 	GLuint ID;
@@ -18,5 +29,7 @@ typedef struct MG_Shader
 
 	const char* vertex_shader_file;
 	const char* fragment_shader_file;
+
+	MG_ShaderVariable_LL* variables;
 }
 MG_Shader;

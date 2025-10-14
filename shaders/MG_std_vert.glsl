@@ -6,12 +6,12 @@ layout (location = 2) in vec2 aTexCoord;
 
 uniform mat4 uModel;
 uniform mat4 uView;
-uniform mat4 uProjection;
+uniform mat4 uProj;
 
 out vec2 TexCoord;
 
 void main()
 {
     TexCoord = aTexCoord;
-    gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
+    gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
 }

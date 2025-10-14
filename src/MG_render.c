@@ -1,8 +1,13 @@
 #include "MG_render.h"
 
+static void MG_render_update_data(MG_RenderData* render_data);
+static void MG_render_update_interp_value(MG_RenderData* render_data);
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint32_t obj_id);
+static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data);
+static void MG_render_OIT_init(MG_RenderData* render_data);
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
-static void MG_render_component(MG_RenderData* render_data, MG_Component* component);
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model);
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int32_t obj_id);
+static void MG_render_OIT(MG_RenderData* render_data);
 
 // The main render loop of the game engine. This renders the game objects to the screen.
 // It iterates down the component tree of each object and renders the found models.
@@ -41,13 +46,14 @@ int MG_render_loop(void* MG_instance)
 		MG_render_update_data(render_data);
 		// STEP 2: UPDATE INTERPOLATION VALUE
 		MG_render_update_interp_value(render_data);
+		MG_render_calculate_interp_view_matrix(render_data);
 
 		// STEP 3: RENDER ALL OPAQUE OBJECTS
 		MG_Object_LL* current = render_data->latest_data.object_list;
 		while (current)
 		{
 			// render function goes down child list, so only call orphan objects
-			// TODO: infinite loop possible here, create something that checks for infinite loops when child is added
+			// infinite loop possible here, but only if user forgoes calling functions and instead just fucks with struct data
 			if (current->data && !((MG_Object*)current->data)->parent)
 			{
 				MG_render_object(render_data, current->data);
@@ -106,7 +112,7 @@ static void MG_render_update_interp_value(MG_RenderData* render_data)
 		return;
 	}
 
-	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - render_data->latest_data.uptime;
+	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - (float)render_data->latest_data.uptime;
 
 	if (render_data->latest_data.tickrate != 0)
 	{
@@ -126,15 +132,19 @@ static void MG_render_update_interp_value(MG_RenderData* render_data)
 	}
 }
 
-static MG_Matrix MG_render_calculate_interp_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint32_t obj_id)
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint64_t obj_id)
 {
-	if (render_data->interp_value == 1.f)
+	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
 		return *new_matrix;
 
 	MG_Transform* old_transform = NULL;
+	MG_Vec3 old_ang_rad;
 	vec4 old_quat;
+
 	MG_Transform new_transform = { 0 };
+	MG_Vec3 new_ang_rad;
 	vec4 new_quat;
+
 	MG_Transform interp_transform;
 	vec4 interp_quat;
 	MG_Matrix output;
@@ -157,11 +167,14 @@ static MG_Matrix MG_render_calculate_interp_matrix(MG_RenderData* render_data, M
 	if (!old_transform)
 		return *new_matrix;
 
+	old_ang_rad = MG_transform_deg_to_rad(old_transform->rotation);
+	new_ang_rad = MG_transform_deg_to_rad(new_transform.rotation);
+
 	// can't use glm_decompose because it copies a vec4 into translation, which would be a memory overrun in this scenario
 	glm_vec3_copy(&new_matrix->m30, &new_transform.position);
 	glm_decompose_rs(new_matrix, new_quat, &new_transform.scale);
-	glm_euler_yzx_quat(&new_transform.rotation, new_quat);
-	glm_euler_yzx_quat(&old_transform->rotation, old_quat);
+	glm_euler_yzx_quat(&new_ang_rad, new_quat);
+	glm_euler_yzx_quat(&old_ang_rad, old_quat);
 
 	glm_vec3_lerp(&old_transform->position, &new_transform.position, render_data->interp_value, &interp_transform.position);
 	glm_quat_slerp(old_quat, new_quat, render_data->interp_value, interp_quat);
@@ -174,6 +187,51 @@ static MG_Matrix MG_render_calculate_interp_matrix(MG_RenderData* render_data, M
 	return output;
 }
 
+static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data)
+{
+	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
+		return MG_camera_get_view_matrix(&render_data->latest_data.camera);
+
+	MG_Camera interp_cam = { 0 };
+
+	// Interpolate position linearly
+	glm_vec3_lerp(&render_data->old_data.camera.position, &render_data->latest_data.camera.position, render_data->interp_value, &interp_cam.position);
+
+	// Convert old and new rotations to quaternions
+	versor old_q, new_q;
+	MG_Vec3 old_euler = MG_transform_deg_to_rad(render_data->old_data.camera.rotation);
+	MG_Vec3 new_euler = MG_transform_deg_to_rad(render_data->latest_data.camera.rotation);
+
+	glm_euler_xyz_quat(&old_euler, old_q);
+	glm_euler_xyz_quat(&new_euler, new_q);
+
+	// SLERP between quaternions
+	versor interp_q;
+	glm_quat_slerp(old_q, new_q, render_data->interp_value, interp_q);
+
+	// Convert interpolated quaternion back to Euler angles
+	vec4 interp_euler;
+	mat4 temp;
+	glm_quat_mat4(interp_q, temp);
+	glm_euler_angles(temp, interp_euler);
+
+	// glm does roll pitch yaw, we use pitch yaw roll
+	interp_cam.rotation.pitch = glm_deg(interp_euler[1]);
+	interp_cam.rotation.yaw = glm_deg(interp_euler[2]);
+	interp_cam.rotation.roll = glm_deg(interp_euler[0]);
+
+	if (render_data->old_data.camera.focus && render_data->latest_data.camera.focus)
+	{
+		static MG_Vec3 interp_focus;
+		glm_vec3_lerp(&render_data->old_data.camera.focus, &render_data->latest_data.camera.focus, render_data->interp_value, &interp_focus);
+
+		interp_cam.focus = &interp_focus;
+	}
+
+	// Compute view matrix
+	render_data->view_matrix = MG_camera_get_view_matrix(&interp_cam);
+	return render_data->view_matrix;
+}
 
 // this needs to be called ... 
 static void MG_render_OIT_init(MG_RenderData* render_data)
@@ -220,13 +278,13 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	{
 		MG_Component* component = current->data;
 
-		if (component->id == MG_COMPONENT_TRANSFORM_ID)
+		if (component->base->id == MG_COMPONENT_TRANSFORM_ID)
 		{
 			current_matrix = &((MG_ComponentTransform*)component)->transform_matrix;
 			continue;
 		}
 
-		if (component->id == MG_COMPONENT_MODEL_ID)
+		if (component->base->id == MG_COMPONENT_MODEL_ID)
 		{
 			current_model = &((MG_ComponentModel*)component)->model;
 			continue;
@@ -239,18 +297,22 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	}
 }
 
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int32_t obj_id)
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int64_t obj_id)
 {
-	if (!model)
+	if (!model || !pos)
 		return;
 
-	MG_Matrix render_matrix = MG_render_calculate_interp_matrix(render_data, pos, obj_id);
+	MG_Matrix render_matrix = MG_render_calculate_interp_model_matrix(render_data, pos, obj_id);
 
 	MG_Mesh* mesh;
 	for (uint32_t i = 0; i < model->mesh_count; i++)
 	{
 		mesh = &model->meshes[i];
 
+		if (!mesh->material)
+		{
+			return;
+		}
 		// if the mesh contains transparency, add it to the transparency list for later
 		if (mesh->material->contains_transparency)
 		{
@@ -264,15 +326,69 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 			continue;
 		}
 
-		if (mesh->material)
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
+
+		//TODO: set up mesh->material->shader variables using mesh->material properties
+		//TODO: if shader null, set shader to default minimal shader
+		if (!mesh->material->shader)
 		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+			mesh->material->shader = 0; // MG_shader_get_default();
+		}
 
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
+		MG_shader_use(mesh->material->shader);
+		MG_shader_set_mat4(mesh->material->shader, "uModel", &render_matrix);
+		MG_shader_set_mat4(mesh->material->shader, "uView", &render_data->view_matrix);
+		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-			//TODO: set up shader variables using mesh->material properties
+		MG_ShaderVariable_LL* var_ll = mesh->material->shader->variables;
+		while (var_ll && var_ll->data)
+		{
+			MG_ShaderVariable* var = var_ll->data;
+			if (var->offset_in_material != -1 || !var->name)
+			{
+				var_ll = var_ll->next;
+				continue;
+			}
+
+			void* value_ptr = (void*)(mesh->material + var->offset_in_material);
+			switch (var->type)
+			{
+			case GL_FLOAT:
+				MG_shader_set_float(mesh->material->shader, var->name, *(float*)value_ptr);
+				break;
+			case GL_FLOAT_VEC2:
+				MG_shader_set_vec2(mesh->material->shader, var->name, *(MG_Vec2*)value_ptr);
+				break;
+			case GL_FLOAT_VEC3:
+				MG_shader_set_vec3(mesh->material->shader, var->name, *(MG_Vec3*)value_ptr);
+				break;
+			case GL_INT:
+			case GL_BOOL:
+				MG_shader_set_int(mesh->material->shader, var->name, *(int*)value_ptr);
+				break;
+			case GL_INT_VEC2:
+			case GL_BOOL_VEC2:
+				MG_shader_set_ivec2(mesh->material->shader, var->name, (int*)value_ptr);
+				break;
+			case GL_INT_VEC3:
+			case GL_BOOL_VEC3:
+				MG_shader_set_ivec3(mesh->material->shader, var->name, (int*)value_ptr);
+				break;
+
+			case GL_FLOAT_MAT4:
+				MG_shader_set_mat4(mesh->material->shader, var->name, (MG_Matrix*)value_ptr);
+				break;
+
+			default:
+				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
+				break;
+			}
+
+			var_ll = var_ll->next;
 		}
 
 		glBindVertexArray(mesh->VAO);
@@ -296,10 +412,11 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		render_data->transparency_list = render_data->transparency_list->next;
 		mesh = (MG_Mesh*)render_data->transparency_list->data;
 		if (!mesh) continue;
+		if (!mesh->material) continue;
 
 		if (mesh->material->shader)
 		{
-			//MG_shader_use(mesh->shader);
+			MG_shader_use(mesh->material->shader);
 		}
 
 		if (mesh->material)

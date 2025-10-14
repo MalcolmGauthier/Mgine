@@ -45,10 +45,15 @@ void MG_transform_scale_set(MG_Transform* transform, MG_Vec3 scale)
 	transform->scale = scale;
 }
 
+MG_Vec3 MG_transform_deg_to_rad(MG_Vec3 degrees)
+{
+    return (MG_Vec3){ glm_rad(degrees.pitch), glm_rad(degrees.yaw), glm_rad(degrees.roll) };
+}
+
 MG_Matrix MG_transform_get_matrix(MG_Transform* transform)  
 {  
     if (!transform)  
-        return (MG_Matrix){ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };  
+        return (MG_Matrix){ MG_MATRIX_IDENTITY };  
 
     vec4 quat;
     MG_Matrix result;

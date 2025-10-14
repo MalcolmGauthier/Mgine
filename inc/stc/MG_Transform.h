@@ -55,3 +55,4 @@ typedef struct
 	// however, patching that out means losing assignment copying.
 }
 MG_Matrix;
+#define MG_MATRIX_IDENTITY 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1

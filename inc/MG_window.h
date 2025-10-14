@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_Instance.h"
+#include "stc/MG_Instance.h"
 
 int MG_window_loop(void* instance);
 

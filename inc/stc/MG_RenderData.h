@@ -1,6 +1,7 @@
 #pragma once
 
-#include "MG_Instance.h"
+#include "stc/MG_Instance.h"
+#include "stc/MG_Shader.h"
 
 typedef MG_Generic_LL MG_Mesh_LL;
 typedef MG_Generic_LL MG_TransparentDraw_LL;
@@ -13,6 +14,7 @@ typedef struct MG_RenderData
 	MG_GameData latest_data;
 	// 0 = old data, 1 = latest data; 0 <= interp_value <= 1
 	float interp_value;
+	MG_Matrix view_matrix;
 
 	MG_TransparentDraw_LL* transparency_list;
 	GLuint accum_tex;

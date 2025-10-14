@@ -2,6 +2,7 @@
 
 #include "MG_include.h"
 #include "MG_LL.h"
+#include "stc/MG_Camera.h"
 
 typedef enum
 {
@@ -27,5 +28,7 @@ typedef struct MG_GameData
 
 	MG_Object_LL* object_list;
 	uint32_t object_count;
+
+	MG_Camera camera;
 }
 MG_GameData;

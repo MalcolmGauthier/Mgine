@@ -3,7 +3,6 @@
 #include "MG_include.h"
 #include "MG_Instance.h"
 #include "MG_Model.h"
-#include "MG_Component.h"
 #include "MG_LL.h"
 #include "MG_Transform.h"
 

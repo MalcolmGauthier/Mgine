@@ -1,34 +1,20 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_Component.h"
-#include "MG_Object.h"
-#include "MG_Shader.h"
+#include "stc/MG_Object.h"
+#include "stc/MG_Shader.h"
+#include "stc/MG_Material.h"
 
 typedef struct MG_Vertex
 {
 	float position[3];
 	float normal[3];
 	float UV[2];
+#if MG_R_VERTEX_COLOR_ENABLED
+	float color[4];
+#endif
 }
 MG_Vertex;
-
-typedef struct MG_Material
-{
-	float diffuse_rgb[3];
-	float specular_rgb[3];
-	float shininess;
-
-	char* diffuse_texture_path;
-	GLuint diffuse_texture;
-	char* specular_texture_path;
-	GLuint specular_texture;
-
-	bool contains_transparency;
-
-	MG_Shader* shader;
-}
-MG_Material;
 
 typedef struct MG_Mesh
 {
