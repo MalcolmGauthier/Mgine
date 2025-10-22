@@ -42,7 +42,7 @@
     <ClCompile Include="glad\src\glad.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\MG_load_model.c">
+    <ClCompile Include="src\MG_model.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_logic.c">
@@ -69,10 +69,13 @@
     <ClCompile Include="src\MG_transform.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\MG_component.c">
+    <ClCompile Include="src\MG_components.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_camera.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_scene.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,7 +83,7 @@
     <ClInclude Include="inc\MG_include.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="inc\MG_load_model.h">
+    <ClInclude Include="inc\MG_model.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\MG_logic.h">
@@ -134,7 +137,7 @@
     <ClInclude Include="inc\MG_LL.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="inc\MG_component.h">
+    <ClInclude Include="inc\MG_components.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\stc\MG_Camera.h">
@@ -144,6 +147,12 @@
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\stc\MG_Material.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_scene.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Scene.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
     </ClInclude>
   </ItemGroup>

@@ -140,27 +140,29 @@
   <ItemGroup>
     <ClCompile Include="glad\src\glad.c" />
     <ClCompile Include="src\MG_camera.c" />
-    <ClCompile Include="src\MG_component.c" />
+    <ClCompile Include="src\MG_components.c" />
     <ClCompile Include="src\MG_LL.c" />
-    <ClCompile Include="src\MG_load_model.c" />
+    <ClCompile Include="src\MG_model.c" />
     <ClCompile Include="src\MG_logic.c" />
     <ClCompile Include="src\MG_main.c" />
     <ClCompile Include="src\MG_object.c" />
     <ClCompile Include="src\MG_render.c" />
+    <ClCompile Include="src\MG_scene.c" />
     <ClCompile Include="src\MG_shaders.c" />
     <ClCompile Include="src\MG_transform.c" />
     <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\MG_camera.h" />
-    <ClInclude Include="inc\MG_component.h" />
+    <ClInclude Include="inc\MG_components.h" />
     <ClInclude Include="inc\MG_include.h" />
     <ClInclude Include="inc\MG_LL.h" />
-    <ClInclude Include="inc\MG_load_model.h" />
+    <ClInclude Include="inc\MG_model.h" />
     <ClInclude Include="inc\MG_logic.h" />
     <ClInclude Include="inc\MG_main.h" />
     <ClInclude Include="inc\MG_object.h" />
     <ClInclude Include="inc\MG_render.h" />
+    <ClInclude Include="inc\MG_scene.h" />
     <ClInclude Include="inc\MG_shaders.h" />
     <ClInclude Include="inc\MG_transform.h" />
     <ClInclude Include="inc\MG_window.h" />
@@ -172,6 +174,7 @@
     <ClInclude Include="inc\stc\MG_Model.h" />
     <ClInclude Include="inc\stc\MG_Object.h" />
     <ClInclude Include="inc\stc\MG_RenderData.h" />
+    <ClInclude Include="inc\stc\MG_Scene.h" />
     <ClInclude Include="inc\stc\MG_Shader.h" />
     <ClInclude Include="inc\stc\MG_Transform.h" />
     <ClInclude Include="inc\stc\MG_WindowData.h" />

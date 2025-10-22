@@ -3,20 +3,14 @@
 #include "stc/MG_Transform.h"
 #include "stc/MG_Model.h"
 
-// UNUSED
-typedef enum
-{
-	MG_COMPONENT_TYPE_MODEL = 1 << 1,
-	MG_COMPONENT_TYPE_TRANSFORM = 1 << 2,
-} MG_ComponentFlags;
-
 typedef enum
 {
 	MG_COMPONENT_FUNC_RESULT_OK = 0,
 	MG_COMPONENT_FUNC_RESULT_ERROR = 1,
 	MG_COMPONENT_FUNC_RESULT_NOT_IMPLEMENTED = 2,
 	MG_COMPONENT_FUNC_RESULT_DELETE_OBJ = 3,
-} MG_ComponentFuncResult;
+}
+MG_ComponentFuncResult;
 
 typedef struct MG_Component
 {
@@ -33,13 +27,32 @@ typedef struct MG_ComponentTemplate
 	size_t size;
 
 	MG_ComponentFuncResult (*on_create)(struct MG_Component* self);
-	MG_ComponentFuncResult (*on_update)(struct MG_Component* self, float delta_time);
+	MG_ComponentFuncResult (*on_tick)(struct MG_Component* self, float delta_time);
 	void (*on_destroy)(struct MG_Component* self);
 }
 MG_ComponentTemplate;
 
 
-#define MG_COMPONENT_TRANSFORM_ID -1
+typedef void (*MG_DeferredRegFunc)(MG_GameData*);
+extern MG_ComponentTemplate* MG_component_register(MG_GameData* game_data, size_t struct_size, const char* name,
+	MG_ComponentFuncResult(*on_create)(struct MG_Component* self),
+	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),
+	void (*on_destroy)(struct MG_Component* self));
+
+#pragma section(".MGREG$A", read)
+#pragma section(".MGREG$Z", read)
+extern __declspec(allocate(".MGREG$A")) MG_DeferredRegFunc __MGreg_start;
+extern __declspec(allocate(".MGREG$Z")) MG_DeferredRegFunc __MGreg_end;
+
+#define MG_COMPONENT(struct_type, name_str, create_fn, update_fn, destroy_fn)            \
+    static void __MGreg_##struct_type(MG_GameData* gdm);                                 \
+    __pragma(section(".MGREG$M", read))                                                  \
+    __declspec(allocate(".MGREG$M")) MG_DeferredRegFunc _MGreg_##struct_type = __MGreg_##struct_type; \
+    static void __MGreg_##struct_type(MG_GameData* gdm) {                                \
+        MG_component_register(gdm, sizeof(struct_type), name_str,                        \
+                              create_fn, update_fn, destroy_fn);                         \
+    }
+
 typedef struct MG_ComponentTransform
 {
 	MG_Component base;
@@ -49,7 +62,6 @@ typedef struct MG_ComponentTransform
 }
 MG_ComponentTransform;
 
-#define	MG_COMPONENT_MODEL_ID -2
 typedef struct MG_ComponentModel
 {
 	MG_Component base;

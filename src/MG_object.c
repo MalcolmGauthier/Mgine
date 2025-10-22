@@ -1,14 +1,12 @@
 #include "MG_object.h"
 
-uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
+uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags)
 {
 	MG_Object* object = calloc(1, sizeof(MG_Object));
-	MG_Object_LL* new_node = malloc(sizeof(MG_Object_LL));
-	if (!object || !new_node)
+	if (!object)
 	{
 		printf("Failed to allocate memory for object\n");
 		if (object) free(object);
-		if (new_node) free(new_node);
 		return -1;
 	}
 
@@ -17,26 +15,22 @@ uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t fla
 	object->flags = flags;
 	object->id = instance->game_data.next_object_id;
 	instance->game_data.next_object_id++;
-	object->on_load = on_load;
-	object->on_tick = on_tick;
 
-	new_node->data = object;
-	new_node->next = NULL;
 	instance->game_data.object_count++;
 	if (!instance->game_data.object_list)
 	{
-		instance->game_data.object_list = new_node;
+		instance->game_data.object_list = calloc(1, sizeof(MG_Object_LL));
+		if (!instance->game_data.object_list)
+		{
+			printf("Failed to allocate memory for object list\n");
+			free(object);
+			return -1;
+		}
+		instance->game_data.object_list->data = object;
 	}
 	else
 	{
-		MG_Object_LL* current = instance->game_data.object_list;
-		while (current->next) current = current->next;
-		current->next = new_node;
-	}
-
-	if (object->on_load)
-	{
-		object->on_load(object);
+		MG_LL_add(instance->game_data.object_list, object);
 	}
 
 	return object->id;
@@ -50,20 +44,23 @@ uint64_t MG_object_create_by_copy(MG_Object* object)
 		return -1;
 	}
 
-	MG_LL_Copy(object->children, MG_object_create_by_copy);
+	uint64_t obj_id = MG_object_create(object->instance, object->parent, object->flags);
+	MG_Object* obj = MG_object_get_by_id(object->instance, obj_id);
+
+	obj->children = MG_LL_copy(object->children, MG_object_create_tracked_copy);
 	// can't use real copy function because that takes 2 params and LL_Copy only takes 1
-	MG_LL_Copy(object->components, MG_component_copy_untracked);
-	MG_Component_LL* c = object->components;
+	obj->components = MG_LL_copy(object->components, MG_component_copy_untracked);
+	MG_Component_LL* c = obj->components;
 	while (c && c->data)
 	{
-		((MG_Component*)c->data)->owner = object;
+		((MG_Component*)c->data)->owner = obj;
 		c = c->next;
 	}
 
-	return MG_object_create(object->instance, object->parent, object->flags, object->on_load, object->on_tick);
+	return obj_id;
 }
 
-uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*))
+uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags)
 {
 	if (!parent_object)
 	{
@@ -71,7 +68,7 @@ uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, 
 		return -1;
 	}
 
-	return MG_object_create(parent_object->instance, parent_object, flags, on_load, on_tick);
+	return MG_object_create(parent_object->instance, parent_object, flags);
 }
 
 MG_Object* MG_object_create_untracked_copy(MG_Object* source)
@@ -89,15 +86,27 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* source)
 		return NULL;
 	}
 	memcpy_s(object, sizeof(MG_Object), source, sizeof(MG_Object));
+	object->instance = source->instance;
 	object->children = NULL;
 	object->components = NULL;
 
 	if (source->children)
-		object->children = MG_LL_Copy(source->children, MG_object_create_untracked_copy);
+		object->children = MG_LL_copy(source->children, MG_object_create_untracked_copy);
 	if (source->components)
-		object->components = MG_LL_Copy(source->components, MG_component_copy_untracked);
+		object->components = MG_LL_copy(source->components, MG_component_copy_untracked);
 
 	return object;
+}
+
+MG_Object* MG_object_create_tracked_copy(MG_Object* source)
+{
+	if (!source)
+	{
+		printf("Failed to create tracked copy: source is NULL\n");
+		return NULL;
+	}
+	uint64_t obj_id = MG_object_create_by_copy(source);
+	return MG_object_get_by_id(source->instance, obj_id);
 }
 
 
@@ -148,7 +157,7 @@ MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
 	{
 		if (!((MG_Object*)current->data)->parent)
 		{
-			MG_LL_Add(&top_level_objects, current->data);
+			MG_LL_add(top_level_objects, current->data);
 		}
 		current = current->next;
 	}
@@ -185,7 +194,7 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 	}
 
 	child->parent = parent;
-	MG_LL_Add(&parent->children, child);
+	MG_LL_add(parent->children, child);
 	return 0;
 }
 
@@ -197,7 +206,7 @@ int MG_object_remove_child(MG_Object* parent, uint64_t child_id)
 		return -1;
 	}
 
-	if (MG_LL_Remove(parent->children, MG_object_get_by_id(parent->instance, child_id)))
+	if (MG_LL_remove(parent->children, MG_object_get_by_id(parent->instance, child_id)))
 		return 0;
 
 	printf("Failed to remove child with ID %u: not found\n", (uint32_t)child_id);
@@ -205,13 +214,15 @@ int MG_object_remove_child(MG_Object* parent, uint64_t child_id)
 }
 
 
-MG_Component* MG_object_get_component(MG_Object* object, uint32_t type)
+MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* name)
 {
 	if (!object)
 	{
 		printf("Failed to get component: object is NULL\n");
 		return NULL;
 	}
+
+	uint32_t type = MG_component_get_id_by_name(name);
 
 	MG_Component_LL* current = object->components;
 	while (current)
@@ -226,6 +237,90 @@ MG_Component* MG_object_get_component(MG_Object* object, uint32_t type)
 	return NULL;
 }
 
+MG_Component* MG_object_get_component_by_id(MG_Object* object, uint32_t id)
+{
+	if (!object)
+	{
+		printf("Failed to get component: object is NULL\n");
+		return NULL;
+	}
+
+	MG_Component_LL* current = object->components;
+	while (current)
+	{
+		if (current->data && ((MG_Component*)current->data)->base->id == id)
+		{
+			return current->data;
+		}
+		current = current->next;
+	}
+
+	return NULL;
+}
+
+
+MG_Vec3 MG_object_get_world_position(MG_Object* object)
+{
+	if (!object)
+	{
+		printf("Failed to get world position: object is NULL\n");
+		return (MG_Vec3){ 0 };
+	}
+
+	MG_Vec3 world_pos = { 0 };
+
+	MG_Object* current = object;
+	while (current)
+	{
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		if (transform)
+		{
+			world_pos.x += transform->transform.position.x;
+			world_pos.y += transform->transform.position.y;
+			world_pos.z += transform->transform.position.z;
+		}
+
+		current = current->parent;
+	}
+
+	return world_pos;
+}
+
+MG_Matrix MG_object_get_world_transform_matrix(MG_Object* object)
+{
+	if (!object)
+	{
+		printf("Failed to get world transform matrix: object is NULL\n");
+		return (MG_Matrix) { 0 };
+	}
+
+	MG_Vec3 world_pos = { 0 };
+	MG_Vec3 world_rot = { 0 };
+	MG_Vec3 world_scale = { 1, 1, 1 };
+
+	MG_Object* current = object;
+	while (current)
+	{
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		if (transform)
+		{
+			world_pos.x += transform->transform.position.x;
+			world_pos.y += transform->transform.position.y;
+			world_pos.z += transform->transform.position.z;
+			world_rot.x += transform->transform.rotation.x;
+			world_rot.y += transform->transform.rotation.y;
+			world_rot.z += transform->transform.rotation.z;
+			world_scale.x *= transform->transform.scale.x;
+			world_scale.y *= transform->transform.scale.y;
+			world_scale.z *= transform->transform.scale.z;
+		}
+
+		current = current->parent;
+	}
+
+	return MG_transform_make_matrix(world_pos, world_rot, world_scale);
+}
+
 
 void MG_object_free_components(MG_Object* object)
 {
@@ -235,7 +330,7 @@ void MG_object_free_components(MG_Object* object)
 		return;
 	}
 
-	MG_LL_Free(object->components, MG_component_free);
+	MG_LL_free(object->components, MG_component_free);
 	object->components = NULL;
 }
 
@@ -287,8 +382,8 @@ int MG_object_delete(MG_Instance* instance, uint64_t id)
 				object->components = object->components->next;
 			}
 
-			MG_LL_Free(object->children, MG_object_delete_by_ptr);
-			MG_LL_Free(object->components, MG_component_free);
+			MG_LL_free(object->children, MG_object_delete_by_ptr);
+			MG_LL_free(object->components, MG_component_free);
 			free(object);
 			free(current);
 			return 0;

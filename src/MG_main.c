@@ -51,6 +51,8 @@ int main(int argc, char** argv)
 	logic_thread = SDL_CreateThread(MG_logic_loop, "MGine Logic", &inst);
 	render_thread = SDL_CreateThread(MG_render_loop, "MGine Render", &inst);
 
+    inst.rendering_enabled = false;
+
     // This loop here checks for GL errors at the moment. Debug tools could be added in the future.
     while (inst.active)
     {
@@ -106,7 +108,7 @@ int main(int argc, char** argv)
 // turning on no_window will make this instance invisible and in the background.
 // it is highly advised to not lose track of the pointer to this, and to make sure to free it by changing the active boolean.
 // code-wise, it's nearly indentical to main. I would've had main just call this function then do nothing, but that would be a waste of a root thread.
- void MG_create_instance(MG_Instance* out_instance, bool no_window)
+void MG_create_instance(MG_Instance* out_instance, bool no_window)
 {
     MG_Instance* inst;
     // if out_instance is null, the creator cannot keep track of it. very unlikely to be useful, so we don't risk a memory leak.
@@ -247,11 +249,44 @@ static void MG_instance_init(MG_Instance* instance)
 	instance->render_data.transparency_list = NULL;
 
     instance->active = true;
-    QueryPerformanceCounter(instance->instance_id);
+    QueryPerformanceCounter((LARGE_INTEGER*)&instance->instance_id);
 }
 
 // Frees the memory used by the instance (objects, components, data, etc.)
 static void MG_instance_free(MG_Instance* instance)
 {
     //TODO
+}
+
+void MG_instance_load_data(MG_Instance* instance, const char* mg_file)
+{
+	size_t len = strlen(mg_file);
+    if (len > MAX_PATH)
+    {
+		printf("MG_instance_load_data: File path too long\n");
+		return;
+    }
+    
+    if (mg_file[len - 3] != '.' || mg_file[len - 2] != 'm' || mg_file[len - 1] != 'g')
+	{
+        printf("MG_instance_load_data: Invalid file extension, expected .mg\n");
+        return;
+	}
+
+	FILE* file = fopen(mg_file, "rb");
+
+	char header[6];
+    if (fread(header, sizeof(char), 5, file) != 5) goto fail;
+	header[5] = '\0';
+    if (strcmp(header, "MGINE") != 0)
+    {
+        printf("MG_instance_load_data: Invalid file format\n");
+        goto fail;
+	}
+
+	MG_initialize_components(&instance->game_data);
+
+fail:
+	fclose(file);
+    return;
 }

@@ -173,128 +173,128 @@ int MG_shader_compile(MG_Shader* shader)
 	return 0;
 }
 
-int MG_shader_register_variable(MG_Shader* shader, const char* name, GLenum type)
-{
-	if (!shader || shader->status != MG_SHADER_STATUS_OK)
-	{
-		printf("Failed to register shader variable: shader is NULL or not compiled\n");
-		return -1;
-	}
+//int MG_shader_register_variable(MG_Shader* shader, const char* name, GLenum type)
+//{
+//	if (!shader || shader->status != MG_SHADER_STATUS_OK)
+//	{
+//		printf("Failed to register shader variable: shader is NULL or not compiled\n");
+//		return -1;
+//	}
+//
+//	if (!name || strlen(name) == 0)
+//	{
+//		printf("Failed to register shader variable: name is NULL or empty\n");
+//		return -2;
+//	}
+//
+//	MG_ShaderVariable* var = calloc(1, sizeof(MG_ShaderVariable));
+//	if (!var)
+//	{
+//		printf("Failed to allocate memory for shader variable\n");
+//		return -4;
+//	}
+//
+//	switch (type)
+//	{
+//		case GL_BYTE:
+//		case GL_UNSIGNED_BYTE:
+//			var->size = 1;
+//			break;
+//
+//		case GL_SHORT:
+//		case GL_UNSIGNED_SHORT:
+//			var->size = 2;
+//			break;
+//
+//		case GL_FLOAT:
+//		case GL_INT:
+//		case GL_UNSIGNED_INT:
+//		case GL_BOOL:
+//			var->size = 4;
+//			break;
+//
+//		case GL_FLOAT_VEC2:
+//		case GL_INT_VEC2:
+//		case GL_BOOL_VEC2:
+//			var->size = 8;
+//			break;
+//
+//		case GL_FLOAT_VEC3:
+//		case GL_INT_VEC3:
+//		case GL_BOOL_VEC3:
+//			var->size = 12;
+//			break;
+//
+//		case GL_FLOAT_VEC4:
+//		case GL_INT_VEC4:
+//		case GL_BOOL_VEC4:
+//			var->size = 16;
+//			break;
+//
+//		case GL_FLOAT_MAT2:
+//			var->size = 16;
+//			break;
+//		case GL_FLOAT_MAT3:
+//			var->size = 36;
+//			break;
+//		case GL_FLOAT_MAT4:
+//			var->size = 64;
+//			break;
+//
+//		case GL_DOUBLE:
+//			var->size = 8;
+//			break;
+//		case GL_DOUBLE_VEC2:
+//			var->size = 16;
+//			break;
+//		case GL_DOUBLE_VEC3:
+//			var->size = 24;
+//			break;
+//		case GL_DOUBLE_VEC4:
+//			var->size = 32;
+//			break;
+//
+//		case GL_DOUBLE_MAT2:
+//			var->size = 32;
+//			break;
+//		case GL_DOUBLE_MAT3:
+//			var->size = 72;
+//			break;
+//		case GL_DOUBLE_MAT4:
+//			var->size = 128;
+//			break;
+//
+//		case GL_SAMPLER_1D:
+//		case GL_SAMPLER_2D:
+//		case GL_SAMPLER_3D:
+//		case GL_SAMPLER_1D_SHADOW:
+//		case GL_SAMPLER_2D_SHADOW:
+//		case GL_SAMPLER_1D_ARRAY:
+//		case GL_SAMPLER_2D_ARRAY:
+//		case GL_SAMPLER_1D_ARRAY_SHADOW:
+//		case GL_SAMPLER_2D_ARRAY_SHADOW:
+//		case GL_SAMPLER_2D_MULTISAMPLE:
+//		case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+//		case GL_SAMPLER_CUBE_SHADOW:
+//		case GL_SAMPLER_CUBE_MAP_ARRAY:
+//		case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+//		case GL_SAMPLER_CUBE:
+//			var->size = 4;
+//			break;
+//
+//		default:
+//			printf("Failed to register shader variable: unsupported type %u\n", type);
+//			free(var);
+//			return -5;
+//	}
+//
+//	var->name = name;
+//	var->type = type;
+//	MG_LL_Add(&shader->variables, var);
+//	return 0;
+//}
 
-	if (!name || strlen(name) == 0)
-	{
-		printf("Failed to register shader variable: name is NULL or empty\n");
-		return -2;
-	}
-
-	MG_ShaderVariable* var = calloc(1, sizeof(MG_ShaderVariable));
-	if (!var)
-	{
-		printf("Failed to allocate memory for shader variable\n");
-		return -4;
-	}
-
-	switch (type)
-	{
-		case GL_BYTE:
-		case GL_UNSIGNED_BYTE:
-			var->size = 1;
-			break;
-
-		case GL_SHORT:
-		case GL_UNSIGNED_SHORT:
-			var->size = 2;
-			break;
-
-		case GL_FLOAT:
-		case GL_INT:
-		case GL_UNSIGNED_INT:
-		case GL_BOOL:
-			var->size = 4;
-			break;
-
-		case GL_FLOAT_VEC2:
-		case GL_INT_VEC2:
-		case GL_BOOL_VEC2:
-			var->size = 8;
-			break;
-
-		case GL_FLOAT_VEC3:
-		case GL_INT_VEC3:
-		case GL_BOOL_VEC3:
-			var->size = 12;
-			break;
-
-		case GL_FLOAT_VEC4:
-		case GL_INT_VEC4:
-		case GL_BOOL_VEC4:
-			var->size = 16;
-			break;
-
-		case GL_FLOAT_MAT2:
-			var->size = 16;
-			break;
-		case GL_FLOAT_MAT3:
-			var->size = 36;
-			break;
-		case GL_FLOAT_MAT4:
-			var->size = 64;
-			break;
-
-		case GL_DOUBLE:
-			var->size = 8;
-			break;
-		case GL_DOUBLE_VEC2:
-			var->size = 16;
-			break;
-		case GL_DOUBLE_VEC3:
-			var->size = 24;
-			break;
-		case GL_DOUBLE_VEC4:
-			var->size = 32;
-			break;
-
-		case GL_DOUBLE_MAT2:
-			var->size = 32;
-			break;
-		case GL_DOUBLE_MAT3:
-			var->size = 72;
-			break;
-		case GL_DOUBLE_MAT4:
-			var->size = 128;
-			break;
-
-		case GL_SAMPLER_1D:
-		case GL_SAMPLER_2D:
-		case GL_SAMPLER_3D:
-		case GL_SAMPLER_1D_SHADOW:
-		case GL_SAMPLER_2D_SHADOW:
-		case GL_SAMPLER_1D_ARRAY:
-		case GL_SAMPLER_2D_ARRAY:
-		case GL_SAMPLER_1D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_ARRAY_SHADOW:
-		case GL_SAMPLER_2D_MULTISAMPLE:
-		case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-		case GL_SAMPLER_CUBE_SHADOW:
-		case GL_SAMPLER_CUBE_MAP_ARRAY:
-		case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-		case GL_SAMPLER_CUBE:
-			var->size = 4;
-			break;
-
-		default:
-			printf("Failed to register shader variable: unsupported type %u\n", type);
-			free(var);
-			return -5;
-	}
-
-	var->name = name;
-	var->type = type;
-	MG_LL_Add(&shader->variables, var);
-	return 0;
-}
-
-int MG_material_register_shader_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material)
+int MG_material_register_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material)
 {
 	if (!material || !material->shader || !name)
 	{
@@ -302,43 +302,140 @@ int MG_material_register_shader_variable(MG_Material* material, const char* name
 		return -1;
 	}
 
-	if (offset_in_material > _msize(material))
+	if (material->shader->status != MG_SHADER_STATUS_OK)
 	{
-		printf("Failed to register material shader variable: offset_in_material is out of bounds\n");
+		printf("Failed to register material shader variable: material shader is not compiled\n");
 		return -2;
 	}
 
-	MG_ShaderVariable_LL* var_ll = material->shader->variables;
-	while (var_ll && var_ll->data)
+	if (offset_in_material > _msize(material))
 	{
-		MG_ShaderVariable* var = var_ll->data;
-		if (var->type != type)
-		{
-			var_ll = var_ll->next;
-			continue;
-		}
-
-		if (strcmp(var->name, name) != 0)
-		{
-			var_ll = var_ll->next;
-			continue;
-		}
-
-		MG_MaterialShaderVariable* mat_var = calloc(1, sizeof(MG_MaterialShaderVariable));
-		if (!mat_var)
-		{
-			printf("Failed to allocate memory for material shader variable translation unit\n");
-			return -3;
-		}
-		mat_var->name = name;
-		mat_var->type = type;
-		mat_var->offset_in_material = offset_in_material;
-		MG_LL_Add(&material->shader_variable_translations, mat_var);
-
-		return 0;
+		printf("Failed to register material shader variable: offset_in_material is out of bounds\n");
+		return -3;
 	}
 
-	return 1;
+	size_t len = strlen(name);
+	// check against empty string, starting with digit, or containing invalid chars
+	if (len == 0 || isdigit(name[0]) || len == strspn(name, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"))
+	{
+		printf("Failed to register material shader variable: name is invalid\n");
+		return -4;
+	}
+
+	MG_MaterialShaderVariable* var = calloc(1, sizeof(MG_MaterialShaderVariable));
+	if (!var)
+	{
+		printf("Failed to allocate memory for material shader variable translation unit\n");
+		return -5;
+	}
+
+	switch (type)
+	{
+	case GL_BYTE:
+	case GL_UNSIGNED_BYTE:
+		var->size = 1;
+		break;
+
+	case GL_SHORT:
+	case GL_UNSIGNED_SHORT:
+		var->size = 2;
+		break;
+
+	case GL_FLOAT:
+	case GL_INT:
+	case GL_UNSIGNED_INT:
+	case GL_BOOL:
+		var->size = 4;
+		break;
+
+	case GL_FLOAT_VEC2:
+	case GL_INT_VEC2:
+	case GL_BOOL_VEC2:
+		var->size = 8;
+		break;
+
+	case GL_FLOAT_VEC3:
+	case GL_INT_VEC3:
+	case GL_BOOL_VEC3:
+		var->size = 12;
+		break;
+
+	case GL_FLOAT_VEC4:
+	case GL_INT_VEC4:
+	case GL_BOOL_VEC4:
+		var->size = 16;
+		break;
+
+	case GL_FLOAT_MAT2:
+		var->size = 16;
+		break;
+	case GL_FLOAT_MAT3:
+		var->size = 36;
+		break;
+	case GL_FLOAT_MAT4:
+		var->size = 64;
+		break;
+
+	case GL_DOUBLE:
+		var->size = 8;
+		break;
+	case GL_DOUBLE_VEC2:
+		var->size = 16;
+		break;
+	case GL_DOUBLE_VEC3:
+		var->size = 24;
+		break;
+	case GL_DOUBLE_VEC4:
+		var->size = 32;
+		break;
+
+	case GL_DOUBLE_MAT2:
+		var->size = 32;
+		break;
+	case GL_DOUBLE_MAT3:
+		var->size = 72;
+		break;
+	case GL_DOUBLE_MAT4:
+		var->size = 128;
+		break;
+
+	case GL_SAMPLER_1D:
+	case GL_SAMPLER_2D:
+	case GL_SAMPLER_3D:
+	case GL_SAMPLER_1D_SHADOW:
+	case GL_SAMPLER_2D_SHADOW:
+	case GL_SAMPLER_1D_ARRAY:
+	case GL_SAMPLER_2D_ARRAY:
+	case GL_SAMPLER_1D_ARRAY_SHADOW:
+	case GL_SAMPLER_2D_ARRAY_SHADOW:
+	case GL_SAMPLER_2D_MULTISAMPLE:
+	case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+	case GL_SAMPLER_CUBE_SHADOW:
+	case GL_SAMPLER_CUBE_MAP_ARRAY:
+	case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+	case GL_SAMPLER_CUBE:
+		var->size = 4;
+		break;
+
+	default:
+		printf("Failed to register shader variable: unsupported type %u\n", type);
+		free(var);
+		return -6;
+	}
+
+	if (var->size + offset_in_material > _msize(material))
+	{
+		printf("Failed to register material shader variable: variable size is out of bounds\n");
+		free(var);
+		return -5;
+	}
+
+	var->name = name;
+	var->type = type;
+	var->offset_in_material = offset_in_material;
+	MG_LL_add(material->shader_variables, var);
+
+	return 0;
 }
 
 
@@ -388,7 +485,7 @@ void MG_shader_set_ivec2(MG_Shader* shader, const char* name, int* vec)
 		printf("Warning: Failed to set shader ivec2: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform2iv(glGetUniformLocation(shader->ID, name), 1, &vec);
+	glUniform2iv(glGetUniformLocation(shader->ID, name), 1, vec);
 }
 
 void MG_shader_set_ivec3(MG_Shader* shader, const char* name, int* vec)
@@ -398,7 +495,7 @@ void MG_shader_set_ivec3(MG_Shader* shader, const char* name, int* vec)
 		printf("Warning: Failed to set shader ivec3: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform3iv(glGetUniformLocation(shader->ID, name), 1, &vec);
+	glUniform3iv(glGetUniformLocation(shader->ID, name), 1, vec);
 }
 
 void MG_shader_set_float(MG_Shader* shader, const char* name, float value)

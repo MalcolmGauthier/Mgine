@@ -15,3 +15,6 @@ void MG_transform_scale_set(MG_Transform* transform, MG_Vec3 scale);
 MG_Vec3 MG_transform_deg_to_rad(MG_Vec3 degrees);
 
 MG_Matrix MG_transform_get_matrix(MG_Transform* transform);
+MG_Matrix MG_transform_make_matrix(MG_Vec3 position, MG_Vec3 rotation, MG_Vec3 scale);
+
+MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self, float delta_time);

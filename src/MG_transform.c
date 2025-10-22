@@ -67,6 +67,12 @@ MG_Matrix MG_transform_get_matrix(MG_Transform* transform)
     return result;  
 }
 
+MG_Matrix MG_transform_make_matrix(MG_Vec3 position, MG_Vec3 rotation, MG_Vec3 scale)
+{
+    MG_Transform temp = { position, rotation, scale };
+    return MG_transform_get_matrix(&temp);
+}
+
 // update function for the transform component to recalculate the quaternion and matrix
 MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self, float delta_time)
 {

@@ -51,17 +51,12 @@ int MG_logic_loop(void* MG_instance)
 				{
 					component = (MG_Component*)current_comp->data;
 
-					if (component && component->base->on_update)
+					if (component && component->base->on_tick)
 					{
-						component->base->on_update(component, game_data->delta_time);
+						component->base->on_tick(component, game_data->delta_time);
 					}
 					current_comp = current_comp->next;
 				}
-			}
-
-			if (object->on_tick)
-			{
-				object->on_tick(object);
 			}
 
 			if (object->flags & MG_OBJECT_FLAG_MARKED_FOR_DELETION)
@@ -113,7 +108,7 @@ void MG_logic_free(MG_GameData* game_data)
 	if (!game_data)
 		return;
 
-	MG_LL_Free(game_data->object_list, MG_object_delete_by_ptr);
+	MG_LL_free(game_data->object_list, MG_object_delete_by_ptr);
 	// at the moment this function is only used with copies and not pointers
 	//free(game_data);
 }

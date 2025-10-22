@@ -1,6 +1,6 @@
-#include "MG_load_model.h"
+#include "MG_model.h"
 
-MG_Model load_model(const char* path)
+MG_Model MG_model_load(const char* path)
 {
     const struct aiScene* scene = aiImportFile(
         path,
@@ -86,6 +86,10 @@ MG_Model load_model(const char* path)
             mesh->indices[i * 3 + 1] = face->mIndices[1];
             mesh->indices[i * 3 + 2] = face->mIndices[2];
         }
+
+		glGenVertexArrays(1, &mesh->VAO);
+		glGenBuffers(1, &mesh->VBO);
+		glGenBuffers(1, &mesh->EBO);
     }
 
     goto done;
@@ -109,4 +113,39 @@ fail:
 done:
     aiReleaseImport(scene);
     return model;
+}
+
+void MG_model_enable(MG_Model* model, bool static_model)
+{
+    if (!model || !model->meshes)
+    {
+		printf("MG_model_enable: model is NULL, empty or uninitialized\n");
+        return;
+    }
+
+    for (uint32_t i = 0; i < model->mesh_count; i++)
+    {
+        MG_Mesh* mesh = &model->meshes[i];
+        if (!mesh->vertices || !mesh->indices)
+            continue;
+
+        glBindVertexArray(mesh->VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(MG_Vertex) * mesh->vertex_count, mesh->vertices, static_model ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh->index_count, mesh->indices, static_model ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(MG_Vertex), (void*)offsetof(MG_Vertex, position));
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(MG_Vertex), (void*)offsetof(MG_Vertex, normal));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(MG_Vertex), (void*)offsetof(MG_Vertex, UV));
+        glEnableVertexAttribArray(2);
+#if MG_R_VERTEX_COLOR_ENABLED
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(MG_Vertex), (void*)offsetof(MG_Vertex, color));
+		glEnableVertexAttribArray(3);
+#endif
+		glBindVertexArray(0);
+    }
+
+	model->enabled = true;
 }

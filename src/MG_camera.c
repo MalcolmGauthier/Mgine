@@ -3,24 +3,7 @@
 MG_Camera MG_camera_init(float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
 {
 	MG_Camera output = { 0 };
-	output.fov = FOV;
-	if (screen_height == 0) screen_height = 1;
-	output.screen_width = screen_width;
-	output.screen_height = screen_height;
-	output.near_clip = near_clip;
-	output.far_clip = far_clip;
-
-	if (near_clip <= 0) near_clip = 0.01f;
-	if (far_clip > FLT_MAX) far_clip = FLT_MAX;
-
-	if (near_clip >= far_clip)
-	{
-		float temp = near_clip;
-		near_clip = far_clip;
-		far_clip = temp;
-	}
-
-	glm_perspective(glm_rad(FOV), screen_width / screen_height, near_clip, far_clip, &output.projection_matrix);
+	MG_camera_set_perspective(&output, FOV, screen_width, screen_height, near_clip, far_clip);
 	return output;
 }
 
@@ -64,4 +47,47 @@ MG_Matrix MG_camera_get_view_matrix(MG_Camera* camera)
 	glm_vec3_add(&camera->position, front, center);
 	glm_lookat(&camera->position, center, world_up, &view);
 	return view;
+}
+
+void MG_camera_set_perspective(MG_Camera* camera, float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
+{
+	camera->fov = FOV;
+	if (screen_height == 0) screen_height = 1;
+	camera->screen_width = screen_width;
+	camera->screen_height = screen_height;
+	camera->near_clip = near_clip;
+	camera->far_clip = far_clip;
+
+	if (near_clip <= 0) near_clip = 0.01f;
+	if (far_clip > FLT_MAX) far_clip = FLT_MAX;
+
+	if (near_clip >= far_clip)
+	{
+		float temp = near_clip;
+		near_clip = far_clip;
+		far_clip = temp;
+	}
+
+	glm_perspective(glm_rad(FOV), screen_width / screen_height, near_clip, far_clip, &camera->projection_matrix);
+}
+
+void MG_camera_set_orthographic(MG_Camera* camera, float left, float right, float bottom, float top, float near_clip, float far_clip)
+{
+	camera->fov = 0.0f;
+	camera->screen_width = right - left;
+	camera->screen_height = top - bottom;
+	camera->near_clip = near_clip;
+	camera->far_clip = far_clip;
+
+	if (near_clip <= 0) near_clip = 0.01f;
+	if (far_clip > FLT_MAX) far_clip = FLT_MAX;
+
+	if (near_clip >= far_clip)
+	{
+		float temp = near_clip;
+		near_clip = far_clip;
+		far_clip = temp;
+	}
+
+	glm_ortho(left, right, bottom, top, near_clip, far_clip, &camera->projection_matrix);
 }

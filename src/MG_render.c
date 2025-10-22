@@ -2,12 +2,14 @@
 
 static void MG_render_update_data(MG_RenderData* render_data);
 static void MG_render_update_interp_value(MG_RenderData* render_data);
-static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint32_t obj_id);
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint64_t obj_id);
 static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data);
 static void MG_render_OIT_init(MG_RenderData* render_data);
+static void MG_render_OIT_prepare(MG_RenderData* render_data);
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int32_t obj_id);
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int64_t obj_id);
 static void MG_render_OIT(MG_RenderData* render_data);
+static void MG_render_WBOIT_composite(MG_RenderData* render_data);
 
 // The main render loop of the game engine. This renders the game objects to the screen.
 // It iterates down the component tree of each object and renders the found models.
@@ -35,10 +37,11 @@ int MG_render_loop(void* MG_instance)
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 
+	MG_render_OIT_init(render_data);
+
 	while (instance->active)
 	{
-		// [TODO] remove color clear when background added
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | (MG_R_BACKGROUND_REFRESH ? GL_DEPTH_BUFFER_BIT : 0));
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glEnable(GL_CULL_FACE);
 
@@ -48,7 +51,15 @@ int MG_render_loop(void* MG_instance)
 		MG_render_update_interp_value(render_data);
 		MG_render_calculate_interp_view_matrix(render_data);
 
+		if (!instance->rendering_enabled)
+		{
+			SDL_Delay(1);
+			continue;
+		}
+
 		// STEP 3: RENDER ALL OPAQUE OBJECTS
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
 		MG_Object_LL* current = render_data->latest_data.object_list;
 		while (current)
 		{
@@ -63,13 +74,12 @@ int MG_render_loop(void* MG_instance)
 		}
 
 		// STEP 4: RENDER TRANSPARENCY
-		glDisable(GL_CULL_FACE);
 		MG_render_OIT(render_data);
 
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	MG_LL_Free_LL_Only(transparency_ll);
+	MG_LL_free_LL_only(transparency_ll);
 	return 0;
 }
 
@@ -98,7 +108,7 @@ static void MG_render_update_data(MG_RenderData* render_data)
 	memcpy_s(&render_data->latest_data, sizeof(MG_GameData), &render_data->instance->game_data, sizeof(MG_GameData));
 
 	// copy the object list from the game data to the render data
-	render_data->latest_data.object_list = MG_LL_Copy(render_data->instance->game_data.object_list, MG_object_create_untracked_copy);
+	render_data->latest_data.object_list = MG_LL_copy(render_data->instance->game_data.object_list, MG_object_create_untracked_copy);
 
 	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 	return;
@@ -155,7 +165,7 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	{
 		if (((MG_Object*)current->data)->id == obj_id)
 		{
-			MG_ComponentTransform* t = MG_object_get_component(current->data, MG_COMPONENT_TRANSFORM_ID);
+			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(current->data, "MG_transform");
 			if (!t) return *new_matrix;
 			old_transform = &t->transform;
 			break;
@@ -223,7 +233,7 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	if (render_data->old_data.camera.focus && render_data->latest_data.camera.focus)
 	{
 		static MG_Vec3 interp_focus;
-		glm_vec3_lerp(&render_data->old_data.camera.focus, &render_data->latest_data.camera.focus, render_data->interp_value, &interp_focus);
+		glm_vec3_lerp(render_data->old_data.camera.focus, render_data->latest_data.camera.focus, render_data->interp_value, &interp_focus);
 
 		interp_cam.focus = &interp_focus;
 	}
@@ -233,7 +243,6 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	return render_data->view_matrix;
 }
 
-// this needs to be called ... 
 static void MG_render_OIT_init(MG_RenderData* render_data)
 {
 	glGenTextures(1, &render_data->accum_tex);
@@ -252,8 +261,35 @@ static void MG_render_OIT_init(MG_RenderData* render_data)
 	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_data->accum_tex, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_data->reveal_tex, 0);
+
 	GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, attachments);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		printf("Error: OIT framebuffer incomplete!\n");
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void MG_render_OIT_prepare(MG_RenderData* render_data)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
+	GLenum attachments[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+
+	const GLfloat zeroF[4] = { 0, 0, 0, 0 };
+	const GLfloat oneF[4] = { 1, 1, 1, 1 };
+	glClearBufferfv(GL_COLOR, 0, zeroF);
+	glClearBufferfv(GL_COLOR, 1, oneF);
+
+	glEnable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
+
+	// Accumulation blending
+	glBlendFunci(0, GL_ONE, GL_ONE);
+
+	// Revealage blending
+	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
 }
 
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
@@ -270,31 +306,13 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 
 	if (!object->components) return;
 
-	MG_Component_LL* current = object->components;
-	MG_Model* current_model = NULL;
-	MG_Matrix* current_matrix = NULL;
+	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object, "MG_Model");
+	if (!current_model || !current_model->model.enabled)
+		return;
 
-	while (current && current->data)
-	{
-		MG_Component* component = current->data;
+	MG_Matrix current_matrix = MG_object_get_world_transform_matrix(object);
 
-		if (component->base->id == MG_COMPONENT_TRANSFORM_ID)
-		{
-			current_matrix = &((MG_ComponentTransform*)component)->transform_matrix;
-			continue;
-		}
-
-		if (component->base->id == MG_COMPONENT_MODEL_ID)
-		{
-			current_model = &((MG_ComponentModel*)component)->model;
-			continue;
-		}
-	}
-
-	if (current_model && current_matrix)
-	{
-		MG_render_model(render_data, current_model, current_matrix, object->id);
-	}
+	MG_render_model(render_data, &current_model->model, &current_matrix, object->id);
 }
 
 static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int64_t obj_id)
@@ -311,8 +329,9 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 
 		if (!mesh->material)
 		{
-			return;
+			continue;
 		}
+
 		// if the mesh contains transparency, add it to the transparency list for later
 		if (mesh->material->contains_transparency)
 		{
@@ -322,17 +341,13 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 
 			new_node->mesh = mesh;
 			new_node->render_matrix = render_matrix;
-			MG_LL_Add(render_data->transparency_list, new_node);
+			MG_LL_add(render_data->transparency_list, new_node);
 			continue;
 		}
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
-
-		//TODO: set up mesh->material->shader variables using mesh->material properties
 		//TODO: if shader null, set shader to default minimal shader
 		if (!mesh->material->shader)
 		{
@@ -344,17 +359,12 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		MG_shader_set_mat4(mesh->material->shader, "uView", &render_data->view_matrix);
 		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-		MG_ShaderVariable_LL* var_ll = mesh->material->shader->variables;
+		MG_MaterialShaderVariable_LL* var_ll = mesh->material->shader_variables;
 		while (var_ll && var_ll->data)
 		{
-			MG_ShaderVariable* var = var_ll->data;
-			if (var->offset_in_material != -1 || !var->name)
-			{
-				var_ll = var_ll->next;
-				continue;
-			}
+			MG_MaterialShaderVariable* var = var_ll->data;
 
-			void* value_ptr = (void*)(mesh->material + var->offset_in_material);
+			void* value_ptr = (void*)((char*)mesh->material + var->offset_in_material);
 			switch (var->type)
 			{
 			case GL_FLOAT:
@@ -398,54 +408,103 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 
 static void MG_render_OIT(MG_RenderData* render_data)
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
-	glClearBufferfv(GL_COLOR, 0, (GLfloat[]) { 0, 0, 0, 0 });
-	glClearBufferfv(GL_COLOR, 1, (GLfloat[]) { 1.0f });
+	MG_render_OIT_prepare(render_data);
 
-	glEnable(GL_BLEND);
-	glBlendFunci(0, GL_ONE, GL_ONE);
-	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-
-	MG_Mesh* mesh;
+	MG_TransparentDraw* t_draw;
+	MG_Material* material;
 	while (render_data->transparency_list->next)
 	{
 		render_data->transparency_list = render_data->transparency_list->next;
-		mesh = (MG_Mesh*)render_data->transparency_list->data;
-		if (!mesh) continue;
-		if (!mesh->material) continue;
+		t_draw = (MG_TransparentDraw*)render_data->transparency_list->data;
+		if (!t_draw) continue;
 
-		if (mesh->material->shader)
+		if (!t_draw->mesh->material)
 		{
-			MG_shader_use(mesh->material->shader);
+			//TODO: add default material
+		}
+		material = t_draw->mesh->material;
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture);
+
+		//TODO: if shader null, set shader to default minimal shader
+		if (!material->shader)
+		{
+			material->shader = 0; // MG_shader_get_default();
 		}
 
-		if (mesh->material)
-		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+		MG_shader_use(material->shader);
+		MG_shader_set_mat4(material->shader, "uModel", &t_draw->render_matrix);
+		MG_shader_set_mat4(material->shader, "uView", &render_data->view_matrix);
+		MG_shader_set_mat4(material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, mesh->material->specular_texture);
+		MG_MaterialShaderVariable_LL* var_ll = material->shader_variables;
+		while (var_ll && var_ll->data)
+		{
+			MG_MaterialShaderVariable* var = var_ll->data;
+
+			void* value_ptr = (void*)((char*)material + var->offset_in_material);
+			switch (var->type)
+			{
+			case GL_FLOAT:
+				MG_shader_set_float(material->shader, var->name, *(float*)value_ptr);
+				break;
+			case GL_FLOAT_VEC2:
+				MG_shader_set_vec2(material->shader, var->name, *(MG_Vec2*)value_ptr);
+				break;
+			case GL_FLOAT_VEC3:
+				MG_shader_set_vec3(material->shader, var->name, *(MG_Vec3*)value_ptr);
+				break;
+			case GL_INT:
+			case GL_BOOL:
+				MG_shader_set_int(material->shader, var->name, *(int*)value_ptr);
+				break;
+			case GL_INT_VEC2:
+			case GL_BOOL_VEC2:
+				MG_shader_set_ivec2(material->shader, var->name, (int*)value_ptr);
+				break;
+			case GL_INT_VEC3:
+			case GL_BOOL_VEC3:
+				MG_shader_set_ivec3(material->shader, var->name, (int*)value_ptr);
+				break;
+
+			case GL_FLOAT_MAT4:
+				MG_shader_set_mat4(material->shader, var->name, (MG_Matrix*)value_ptr);
+				break;
+
+			default:
+				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
+				break;
+			}
+
+			var_ll = var_ll->next;
 		}
 
-		glBindVertexArray(mesh->VAO);
-		glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(t_draw->mesh->VAO);
+		glDrawElements(GL_TRIANGLES, t_draw->mesh->index_count, GL_UNSIGNED_INT, 0);
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDisable(GL_DEPTH_TEST);
+	MG_render_WBOIT_composite(render_data);
+
+	MG_LL_free(render_data->transparency_list, NULL);
+}
+
+static void MG_render_WBOIT_composite(MG_RenderData* render_data)
+{
 	glDisable(GL_BLEND);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	//glUseProgram(compositeShader);
-	//glBindVertexArray(fullscreenQuadVAO);
+	MG_shader_use(render_data->OIT_shader);
+
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, render_data->accum_tex);
-	//glUniform1i(glGetUniformLocation(compositeShader, "uAccum"), 0);
+	glBindTexture(GL_TEXTURE_2D, render_data->OIT_shader->ID);
+	MG_shader_set_int(render_data->OIT_shader, "uAccumTex", 0);
+
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, render_data->reveal_tex);
-	//glUniform1i(glGetUniformLocation(compositeShader, "uReveal"), 1);
+	glBindTexture(GL_TEXTURE_2D, render_data->OIT_shader->ID);
+	MG_shader_set_int(render_data->OIT_shader, "uRevealTex", 1);
 
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
-	MG_LL_Free(render_data->transparency_list, NULL);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

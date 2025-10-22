@@ -1,6 +1,6 @@
 #include "MG_LL.h"
 
-void MG_LL_Add(MG_Generic_LL* head, void* value)
+void MG_LL_add(MG_Generic_LL* head, void* value)
 {
     if (!head)
         return;
@@ -19,7 +19,7 @@ void MG_LL_Add(MG_Generic_LL* head, void* value)
     }
 }
 
-void* MG_LL_Remove(MG_Generic_LL* head, void* find)
+void* MG_LL_remove(MG_Generic_LL* head, void* find)
 {
     if (!head || !find)
         return NULL;
@@ -48,7 +48,36 @@ void* MG_LL_Remove(MG_Generic_LL* head, void* find)
     return NULL; // Not found
 }
 
-MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
+void* MG_LL_remove_free(MG_Generic_LL* head, void* find, void (*free_func)(void* data))
+{
+    if (!head || !find)
+        return NULL;
+    MG_Generic_LL* current = head;
+    MG_Generic_LL* previous = NULL;
+    while (current)
+    {
+        if (current->data == find)
+        {
+            if (previous)
+            {
+                previous->next = current->next;
+            }
+            else
+            {
+                head = current->next; // Update head if the first node is removed
+            }
+            void* data = current->data;
+            free_func ? free_func(data) : free(data);
+            free(current);
+            return data;
+        }
+        previous = current;
+        current = current->next;
+    }
+    return NULL; // Not found
+}
+
+MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
 {
     if (!head)
         return NULL;
@@ -66,7 +95,7 @@ MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
         if (!new_node)
         {
             // [TODO] this causes a memory leak if the data contains dynamic alloc.
-            MG_LL_Free(new_head, NULL);
+            MG_LL_free(new_head, NULL);
             return NULL;
         }
         new_node->data = copy_func ? copy_func(current_src->data) : current_src->data;
@@ -80,7 +109,7 @@ MG_Generic_LL* MG_LL_Copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
 }
 
 
-void MG_LL_Free(MG_Generic_LL* head, void (*free_func)(void* data))
+void MG_LL_free(MG_Generic_LL* head, void (*free_func)(void* data))
 {
     MG_Generic_LL* current = head;
     while (current)
@@ -92,7 +121,7 @@ void MG_LL_Free(MG_Generic_LL* head, void (*free_func)(void* data))
     }
 }
 
-void MG_LL_Free_LL_Only(MG_Generic_LL* head)
+void MG_LL_free_LL_only(MG_Generic_LL* head)
 {
     MG_Generic_LL* current = head;
     while (current)

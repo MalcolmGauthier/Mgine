@@ -17,9 +17,14 @@ typedef struct MG_Instance
 
 	int gl_error_code;
 	int instance_exit_code;
-	uint64_t instance_id;
+	int64_t instance_id;
+
+	MG_Generic_LL* shader_list;
+	MG_Generic_LL* material_list;
+	MG_Object_LL* prefab_list;
 
 	bool active : 1;
 	bool initialized : 1;
+	bool rendering_enabled : 1;
 }
 MG_Instance;

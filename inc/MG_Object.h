@@ -2,14 +2,17 @@
 
 #include "MG_include.h"
 #include "stc/MG_object.h"
-#include "MG_component.h"
+#include "MG_components.h"
+#include "MG_transform.h"
 
-uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*));
+uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags);
 uint64_t MG_object_create_by_copy(MG_Object* object);
-uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags, void (*on_load)(MG_Object*), void (*on_tick)(MG_Object*));
+uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags);
 // create a copy of the object that is not tracked by the engine.
 // this returns a new object with the same data, but does not add it to the object list, and thus the object is not managed by the engine.
 MG_Object* MG_object_create_untracked_copy(MG_Object* source);
+// same as before, but manages the copy. this is mainly for MG_LL_copy usage.
+MG_Object* MG_object_create_tracked_copy(MG_Object* source);
 
 MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id);
 MG_Object_LL* MG_object_get_all(MG_Instance* instance);
@@ -24,8 +27,13 @@ int MG_object_remove_child(MG_Object* parent, uint64_t child_id);
 
 int MG_object_add_component(MG_Object* object, MG_Component* component);
 int MG_object_remove_component(MG_Object* object, uint32_t type);
-MG_Component* MG_object_get_component(MG_Object* object, uint32_t type);
+
+MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* name);
+MG_Component* MG_object_get_component_by_id(MG_Object* object, uint32_t id);
 MG_Component_LL* MG_object_get_all_components(MG_Object* object);
+
+MG_Vec3 MG_object_get_world_position(MG_Object* object);
+MG_Matrix MG_object_get_world_transform_matrix(MG_Object* object);
 
 // frees the memory used by the component linked list. this does not call the component's on_destroy functions.
 void MG_object_free_components(MG_Object* object);

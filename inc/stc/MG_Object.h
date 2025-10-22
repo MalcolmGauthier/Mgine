@@ -32,10 +32,8 @@ typedef struct MG_Object
 
 	MG_Instance* instance;
 
+	const char* name;
 	uint64_t id;
 	uint32_t flags;
-
-	void (*on_load)(struct MG_Object* self);
-	void (*on_tick)(struct MG_Object* self);
 }
 MG_Object;
