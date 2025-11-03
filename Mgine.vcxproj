@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>build\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -104,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>shaders;glad\include\glad;cglm;glad\include;inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>shaders;lib;lib\cglm;inc</AdditionalIncludeDirectories>
       <CompileAs>Default</CompileAs>
     </ClCompile>
     <Link>
@@ -138,7 +141,7 @@
     <None Include="shaders\MG_wboit_t_frag.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="lib\glad.c" />
     <ClCompile Include="src\MG_camera.c" />
     <ClCompile Include="src\MG_components.c" />
     <ClCompile Include="src\MG_LL.c" />
@@ -149,6 +152,7 @@
     <ClCompile Include="src\MG_render.c" />
     <ClCompile Include="src\MG_scene.c" />
     <ClCompile Include="src\MG_shaders.c" />
+    <ClCompile Include="src\MG_textures.c" />
     <ClCompile Include="src\MG_transform.c" />
     <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
@@ -164,6 +168,7 @@
     <ClInclude Include="inc\MG_render.h" />
     <ClInclude Include="inc\MG_scene.h" />
     <ClInclude Include="inc\MG_shaders.h" />
+    <ClInclude Include="inc\MG_textures.h" />
     <ClInclude Include="inc\MG_transform.h" />
     <ClInclude Include="inc\MG_window.h" />
     <ClInclude Include="inc\stc\MG_Camera.h" />

@@ -515,7 +515,7 @@ void MG_shader_set_vec2(MG_Shader* shader, const char* name, MG_Vec2 vec)
 		printf("Warning: Failed to set shader vec2: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform2fv(glGetUniformLocation(shader->ID, name), 1, &vec);
+	glUniform2fv(glGetUniformLocation(shader->ID, name), 1, (const GLfloat*)&vec);
 }
 
 void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 vec)
@@ -525,7 +525,7 @@ void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 vec)
 		printf("Warning: Failed to set shader vec3: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform3fv(glGetUniformLocation(shader->ID, name), 1, &vec);
+	glUniform3fv(glGetUniformLocation(shader->ID, name), 1, (const GLfloat*)&vec);
 }
 
 void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix* mat)
@@ -536,5 +536,5 @@ void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix* mat)
 		return;
 	}
 	
-	glUniformMatrix4fv(glGetUniformLocation(shader->ID, name), 1, false, mat);
+	glUniformMatrix4fv(glGetUniformLocation(shader->ID, name), 1, false, (const GLfloat*)mat);
 }

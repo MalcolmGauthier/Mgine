@@ -17,7 +17,7 @@
 #include <timeapi.h>
 
 #include <SDL.h>
-#include <glad/glad.h>
+#include <glad.h>
 #include <cglm.h>
 
 #include <stdio.h>

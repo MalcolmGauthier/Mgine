@@ -18,6 +18,8 @@ typedef enum MG_ObjectFlags
 	MG_OBJECT_FLAG_MARKED_FOR_DELETION = 1 << 3,
 	// if for exmaple an object teleports, it would look weird.
 	MG_OBJECT_FLAG_NO_INTERP = 1 << 4,
+	// if the object should always point directly at the camera
+	MG_OBJECT_FLAG_BILLBOARD = 1 << 5,
 }
 MG_ObjectFlags;
 

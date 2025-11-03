@@ -19,9 +19,14 @@ typedef struct MG_Instance
 	int instance_exit_code;
 	int64_t instance_id;
 
-	MG_Generic_LL* shader_list;
-	MG_Generic_LL* material_list;
-	MG_Object_LL* prefab_list;
+	uint32_t shader_count;
+	MG_Shader* shader_list;
+	uint32_t material_count;
+	MG_Material* material_list;
+	uint32_t prefab_count;
+	MG_Object* prefab_list;
+	uint32_t scene_count;
+	MG_Scene* scene_list;
 
 	bool active : 1;
 	bool initialized : 1;

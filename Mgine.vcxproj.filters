@@ -39,9 +39,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="glad\src\glad.c">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
     <ClCompile Include="src\MG_model.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
@@ -76,6 +73,12 @@
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_scene.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_textures.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\glad.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -154,6 +157,9 @@
     </ClInclude>
     <ClInclude Include="inc\stc\MG_Scene.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_textures.h">
+      <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

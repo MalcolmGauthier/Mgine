@@ -181,19 +181,19 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	new_ang_rad = MG_transform_deg_to_rad(new_transform.rotation);
 
 	// can't use glm_decompose because it copies a vec4 into translation, which would be a memory overrun in this scenario
-	glm_vec3_copy(&new_matrix->m30, &new_transform.position);
-	glm_decompose_rs(new_matrix, new_quat, &new_transform.scale);
-	glm_euler_yzx_quat(&new_ang_rad, new_quat);
-	glm_euler_yzx_quat(&old_ang_rad, old_quat);
+	glm_vec3_copy((float*)(&new_matrix->m30), (float*)&new_transform.position);
+	glm_decompose_rs((vec4*)new_matrix, &new_quat, (float*)&new_transform.scale);
+	glm_euler_yzx_quat((float*)&new_ang_rad, new_quat);
+	glm_euler_yzx_quat((float*)&old_ang_rad, old_quat);
 
-	glm_vec3_lerp(&old_transform->position, &new_transform.position, render_data->interp_value, &interp_transform.position);
+	glm_vec3_lerp((float*)&old_transform->position, (float*)&new_transform.position, render_data->interp_value, (float*)&interp_transform.position);
 	glm_quat_slerp(old_quat, new_quat, render_data->interp_value, interp_quat);
-	glm_vec3_lerp(&old_transform->scale, &new_transform.scale, render_data->interp_value, &interp_transform.scale);
+	glm_vec3_lerp((float*)&old_transform->scale, (float*)&new_transform.scale, render_data->interp_value, (float*)&interp_transform.scale);
 
-	glm_mat4_identity(&output);
-	glm_translate(&output, &interp_transform.position);
-	glm_quat_rotate(&output, interp_quat, &output);
-	glm_scale(&output, &interp_transform.scale);
+	glm_mat4_identity((vec4*)&output);
+	glm_translate((vec4*)&output, (float*)&interp_transform.position);
+	glm_quat_rotate((vec4*)&output, interp_quat, (vec4*)&output);
+	glm_scale((vec4*)&output, (float*)&interp_transform.scale);
 	return output;
 }
 
@@ -205,15 +205,15 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	MG_Camera interp_cam = { 0 };
 
 	// Interpolate position linearly
-	glm_vec3_lerp(&render_data->old_data.camera.position, &render_data->latest_data.camera.position, render_data->interp_value, &interp_cam.position);
+	glm_vec3_lerp((float*)&render_data->old_data.camera.position, (float*)&render_data->latest_data.camera.position, render_data->interp_value, (float*)&interp_cam.position);
 
 	// Convert old and new rotations to quaternions
 	versor old_q, new_q;
 	MG_Vec3 old_euler = MG_transform_deg_to_rad(render_data->old_data.camera.rotation);
 	MG_Vec3 new_euler = MG_transform_deg_to_rad(render_data->latest_data.camera.rotation);
 
-	glm_euler_xyz_quat(&old_euler, old_q);
-	glm_euler_xyz_quat(&new_euler, new_q);
+	glm_euler_xyz_quat((float*)&old_euler, old_q);
+	glm_euler_xyz_quat((float*)&new_euler, new_q);
 
 	// SLERP between quaternions
 	versor interp_q;
@@ -233,7 +233,7 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	if (render_data->old_data.camera.focus && render_data->latest_data.camera.focus)
 	{
 		static MG_Vec3 interp_focus;
-		glm_vec3_lerp(render_data->old_data.camera.focus, render_data->latest_data.camera.focus, render_data->interp_value, &interp_focus);
+		glm_vec3_lerp((float*)render_data->old_data.camera.focus, (float*)render_data->latest_data.camera.focus, render_data->interp_value, (float*)&interp_focus);
 
 		interp_cam.focus = &interp_focus;
 	}
@@ -360,6 +360,9 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
 		MG_MaterialShaderVariable_LL* var_ll = mesh->material->shader_variables;
+		int num_textures = 0;
+		int max_textures;
+		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_textures);
 		while (var_ll && var_ll->data)
 		{
 			MG_MaterialShaderVariable* var = var_ll->data;
@@ -393,6 +396,18 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 				MG_shader_set_mat4(mesh->material->shader, var->name, (MG_Matrix*)value_ptr);
 				break;
 
+			case GL_SAMPLER_2D:
+				glActiveTexture(GL_TEXTURE0 + num_textures);
+				glBindTexture(GL_TEXTURE_2D, *(GLuint*)((char*)mesh->material + var->offset_in_material));
+				MG_shader_set_int(mesh->material->shader, var->name, *(GLuint*)value_ptr);
+				num_textures++;
+				if (num_textures >= max_textures)
+				{
+					num_textures--;
+					printf("Warning: Maximum texture units exceeded when rendering model. Some textures may not appear correctly.\n");
+				}
+				break;
+
 			default:
 				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
 				break;
@@ -421,6 +436,7 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		if (!t_draw->mesh->material)
 		{
 			//TODO: add default material
+			continue;
 		}
 		material = t_draw->mesh->material;
 

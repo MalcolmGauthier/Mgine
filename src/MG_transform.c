@@ -58,11 +58,11 @@ MG_Matrix MG_transform_get_matrix(MG_Transform* transform)
     vec4 quat;
     MG_Matrix result;
 
-	glm_mat4_identity(&result);
-	glm_translate(&result, &transform->position);
-	glm_euler_yzx_quat(&transform->rotation, quat);
-	glm_quat_rotate(&result, quat, &result);
-	glm_scale(&result, &transform->scale);
+	glm_mat4_identity((vec4*)&result);
+	glm_translate((vec4*)&result, (float*)&transform->position);
+	glm_euler_yzx_quat((float*)&transform->rotation, quat);
+	glm_quat_rotate((vec4*)&result, quat, (vec4*)&result);
+	glm_scale((vec4*)&result, (float*)&transform->scale);
 
     return result;  
 }

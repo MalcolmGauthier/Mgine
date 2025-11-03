@@ -15,7 +15,7 @@ MG_Matrix MG_camera_get_view_matrix(MG_Camera* camera)
 	// calculate front vector
 	if (camera->focus)
 	{
-		glm_vec3_sub(camera->focus, &camera->position, front);
+		glm_vec3_sub((float*)camera->focus, (float*)&camera->position, front);
 		glm_vec3_normalize(front);
 	}
 	else
@@ -44,8 +44,8 @@ MG_Matrix MG_camera_get_view_matrix(MG_Camera* camera)
 	}
 
 	vec3 center;
-	glm_vec3_add(&camera->position, front, center);
-	glm_lookat(&camera->position, center, world_up, &view);
+	glm_vec3_add((float*)&camera->position, front, center);
+	glm_lookat((float*)&camera->position, center, world_up, (vec4*)&view);
 	return view;
 }
 
@@ -68,7 +68,7 @@ void MG_camera_set_perspective(MG_Camera* camera, float FOV, float screen_width,
 		far_clip = temp;
 	}
 
-	glm_perspective(glm_rad(FOV), screen_width / screen_height, near_clip, far_clip, &camera->projection_matrix);
+	glm_perspective(glm_rad(FOV), screen_width / screen_height, near_clip, far_clip, (vec4*)&camera->projection_matrix);
 }
 
 void MG_camera_set_orthographic(MG_Camera* camera, float left, float right, float bottom, float top, float near_clip, float far_clip)
@@ -89,5 +89,5 @@ void MG_camera_set_orthographic(MG_Camera* camera, float left, float right, floa
 		far_clip = temp;
 	}
 
-	glm_ortho(left, right, bottom, top, near_clip, far_clip, &camera->projection_matrix);
+	glm_ortho(left, right, bottom, top, near_clip, far_clip, (vec4*)&camera->projection_matrix);
 }
