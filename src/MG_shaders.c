@@ -1,17 +1,12 @@
 #include "MG_shaders.h"
 
-MG_Shader* MG_shader_create(const char* vertex_shader, const char* fragment_shader)
+MG_Shader MG_shader_create(char* vertex_shader, char* fragment_shader)
 {
-	MG_Shader* shader = calloc(1, sizeof(MG_Shader));
-	if (!shader)
-	{
-		printf("Failed to allocate memory for shader\n");
-		return NULL;
-	}
+	MG_Shader shader = { 0 };
 	
-	shader->vertex_shader_file = vertex_shader;
-	shader->fragment_shader_file = fragment_shader;
-	shader->status = MG_SHADER_STATUS_NOT_IMPLEMENTED;
+	shader.vertex_shader_code = vertex_shader;
+	shader.fragment_shader_code = fragment_shader;
+	shader.status = MG_SHADER_STATUS_NOT_IMPLEMENTED;
 	return shader;
 }
 
@@ -20,7 +15,7 @@ int MG_shader_define(char** ptr_to_shader_file_text, int define_count, ...)
 	char* defines = calloc(1, sizeof(char));
 	if (!defines)
 	{
-		printf("Failed to allocate memory for shader defines (-1)\n");
+		printf("Failed to allocate memory for shader defines.\n");
 		return -1;
 	}
 
@@ -113,11 +108,7 @@ int MG_shader_compile(MG_Shader* shader)
 	if (shader->ID)
 	{
 		printf("WARNING: shader already compiled. recompiling.\n");
-		glDeleteShader(vertex_shader);
-		glDeleteShader(fragment_shader);
 		glDeleteProgram(shader->ID);
-		vertex_shader = 0;
-		fragment_shader = 0;
 		shader->ID = 0;
 	}
 
@@ -127,19 +118,19 @@ int MG_shader_compile(MG_Shader* shader)
 
 	int success;
 
-	glShaderSource(vertex_shader, 1, &shader->vertex_shader_file, NULL);
+	glShaderSource(vertex_shader, 1, &shader->vertex_shader_code, NULL);
 	glCompileShader(vertex_shader);
 	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
 		char infoLog[512];
 		glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
-		printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s\n", infoLog);
+		printf("ERROR compiling vertex shader: %s\n", infoLog);
 		shader->status = MG_SHADER_STATUS_ERROR;
 		return -2;
 	}
 
-	glShaderSource(fragment_shader, 1, &shader->fragment_shader_file, NULL);
+	glShaderSource(fragment_shader, 1, &shader->fragment_shader_code, NULL);
 	glCompileShader(fragment_shader);
 	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
 	if (!success)
@@ -147,7 +138,7 @@ int MG_shader_compile(MG_Shader* shader)
 		char infoLog[512];
 		glGetShaderInfoLog(fragment_shader, 512, NULL, infoLog);
 		glDeleteShader(vertex_shader);
-		printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s\n", infoLog);
+		printf("ERROR compiling fragment shader: %s\n", infoLog);
 		shader->status = MG_SHADER_STATUS_ERROR;
 		return -3;
 	}
@@ -162,7 +153,7 @@ int MG_shader_compile(MG_Shader* shader)
 		glGetProgramInfoLog(shader->ID, 512, NULL, infoLog);
 		glDeleteShader(vertex_shader);
 		glDeleteShader(fragment_shader);
-		printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s\n", infoLog);
+		printf("ERROR linking shader: %s\n", infoLog);
 		shader->status = MG_SHADER_STATUS_ERROR;
 		return -4;
 	}
@@ -322,12 +313,14 @@ int MG_material_register_variable(MG_Material* material, const char* name, GLenu
 		return -4;
 	}
 
-	MG_MaterialShaderVariable* var = calloc(1, sizeof(MG_MaterialShaderVariable));
-	if (!var)
+	material->shader_variable_count++;
+	material->shader_variables = realloc(material->shader_variables, material->shader_variable_count * sizeof(MG_MaterialShaderVariable));
+	if (!material->shader_variables)
 	{
-		printf("Failed to allocate memory for material shader variable translation unit\n");
+		printf("Failed to reallocate memory for material shader variable translation unit\n");
 		return -5;
 	}
+	MG_MaterialShaderVariable* var = &material->shader_variables[material->shader_variable_count - 1];
 
 	switch (type)
 	{
@@ -433,7 +426,6 @@ int MG_material_register_variable(MG_Material* material, const char* name, GLenu
 	var->name = name;
 	var->type = type;
 	var->offset_in_material = offset_in_material;
-	MG_LL_add(material->shader_variables, var);
 
 	return 0;
 }

@@ -32,9 +32,11 @@ typedef struct MG_ComponentTemplate
 }
 MG_ComponentTemplate;
 
+typedef MG_Generic_LL MG_ComponentTemplate_LL;
+
 
 typedef void (*MG_DeferredRegFunc)(MG_GameData*);
-extern MG_ComponentTemplate* MG_component_register(MG_GameData* game_data, size_t struct_size, const char* name,
+extern MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct_size, const char* name,
 	MG_ComponentFuncResult(*on_create)(struct MG_Component* self),
 	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),
 	void (*on_destroy)(struct MG_Component* self));
@@ -45,10 +47,10 @@ extern __declspec(allocate(".MGREG$A")) MG_DeferredRegFunc __MGreg_start;
 extern __declspec(allocate(".MGREG$Z")) MG_DeferredRegFunc __MGreg_end;
 
 #define MG_COMPONENT(struct_type, name_str, create_fn, update_fn, destroy_fn)            \
-    static void __MGreg_##struct_type(MG_GameData* gdm);                                 \
+    static void __MGreg_##struct_type(MG_Instance* gdm);                                 \
     __pragma(section(".MGREG$M", read))                                                  \
     __declspec(allocate(".MGREG$M")) MG_DeferredRegFunc _MGreg_##struct_type = __MGreg_##struct_type; \
-    static void __MGreg_##struct_type(MG_GameData* gdm) {                                \
+    static void __MGreg_##struct_type(MG_Instance* gdm) {                                \
         MG_component_register(gdm, sizeof(struct_type), name_str,                        \
                               create_fn, update_fn, destroy_fn);                         \
     }

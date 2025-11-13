@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
+#include "stc/MG_Scene.h"
 
 typedef struct MG_MaterialShaderVariable
 {
@@ -17,12 +18,12 @@ typedef struct MG_Material
 {
 	float diffuse_rgba[4];
 
-	char* diffuse_texture_path;
-	GLuint diffuse_texture;
+	struct MG_Texture* diffuse_texture;
 
 	bool contains_transparency;
 
 	struct MG_Shader* shader;
-	MG_MaterialShaderVariable_LL* shader_variables;
+	uint32_t shader_variable_count;
+	MG_MaterialShaderVariable* shader_variables;
 }
 MG_Material;

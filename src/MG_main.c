@@ -10,6 +10,7 @@
 static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context, bool no_window);
 static int MG_gl_init(SDL_GLContext gl_context);
 static void MG_instance_init(MG_Instance* instance);
+static void MG_instance_free(MG_Instance* instance);
 
 int main(int argc, char** argv)
 {
@@ -40,6 +41,8 @@ int main(int argc, char** argv)
     }
 
 	MG_instance_init(&inst);
+    MG_initialize_components(&inst.game_data);
+    MG_load_game(&inst);
 
     // windows is stupid, and without this any sleep calls cannot be guarenteed to last less than ~16ms
     // a single call to this is enough to set the option for all threads, but i couldn't cleanly fit this into the main thread
@@ -98,6 +101,7 @@ int main(int argc, char** argv)
 	SDL_WaitThread(render_thread, NULL);
     SDL_GL_DeleteContext(inst.gl_context);
     SDL_DestroyWindow(inst.window);
+    MG_instance_free(&inst);
     SDL_Quit();
     timeEndPeriod(1);
     return 0;
@@ -256,37 +260,4 @@ static void MG_instance_init(MG_Instance* instance)
 static void MG_instance_free(MG_Instance* instance)
 {
     //TODO
-}
-
-void MG_instance_load_data(MG_Instance* instance, const char* mg_file)
-{
-	size_t len = strlen(mg_file);
-    if (len > MAX_PATH)
-    {
-		printf("MG_instance_load_data: File path too long\n");
-		return;
-    }
-    
-    if (mg_file[len - 3] != '.' || mg_file[len - 2] != 'm' || mg_file[len - 1] != 'g')
-	{
-        printf("MG_instance_load_data: Invalid file extension, expected .mg\n");
-        return;
-	}
-
-	FILE* file = fopen(mg_file, "rb");
-
-	char header[6];
-    if (fread(header, sizeof(char), 5, file) != 5) goto fail;
-	header[5] = '\0';
-    if (strcmp(header, "MGINE") != 0)
-    {
-        printf("MG_instance_load_data: Invalid file format\n");
-        goto fail;
-	}
-
-	MG_initialize_components(&instance->game_data);
-
-fail:
-	fclose(file);
-    return;
 }

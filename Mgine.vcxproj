@@ -72,6 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>build\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,6 +145,7 @@
     <ClCompile Include="lib\glad.c" />
     <ClCompile Include="src\MG_camera.c" />
     <ClCompile Include="src\MG_components.c" />
+    <ClCompile Include="src\MG_file.c" />
     <ClCompile Include="src\MG_LL.c" />
     <ClCompile Include="src\MG_model.c" />
     <ClCompile Include="src\MG_logic.c" />
@@ -159,6 +161,7 @@
   <ItemGroup>
     <ClInclude Include="inc\MG_camera.h" />
     <ClInclude Include="inc\MG_components.h" />
+    <ClInclude Include="inc\MG_file.h" />
     <ClInclude Include="inc\MG_include.h" />
     <ClInclude Include="inc\MG_LL.h" />
     <ClInclude Include="inc\MG_model.h" />

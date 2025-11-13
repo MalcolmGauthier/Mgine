@@ -346,7 +346,7 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		}
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture);
+		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture->id);
 
 		//TODO: if shader null, set shader to default minimal shader
 		if (!mesh->material->shader)
@@ -441,7 +441,7 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		material = t_draw->mesh->material;
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture);
+		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->id);
 
 		//TODO: if shader null, set shader to default minimal shader
 		if (!material->shader)

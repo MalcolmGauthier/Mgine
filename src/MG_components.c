@@ -1,6 +1,6 @@
 #include "MG_components.h"
 
-MG_ComponentTemplate* MG_component_register(MG_GameData* game_data, size_t struct_size, const char* name,
+MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct_size, const char* name,
 	MG_ComponentFuncResult(*on_create)(struct MG_Component* self),
 	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),
 	void (*on_destroy)(struct MG_Component* self)
@@ -14,8 +14,28 @@ MG_ComponentTemplate* MG_component_register(MG_GameData* game_data, size_t struc
 	}
 
 	comp_template->id = MG_component_get_id_by_name(name);
+	comp_template->on_create = on_create;
+	comp_template->on_tick = on_update;
+	comp_template->on_destroy = on_destroy;
 	comp_template->size = struct_size;
 
+	if (instance->component_list)
+	{
+		MG_ComponentTemplate_LL* temp_ll = instance->component_list;
+		while (temp_ll)
+		{
+			if (((MG_ComponentTemplate*)temp_ll->data)->id == comp_template->id)
+			{
+				printf("ERROR: component with name '%s' already registered\n", name);
+				free(comp_template);
+				return NULL;
+			}
+			temp_ll = temp_ll->next;
+		}
+	}
+
+	MG_LL_add(&instance->component_list, comp_template);
+	
 	return comp_template;
 }
 
@@ -53,23 +73,42 @@ uint32_t MG_component_get_id_by_name(const char* name)
 	return hash;
 }
 
-
-MG_Component* MG_component_create(MG_Object* object, MG_ComponentTemplate* template, void* data)
+MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, uint32_t id)
 {
-	MG_Component* component = calloc(1, sizeof(template->size));
+	MG_ComponentTemplate_LL* temp_ll = instance->component_list;
+	while (temp_ll)
+	{
+		MG_ComponentTemplate* temp = (MG_ComponentTemplate*)temp_ll->data;
+		if (temp->id == id)
+			return temp;
+		temp_ll = temp_ll->next;
+	}
+	return NULL;
+}
+
+MG_ComponentTemplate* MG_component_get_template_by_name(MG_Instance* instance, const char* name)
+{
+	uint32_t id = MG_component_get_id_by_name(name);
+	return MG_component_get_template_by_id(instance, id);
+}
+
+MG_Component* MG_component_create(MG_Object* object, MG_ComponentTemplate* comp_template, void* data)
+{
+	MG_Component* component = calloc(1, sizeof(comp_template->size));
 	if (!component)
 	{
 		printf("ERROR: out of memory, unable to allocate new component");
 		return NULL;
 	}
 
-	component->base = template;
+	component->base = comp_template;
 	component->owner = object;
 
 	// copy everything except first 2 pointers
 	size_t offset = offsetof(MG_Component, flags);
-	size_t size = sizeof(template->size) - offset;
-	memcpy_s((char*)component + offset, size, (char*)data + offset, size);
+	size_t size = sizeof(comp_template->size) - offset;
+	if (size > 0 && data)
+		memcpy_s((char*)component + offset, size, (char*)data + offset, size);
 
 	MG_LL_add(object->components, component);
 

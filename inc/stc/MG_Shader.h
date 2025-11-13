@@ -17,7 +17,7 @@ typedef struct MG_Shader
 
 	MG_ShaderStatus status;
 
-	const char* vertex_shader_file;
-	const char* fragment_shader_file;
+	char* vertex_shader_code;
+	char* fragment_shader_code;
 }
 MG_Shader;

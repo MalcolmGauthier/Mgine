@@ -1,5 +1,9 @@
 #include "MG_textures.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stbi.h"
+#undef STB_IMAGE_IMPLEMENTATION
+
 static void MG_texture_init_default(void)
 {
 	memset(_MG_default_texture, 0xFF, sizeof(_MG_default_texture));
@@ -30,7 +34,7 @@ MG_Texture* MG_texture_init(const char* path, uint32_t index_in_file)
 		return NULL;
 	}
 
-	texture->path = path;
+	texture->path = (char*)path;
 	texture->index_in_file = index_in_file;
 	texture->id = 0;
 
@@ -66,13 +70,13 @@ int MG_texture_load(MG_Texture* texture)
 	stbi_set_flip_vertically_on_load(true);
 
 	int width, height, channel_cnt;
-	stbi_uc* texture = stbi_load(texture->path, &width, &height, &channel_cnt, 0);
-	if (!texture)
+	stbi_uc* pixels = stbi_load(texture->path, &width, &height, &channel_cnt, 0);
+	if (!pixels)
 	{
 		printf("Warning: Failed to load texture from path: %s\n", texture->path);
 		if (_MG_default_texture[0] == 0)
 			MG_texture_init_default();
-		texture = _MG_default_texture;
+		pixels = _MG_default_texture;
 		width = _MG_default_tex_width;
 		height = _MG_default_tex_height;
 		channel_cnt = 3;
@@ -98,10 +102,10 @@ int MG_texture_load(MG_Texture* texture)
 		break;
 	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, color_type, GL_UNSIGNED_BYTE, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, color_type, GL_UNSIGNED_BYTE, pixels);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	if (texture != _MG_default_texture)
-		stbi_image_free(texture);
+	if (pixels != _MG_default_texture)
+		stbi_image_free(pixels);
 
 	return 0;
 }

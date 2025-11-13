@@ -27,7 +27,7 @@ typedef struct MG_Mesh
 	uint32_t index_count;
 
 	GLuint VAO, VBO, EBO;
-	MG_Material* material;
+	struct MG_Material* material;
 
 	struct MG_AABB
 	{
@@ -42,7 +42,7 @@ MG_Mesh;
 // for use in the render loop, where unsorted meshes still need info on where they are
 typedef struct MG_TransparentDraw
 {
-	MG_Mesh* mesh;
+	struct MG_Mesh* mesh;
 	MG_Matrix render_matrix;
 }
 MG_TransparentDraw;
@@ -52,9 +52,12 @@ typedef MG_Generic_LL MG_TransparentDraw_LL;
 
 typedef struct MG_Model
 {
-	MG_Mesh* meshes;
+	struct MG_Mesh* meshes;
 	uint32_t mesh_count;
 
 	bool enabled;
+
+	const char* path;
+	uint32_t index_in_file;
 }
 MG_Model;

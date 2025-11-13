@@ -1,30 +1,37 @@
 #include "MG_LL.h"
 
-void MG_LL_add(MG_Generic_LL* head, void* value)
+void MG_LL_add(MG_Generic_LL** head_ptr, void* value)
 {
-    if (!head)
+    if (!head_ptr)
         return;
 
+    MG_Generic_LL* new_node = malloc(sizeof(MG_Generic_LL));
+    if (!new_node)
+        return;
+
+    new_node->data = value;
+    new_node->next = NULL;
+
+    if (!*head_ptr)
+    {
+        *head_ptr = new_node;
+        return;
+    }
+
+    MG_Generic_LL* head = *head_ptr;
     while (head->next)
     {
         head = head->next;
     }
-
-    MG_Generic_LL* new_node = (MG_Generic_LL*)malloc(sizeof(MG_Generic_LL));
-    if (new_node)
-    {
-        new_node->data = value;
-        new_node->next = NULL;
-        head->next = new_node;
-    }
+    head->next = new_node;
 }
 
-void* MG_LL_remove(MG_Generic_LL* head, void* find)
+void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find)
 {
-    if (!head || !find)
+    if (!head_ptr || !*head_ptr || !find)
         return NULL;
 
-    MG_Generic_LL* current = head;
+    MG_Generic_LL* current = *head_ptr;
     MG_Generic_LL* previous = NULL;
     while (current)
     {
@@ -36,7 +43,8 @@ void* MG_LL_remove(MG_Generic_LL* head, void* find)
             }
             else
             {
-                head = current->next; // Update head if the first node is removed
+                // Update head if the first node is removed
+                *head_ptr = current->next;
             }
             void* data = current->data;
             free(current);
@@ -45,14 +53,29 @@ void* MG_LL_remove(MG_Generic_LL* head, void* find)
         previous = current;
         current = current->next;
     }
-    return NULL; // Not found
+    return NULL;
 }
 
-void* MG_LL_remove_free(MG_Generic_LL* head, void* find, void (*free_func)(void* data))
+void* MG_LL_find(MG_Generic_LL* head, void* find)
 {
-    if (!head || !find)
-        return NULL;
     MG_Generic_LL* current = head;
+    while (current)
+    {
+        if (current->data == find)
+        {
+            return current->data;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+int MG_LL_remove_free(MG_Generic_LL** head_ptr, void* find, void (*free_func)(void* data))
+{
+    if (!head_ptr || !*head_ptr || !find)
+        return -1;
+
+    MG_Generic_LL* current = *head_ptr;
     MG_Generic_LL* previous = NULL;
     while (current)
     {
@@ -64,17 +87,18 @@ void* MG_LL_remove_free(MG_Generic_LL* head, void* find, void (*free_func)(void*
             }
             else
             {
-                head = current->next; // Update head if the first node is removed
+                // Update head if the first node is removed
+                *head_ptr = current->next;
             }
             void* data = current->data;
             free_func ? free_func(data) : free(data);
             free(current);
-            return data;
+            return 0;
         }
         previous = current;
         current = current->next;
     }
-    return NULL; // Not found
+    return 1;
 }
 
 MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
@@ -94,8 +118,9 @@ MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
         MG_Generic_LL* new_node = calloc(1, sizeof(MG_Generic_LL));
         if (!new_node)
         {
-            // [TODO] this causes a memory leak if the data contains dynamic alloc.
-            MG_LL_free(new_head, NULL);
+            // this causes a memory leak if the data contains dynamic alloc.
+            // but this branch is taken if the world is ending, so whatever.
+            MG_LL_free(&new_head, NULL);
             return NULL;
         }
         new_node->data = copy_func ? copy_func(current_src->data) : current_src->data;
@@ -104,14 +129,15 @@ MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
         current_dst = new_node;
         current_src = current_src->next;
     }
-	return new_head;
-
+    return new_head;
 }
 
-
-void MG_LL_free(MG_Generic_LL* head, void (*free_func)(void* data))
+void MG_LL_free(MG_Generic_LL** head_ptr, void (*free_func)(void* data))
 {
-    MG_Generic_LL* current = head;
+    if (!head_ptr || !*head_ptr)
+        return;
+
+    MG_Generic_LL* current = *head_ptr;
     while (current)
     {
         MG_Generic_LL* next = current->next;
@@ -119,15 +145,20 @@ void MG_LL_free(MG_Generic_LL* head, void (*free_func)(void* data))
         free(current);
         current = next;
     }
+    *head_ptr = NULL;
 }
 
-void MG_LL_free_LL_only(MG_Generic_LL* head)
+void MG_LL_free_LL_only(MG_Generic_LL** head_ptr)
 {
-    MG_Generic_LL* current = head;
+    if (!head_ptr || !*head_ptr)
+        return;
+
+    MG_Generic_LL* current = *head_ptr;
     while (current)
     {
         MG_Generic_LL* next = current->next;
         free(current);
         current = next;
     }
+    *head_ptr = NULL;
 }

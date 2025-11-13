@@ -34,8 +34,10 @@ typedef struct MG_Object
 
 	MG_Instance* instance;
 
-	const char* name;
+	char* name;
 	uint64_t id;
 	uint32_t flags;
 }
 MG_Object;
+
+typedef MG_Object MG_Prefab;
