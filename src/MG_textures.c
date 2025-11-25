@@ -34,8 +34,8 @@ MG_Texture* MG_texture_init(const char* path, uint32_t index_in_file)
 		return NULL;
 	}
 
-	texture->path = (char*)path;
-	texture->index_in_file = index_in_file;
+	texture->base.path = (char*)path;
+	texture->base.index_in_file = index_in_file;
 	texture->id = 0;
 
 	return texture;
@@ -55,9 +55,9 @@ int MG_texture_load(MG_Texture* texture)
 		return 0;
 	}
 
-	if (!texture->path)
+	if (!texture->base.asset_file_loaded)
 	{
-		printf("Error: Failed to load texture: path is NULL\n");
+		printf("Error: Failed to load texture: asset is not loaded\n");
 		return -2;
 	}
 	
@@ -70,10 +70,10 @@ int MG_texture_load(MG_Texture* texture)
 	stbi_set_flip_vertically_on_load(true);
 
 	int width, height, channel_cnt;
-	stbi_uc* pixels = stbi_load(texture->path, &width, &height, &channel_cnt, 0);
+	stbi_uc* pixels = stbi_load_from_memory(texture->base.asset_file_data, texture->base.asset_file_size, &width, &height, &channel_cnt, 0);
 	if (!pixels)
 	{
-		printf("Warning: Failed to load texture from path: %s\n", texture->path);
+		printf("Warning: Failed to load texture from path: %s, %u\n", texture->base.path, texture->base.index_in_file);
 		if (_MG_default_texture[0] == 0)
 			MG_texture_init_default();
 		pixels = _MG_default_texture;
@@ -106,6 +106,11 @@ int MG_texture_load(MG_Texture* texture)
 	glGenerateMipmap(GL_TEXTURE_2D);
 	if (pixels != _MG_default_texture)
 		stbi_image_free(pixels);
+
+	texture->base.loaded = true;
+	free(texture->base.asset_file_data);
+	texture->base.asset_file_data = NULL;
+	texture->base.asset_file_loaded = false;
 
 	return 0;
 }

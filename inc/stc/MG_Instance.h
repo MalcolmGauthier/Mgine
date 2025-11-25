@@ -5,6 +5,15 @@
 #include "MG_GameData.h"
 #include "MG_Object.h"
 #include "MG_RenderData.h"
+#include "MG_Audio.h"
+
+typedef enum
+{
+	MG_GAME_DATA_LOCK_OWNER_NONE = 0,
+	MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD = 1,
+	MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD = 2,
+}
+MG_GameDataLockOwner;
 
 typedef struct MG_Instance
 {
@@ -12,6 +21,7 @@ typedef struct MG_Instance
 	SDL_GLContext gl_context;
 	MG_WindowData window_data;
 	MG_GameData game_data;
+	MG_Audio audio_data;
 	MG_RenderData render_data;
 	MG_GameDataLockOwner lock_owner;
 

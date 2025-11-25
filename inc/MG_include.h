@@ -17,6 +17,7 @@
 #include <timeapi.h>
 
 #include <SDL.h>
+#include <SDL_mixer.h>
 #include <glad.h>
 #include <cglm.h>
 
@@ -50,3 +51,7 @@
 #define MG_R_INTERPOLATION_TRIPLE_BUFFER false
 #define MG_R_VERTEX_COLOR_ENABLED true
 #define MG_R_BACKGROUND_REFRESH true
+
+// AUDIO
+#define MG_A_OUTPUT_FREQUENCY 44100 / 2
+#define MG_A_CHANNEL_COUNT 32

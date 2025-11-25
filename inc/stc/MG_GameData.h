@@ -4,13 +4,6 @@
 #include "MG_LL.h"
 #include "stc/MG_Camera.h"
 
-typedef enum
-{
-	MG_GAME_DATA_LOCK_OWNER_NONE = 0,
-	MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD = 1,
-	MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD = 2,
-} MG_GameDataLockOwner;
-
 typedef MG_Generic_LL MG_Object_LL;
 
 typedef struct MG_GameData

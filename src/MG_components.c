@@ -53,27 +53,7 @@ void MG_initialize_components(MG_GameData* game_data)
 		if (*f) (*f)(game_data);
 }
 
-
-uint32_t MG_component_get_id_by_name(const char* name)
-{
-	if (!name)
-	{
-		printf("ERROR: MG_component_get_id: name is NULL\n");
-		return 0;
-	}
-	
-	// FNV-1a hash
-	uint32_t hash = 2166136261u;
-	while (*name)
-	{
-		hash ^= (uint8_t)(toupper(*name));
-		hash *= 16777619u;
-		name++;
-	}
-	return hash;
-}
-
-MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, uint32_t id)
+MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, MG_ID id)
 {
 	MG_ComponentTemplate_LL* temp_ll = instance->component_list;
 	while (temp_ll)
@@ -88,7 +68,7 @@ MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, uin
 
 MG_ComponentTemplate* MG_component_get_template_by_name(MG_Instance* instance, const char* name)
 {
-	uint32_t id = MG_component_get_id_by_name(name);
+	MG_ID id = MG_ID_get_id(name);
 	return MG_component_get_template_by_id(instance, id);
 }
 

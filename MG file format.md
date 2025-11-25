@@ -9,7 +9,7 @@ This file is generally generated alongside the executable by Mgine editors, but 
 
 | Offset          | Name                        | Type/Size  | Description                                                                          |
 | --------------- | :-------------------------- | :--------- | ------------------------------------------------------------------------------------ |
-| 0               | `MGINE`                     | 5 * char   | The bytes⠀`4D 47 49 4E 45` to identify the file.                                    |
+| 0               | `MGINE`                     | 5 * char   | The bytes⠀`4D 47 49 4E 45` to identify the file.                                     |
 | 5               | version number              | uint_32    | The version number of this MG file to prevent giving newer files to old versions.    |
 | 9               | shader code count (`A`)     | uint_32    | The number of shader code files stored in this file. Limit of 1024.                  |
 | 0               | shader code length (`B`)    | uint_32    | Length of shader code string. Limit of 65536 characters per shader code file.        |
@@ -17,7 +17,7 @@ This file is generally generated alongside the executable by Mgine editors, but 
 | -               | shader count (`C`)          | uint_32    | The number of shader assets stored in this file. Limit of 1024.                      |
 | 0               | shader vertex file          | uint_32    | Index into⠀`A`. Must be smaller than⠀`A`.                                            |
 | 4               | shader fragment file        | uint_32    | Index into⠀`A`. Must be smaller than⠀`A`.                                            |
-| 8               | shader define count         | uint_16    |                                                                                      |
+| 8               | shader define count         | uint_16    | The number of defines for this shader. Limit of 256.                                 |
 | 0               | shader define type          | uint_8     | 0 = vertex shader, 1 = fragment shader                                               |
 | 1               | shader define length (`X`)  | uint_16    | Length of shadeer define. Must be between 1 and 255.                                 |
 | 3               | shader define               | `X` * char | Define added to shader. Example: "ENABLE" -> "... #define ENABLE\n ..."              |
@@ -53,20 +53,20 @@ This file is generally generated alongside the executable by Mgine editors, but 
 | `J` + 8         | prefab comp. data           | `K` bytes  | Data to be stored in prefab. object component. First 2*(pointer size) bytes ignored. |
 | `J` + `K` + 8   | prefab child count (`L`)    | uint_16    | Number of child objects attached to prefab object. Limit of 2048.                    |
 | `J` + `K` + 0xA | prefab children (recursive) | `L` * ?    | For every child, a name, flags, components, and more children just like we saw.      |
-| -               | sound count                 | uint_32    |                                                                                      |
-| 0               | sound filepath length (`Y`) | uint_16    |                                                                                      |
-| 2               | sound filepath              | `Y` * char |                                                                                      |
-| `Y` + 2         | sound file index            | uint_32    |                                                                                      |
+| (conditional)   | prefab object pref. id      | uint_32    | If the name length of an object in here is 0, read next int as index in prefab list. |
+| -               | sound count                 | uint_32    | Number of sound file paths stored in this file. Max of 4096.                         |
+| 0               | sound filepath length (`Y`) | uint_16    | Length of local filepath to MGA file containing sound.                               |
+| 2               | sound filepath              | `Y` * char | Local filepath to MGA file containing sound.                                         |
+| `Y` + 2         | sound file index            | uint_32    | Index in the MGA file of the sound file.                                             |
 | -               | scene count                 | uint_16    | Number of scenes stored in the file. Limit of 1024.                                  |
 | 0               | scene name len (`M`)        | uint_32    | Length of the name of the scene.                                                     |
-| 4               | scene name                  | `M` * char | Name of the scene.                                                                   |
+| 4               | scene name                  | `M` * char | Name of the scene. Limit of 1024 chars.                                              |
 | `M` + 4         | scene object count (`N`)    | uint_32    | Number of objects pre-loaded in this scene. Only top-level objects included.         |
 | `M` + 8         | scene objects (recursive)   | `N` * ?    | See prefab section for data contained in objects.                                    |
-| (conditional)   | scene object pref. id       | uint_32    | If the name length of an object in here is 0, read next int as index in prefab list. |
 | 0               | scene texture count (`O`)   | uint_32    | Number of textures pre-loaded for this scene.                                        |
-| 4               | scene textures              | `O` * u32  | Textures to be pre-loaded when scene is loaded. Index into⠀`D`.                     |
+| 4               | scene textures              | `O` * u32  | Textures to be pre-loaded when scene is loaded. Index into⠀`D`.                      |
 | `O` * u32 + 4   | scene model count (`P`)     | uint_32    | Number of models pre-loaded for this scene.                                          |
-| `O` * u32 + 8   | scene models                | `P` * u32  | Models to be pre-loaded when scene is loaded. Index into⠀`G`.                       |
+| `O` * u32 + 8   | scene models                | `P` * u32  | Models to be pre-loaded when scene is loaded. Index into⠀`G`.                        |
 
 ## Notes
 

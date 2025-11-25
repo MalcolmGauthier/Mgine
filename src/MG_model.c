@@ -1,33 +1,35 @@
 #include "MG_model.h"
 
-MG_Model MG_model_load(const char* path)
+int MG_model_load(MG_Model* model)
 {
-    const struct aiScene* scene = aiImportFile(
-        path,
+    const struct aiScene* scene = aiImportFileFromMemory(
+        model->base.asset_file_data,
+        model->base.asset_file_size,
         aiProcess_Triangulate |
         aiProcess_GenNormals |
         aiProcess_CalcTangentSpace |
         aiProcess_JoinIdenticalVertices |
-        0//aiProcess_ImproveCacheLocality //re-enable when normal maps get support
+        0,//aiProcess_ImproveCacheLocality //re-enable when normal maps get support
+        NULL
     );
 
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
     {
         fprintf(stderr, "Assimp error: %s\n", aiGetErrorString());
         // todo replace with error model
-        return (MG_Model){0};
+        return -1;
     }
 
-    MG_Model model = { 0 };
-    model.mesh_count = scene->mNumMeshes;
-    model.meshes = calloc(model.mesh_count, sizeof(MG_Mesh));
-    if (!model.meshes) goto done;
+    model->mesh_count = scene->mNumMeshes;
+    model->meshes = calloc(model->mesh_count, sizeof(MG_Mesh));
+    // goto done instead of fail because mesh count of 0 is valid
+    if (!model->meshes) goto done;
 
     for (unsigned int m = 0; m < scene->mNumMeshes; m++)
     {
         const struct aiMesh* ai_mesh = scene->mMeshes[m];
 
-        MG_Mesh* mesh = &model.meshes[m];
+        MG_Mesh* mesh = &model->meshes[m];
         mesh->vertex_count = ai_mesh->mNumVertices;
         mesh->vertices = calloc(mesh->vertex_count, sizeof(MG_Vertex));
 		if (!mesh->vertices) goto fail;
@@ -92,27 +94,31 @@ MG_Model MG_model_load(const char* path)
 		glGenBuffers(1, &mesh->EBO);
     }
 
-    goto done;
+done:
+    model->base.loaded = true;
+    free(model->base.asset_file_data);
+	model->base.asset_file_data = NULL;
+	model->base.asset_file_loaded = false;
+    aiReleaseImport(scene);
+    return 0;
 
 fail:
-    for (uint32_t i = 0; i < model.mesh_count; i++)
+    for (uint32_t i = 0; i < model->mesh_count; i++)
     {
 		// vertices being null means we've reached the point where allocation failed
-		if (!model.meshes[i].vertices)
+		if (!model->meshes[i].vertices)
             break;
 
 		// compiler thinks junk data could be in here, but meshes are allocated with calloc
 #pragma warning(suppress: 6001)
-        free(model.meshes[i].vertices);
+        free(model->meshes[i].vertices);
 #pragma warning(suppress: 6001)
-		free(model.meshes[i].indices);
+		free(model->meshes[i].indices);
 	}
-    free(model.meshes);
-	model = (MG_Model){ 0 };
+    free(model->meshes);
 
-done:
     aiReleaseImport(scene);
-    return model;
+    return -2;
 }
 
 void MG_model_enable(MG_Model* model, bool static_model)

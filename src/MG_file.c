@@ -3,6 +3,7 @@
 #define MG_SHADER_CODE_MAX 1024
 #define MG_SHADER_CODE_SIZE_MAX 65536
 #define MG_SHADER_MAX 1024
+#define MG_SHADER_DEFINE_MAX 256
 
 #define MG_MATERIAL_MAX 4096
 #define MG_MATERIAL_SIZE_MAX 65536
@@ -21,12 +22,20 @@
 #define MG_SCENE_MAX 1024
 #define MG_SCENE_NAME_MAX 1024
 
-byte* MG_load_asset(FILE* file, const char* path, uint32_t index)
+#define MG_PATH_MAX 1024
+
+byte* MG_load_asset(FILE* file, MG_Asset* asset)
 {
-	if (!path || !file)
+	bool close_file = false;
+
+	if (!file)
 	{
-		printf("Error: Failed to load asset: path is NULL\n");
-		return NULL;
+		file = fopen(asset->path, "rb");
+		if (!file)
+		{
+			printf("Error: Failed to open asset file: %s\n", asset->path);
+			return NULL;
+		}
 	}
 
 	char header[6];
@@ -38,14 +47,14 @@ byte* MG_load_asset(FILE* file, const char* path, uint32_t index)
 	fread(header, sizeof(char), sizeof(header), file);
 	if (memcmp(header, "MGINEA", 6) != 0)
 	{
-		printf("Error: Invalid asset file format: %s\n", path);
+		printf("Error: Invalid asset file format: %u\n", asset->path);
 		goto fail;
 	}
 
 	fread(&asset_count, sizeof(uint32_t), 1, file);
-	if (index >= asset_count)
+	if (asset->index_in_file >= asset_count)
 	{
-		printf("Error: Asset index out of bounds: %u (max %u)\n", index, asset_count - 1);
+		printf("Error: Asset index out of bounds: %u (max %u)\n", asset->index_in_file, asset_count - 1);
 		goto fail;
 	}
 	if (asset_count > 0xFFFF)
@@ -58,9 +67,9 @@ byte* MG_load_asset(FILE* file, const char* path, uint32_t index)
 	file_size = ftell(file);
 	rewind(file);
 
-	if(fseek(file, index * sizeof(uint64_t) + sizeof(uint32_t) + sizeof(header), SEEK_SET))
+	if(fseek(file, asset->index_in_file * sizeof(uint64_t) + sizeof(uint32_t) + sizeof(header), SEEK_SET))
 	{
-		printf("Error: Failed to seek to asset index %u in file: %s\n", index, path);
+		printf("Error: Failed to seek to asset index %u in file %s\n", asset->index_in_file, asset->path);
 		goto fail;
 	}
 
@@ -71,11 +80,11 @@ byte* MG_load_asset(FILE* file, const char* path, uint32_t index)
 	fread(&asset_length, sizeof(uint64_t), 1, file);
 	if (asset_offset >= file_size)
 	{
-		printf("Error: Invalid asset offset for index %u: %llu\n", index, asset_offset);
+		printf("Error: Invalid asset offset for index %u: %llu\n", asset->index_in_file, asset_offset);
 		goto fail;
 	}
 
-	if (index == asset_count - 1)
+	if (asset->index_in_file == asset_count - 1)
 	{
 		asset_length = file_size - asset_offset;
 	}
@@ -95,157 +104,35 @@ byte* MG_load_asset(FILE* file, const char* path, uint32_t index)
 	size_t read_bytes = fread(asset_data, 1, (size_t)asset_length, file);
 	if (read_bytes != (size_t)asset_length)
 	{
-		printf("Error: Failed to read asset data from file: %s\n", path);
+		printf("Error: Failed to read asset data from file\n");
 		free(asset_data);
 		goto fail;
 	}
 
+	asset->asset_file_data = asset_data;
+	asset->asset_file_size = (size_t)asset_length;
+	asset->asset_file_loaded = true;
+	if (close_file)
+		fclose(file);
 	return asset_data;
 
 fail:
+	if (close_file)
+		fclose(file);
 	return NULL;
 }
 
-int MG_load_game(MG_Instance* instance)
-{
-	if (!instance)
-	{
-		printf("Error: MG_load_game called with NULL instance\n");
-		return -1;
-	}
-
-	char mg_file_path[MAX_PATH];
-	DWORD len = GetModuleFileNameA(NULL, mg_file_path, MAX_PATH);
-	if (len == 0 || len == MAX_PATH)
-	{
-		printf("Error: Failed to get module file name\n");
-		return -2;
-	}
-
-	char* extension = strrchr(mg_file_path, '.');
-	if (extension)
-		strcpy_s(extension, strlen(extension), ".mg");
-	else
-		strcat_s(mg_file_path, MAX_PATH, ".mg");
-
-	FILE* mg_file = fopen(mg_file_path, "rb");
-	if (!mg_file)
-	{
-		printf("Error: Failed to open MG file: %s\n", mg_file_path);
-		return -3;
-	}
-
-	char header[5];
-	fread(header, sizeof(char), sizeof(header), mg_file);
-	if (memcmp(header, "MGINE", 5) != 0)
-	{
-		printf("Error: Invalid MG file format: %s\n", mg_file_path);
-		fclose(mg_file);
-		return -4;
-	}
-	
-	uint32_t version = 0;
-	fread(&version, sizeof(uint32_t), 1, mg_file);
-	if (version != 1)
-	{
-		printf("Error: Unsupported MG file version: %u\n", version);
-		fclose(mg_file);
-		return -5;
-	}
-
-	uint32_t shader_code_count = 0;
-	fread(&shader_code_count, sizeof(uint32_t), 1, mg_file);
-	if (shader_code_count > MG_SHADER_CODE_MAX)
-	{
-		printf("Error: Shader code count exceeds maximum limit: %u (max %u)\n", shader_code_count, MG_SHADER_MAX);
-		fclose(mg_file);
-		return -6;
-	}
-	char** shader_codes = calloc(shader_code_count, sizeof(char*));
-	if (!shader_codes)
-	{
-		printf("Error: Failed to allocate memory for shader codes\n");
-		fclose(mg_file);
-		return -7;
-	}
-	MG_load_shader_code(mg_file, shader_codes, shader_code_count);
-	instance->shader_code_count = shader_code_count;
-	instance->shader_code_list = shader_codes;
-
-	uint32_t shader_count = 0;
-	fread(&shader_count, sizeof(uint32_t), 1, mg_file);
-	if (shader_count > MG_SHADER_MAX)
-	{
-		printf("Error: Shader count exceeds maximum limit: %u (max %u)\n", shader_count, MG_SHADER_MAX);
-		fclose(mg_file);
-		return -8;
-	}
-	MG_load_shaders(mg_file, instance, shader_codes, shader_count);
-
-	uint32_t texture_count = 0;
-	fread(&texture_count, sizeof(uint32_t), 1, mg_file);
-	if (texture_count > MG_TEXTURE_MAX)
-	{
-		printf("Error: Texture count exceeds maximum limit: %u (max %u)\n", texture_count, MG_TEXTURE_MAX);
-		fclose(mg_file);
-		return -9;
-	}
-	instance->texture_count = texture_count;
-	MG_load_asset_list(mg_file, instance->texture_list, texture_count, sizeof(MG_Texture), offsetof(MG_Texture, path), offsetof(MG_Texture, index_in_file));
-
-	uint32_t material_count = 0;
-	fread(&material_count, sizeof(uint32_t), 1, mg_file);
-	if (material_count > MG_MATERIAL_MAX)
-	{
-		printf("Error: Material count exceeds maximum limit: %u (max %u)\n", material_count, MG_MATERIAL_MAX);
-		fclose(mg_file);
-		return -10;
-	}
-	instance->material_count = material_count;
-	MG_load_materials(mg_file, instance, material_count);
-
-	uint32_t model_count = 0;
-	fread(&model_count, sizeof(uint32_t), 1, mg_file);
-	if (model_count > MG_MODEL_MAX)
-	{
-		printf("Error: Model count exceeds maximum limit: %u (max %u)\n", model_count, MG_MODEL_MAX);
-		fclose(mg_file);
-		return -11;
-	}
-	instance->model_count = model_count;
-	MG_load_asset_list(mg_file, &instance->model_list, model_count, sizeof(MG_Model), offsetof(MG_Model, path), offsetof(MG_Model, index_in_file));
-
-	MG_load_prefabs(mg_file, instance, NULL);
-
-	uint32_t sound_count = 0;
-	fread(&sound_count, sizeof(uint32_t), 1, mg_file);
-	if (sound_count > MG_SOUND_MAX)
-	{
-		printf("Error: Sound count exceeds maximum limit: %u (max %u)\n", sound_count, MG_SOUND_MAX);
-		fclose(mg_file);
-		return -12;
-	}
-	instance->sound_count = sound_count;
-	MG_load_asset_list(mg_file, instance->sound_list, sound_count, sizeof(MG_Sound), offsetof(MG_Sound, path), offsetof(MG_Sound, index_in_file));
-
-	uint16_t scene_count = 0;
-	fread(&scene_count, sizeof(uint16_t), 1, mg_file);
-	if (scene_count > MG_SCENE_MAX)
-	{
-		printf("Error: Scene count exceeds maximum limit: %u (max %u)\n", scene_count, MG_SCENE_MAX);
-		fclose(mg_file);
-		return -13;
-	}
-	instance->scene_count = scene_count;
-	MG_load_scenes(mg_file, instance, scene_count);
-}
 
 static void MG_load_shader_code(FILE* file, char** shader_codes, uint32_t shader_code_count)
 {
 	for (uint32_t i = 0; i < shader_code_count; i++)
 	{
 		uint32_t code_size = 0;
-		fread(&code_size, sizeof(uint32_t), 1, file);
+		if (fread(&code_size, sizeof(uint32_t), 1, file) != 1)
+		{
+			printf("Error: Failed to read shader code size for index %u\n", i);
+			return;
+		}
 		if (code_size > MG_SHADER_CODE_SIZE_MAX)
 		{
 			printf("Error: Shader code size exceeds maximum limit: %u (max %u)\n", code_size, MG_SHADER_CODE_SIZE_MAX);
@@ -257,15 +144,21 @@ static void MG_load_shader_code(FILE* file, char** shader_codes, uint32_t shader
 			printf("Error: Failed to allocate memory for shader code\n");
 			return;
 		}
-		fread(shader_codes[i], sizeof(char), code_size, file);
+		if (fread(shader_codes[i], sizeof(char), code_size, file) != code_size)
+		{
+			printf("Error: Failed to read shader code for index %u\n", i);
+			free(shader_codes[i]);
+			shader_codes[i] = NULL;
+			return;
+		}
 		shader_codes[i][code_size] = '\0';
 	}
 }
 
-static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_codes, uint32_t shader_code_count)
+static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_codes, uint32_t shader_code_count, uint32_t shader_count)
 {
-	instance->shader_count = shader_code_count;
-	instance->shader_list = calloc(shader_code_count, sizeof(MG_Shader));
+	instance->shader_count = shader_count;
+	instance->shader_list = calloc(shader_count, sizeof(MG_Shader));
 	if (!instance->shader_list)
 	{
 		printf("Error: Failed to allocate memory for shaders\n");
@@ -273,7 +166,7 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 		return;
 	}
 	
-	for (uint32_t i = 0; i < shader_code_count; i++)
+	for (uint32_t i = 0; i < shader_count; i++)
 	{
 		MG_Shader* shader = &instance->shader_list[i];
 		uint32_t vertex_code_index = 0;
@@ -290,6 +183,12 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 
 		uint16_t define_count = 0;
 		fread(&define_count, sizeof(uint16_t), 1, file);
+		if (define_count > MG_SHADER_DEFINE_MAX)
+		{
+			printf("Error: Shader define count exceeds maximum limit: %u (max %u) in shader %u\n", define_count, MG_SHADER_DEFINE_MAX, i);
+			instance->active = false;
+			return;
+		}
 		for (uint16_t j = 0; j < define_count; j++)
 		{
 			uint8_t define_type = 255;
@@ -319,6 +218,8 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 				MG_shader_define(&shader->fragment_shader_code, 1, define_name);
 			else
 				printf("Error: Invalid shader define type of %u in shader %u\n", define_type, i);
+
+			free(define_name);
 		}
 
 		if (MG_shader_compile(shader))
@@ -326,25 +227,34 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 	}
 }
 
-static void MG_load_asset_list(FILE* file, void* asset_list, uint32_t asset_count, size_t asset_size, size_t path_offset, size_t index_offset)
+static void* MG_load_asset_list(FILE* file, uint32_t asset_count, size_t asset_size, size_t path_offset, size_t index_offset)
 {
-	asset_list = calloc(asset_count, asset_size);
+	if (asset_count == 0)
+		return NULL;
+
+	void* asset_list = calloc(asset_count, asset_size);
 	if (!asset_list)
 	{
 		printf("Error: Failed to allocate memory for asset list. Asset of size %u.\n", (uint32_t)asset_size);
-		return;
+		return NULL;
 	}
 
-	byte* current_asset = (byte*)asset_list - asset_size;
+	byte* current_asset = (byte*)asset_list;
 	for (uint32_t i = 0; i < asset_count; i++)
 	{
-		current_asset += asset_size;
 		uint16_t path_length = 0;
-		fread(&path_length, sizeof(uint16_t), 1, file);
-		if (path_length == 0 || path_length > MAX_PATH)
+		if (fread(&path_length, sizeof(uint16_t), 1, file) != 1)
+		{
+			printf("Error: Failed to read asset path length in asset %u.\n", i);
+			// cleanup partial allocations not handled here
+			return asset_list;
+		}
+		if (path_length == 0 || path_length > MG_PATH_MAX)
 		{
 			printf("Error: Invalid asset path length in asset %u. FILE CORRUPTION MAY HAVE OCCURED AND CAUSED FOLLOWING ERRORS.\n", i);
+			// skip the path and index if possible
 			fseek(file, path_length + sizeof(uint32_t), SEEK_CUR);
+			current_asset += asset_size;
 			continue;
 		}
 		char* asset_path = malloc(path_length + 1);
@@ -352,16 +262,32 @@ static void MG_load_asset_list(FILE* file, void* asset_list, uint32_t asset_coun
 		{
 			printf("Error: Failed to allocate memory for asset path in asset %u\n", i);
 			fseek(file, path_length + sizeof(uint32_t), SEEK_CUR);
+			current_asset += asset_size;
 			continue;
 		}
-		fread(asset_path, sizeof(char), path_length, file);
+		if (fread(asset_path, sizeof(char), path_length, file) != path_length)
+		{
+			printf("Error: Failed to read asset path in asset %u\n", i);
+			free(asset_path);
+			current_asset += asset_size;
+			continue;
+		}
 		asset_path[path_length] = '\0';
 
 		char** path_ptr = (char**)(current_asset + path_offset);
-		char** index_ptr = (char**)(current_asset + index_offset);
 		*path_ptr = asset_path;
-		fread(&index_ptr, sizeof(uint32_t), 1, file);
+
+		uint32_t* index_ptr = (uint32_t*)(current_asset + index_offset);
+		if (fread(index_ptr, sizeof(uint32_t), 1, file) != 1)
+		{
+			printf("Error: Failed to read asset index for asset %u\n", i);
+			// leave index as zero
+		}
+
+		current_asset += asset_size;
 	}
+
+	return asset_list;
 }
 
 static void MG_load_materials(FILE* file, MG_Instance* instance, uint32_t material_count)
@@ -399,14 +325,14 @@ static void MG_load_materials(FILE* file, MG_Instance* instance, uint32_t materi
 		glm_vec4_clamp(material->diffuse_rgba, 0, 1);
 		uint32_t diffuse_texture_index = 0;
 		fread(&diffuse_texture_index, sizeof(uint32_t), 1, file);
-		if (diffuse_texture_index < instance->texture_count)
+		if (diffuse_texture_index < instance->texture_count && instance->texture_list)
 			material->diffuse_texture = &instance->texture_list[diffuse_texture_index];
 		fread(&material->contains_transparency, sizeof(uint8_t), 1, file);
 		if (material->contains_transparency > 1)
 			material->contains_transparency = 1;
 		uint32_t shader_index = 0;
 		fread(&shader_index, sizeof(uint32_t), 1, file);
-		if (shader_index < instance->shader_count)
+		if (shader_index < instance->shader_count && instance->shader_list)
 			material->shader = &instance->shader_list[shader_index];
 
 		byte* material_end = (byte*)material + sizeof(MG_Material);
@@ -458,7 +384,7 @@ static void MG_load_materials(FILE* file, MG_Instance* instance, uint32_t materi
 	}
 }
 
-static void MG_load_prefabs(FILE* file, MG_Instance* instance, MG_Object* parent)
+static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent, MG_Object_LL** output)
 {
 	uint32_t obj_count = 0;
 	fread(&obj_count, sizeof(uint32_t), 1, file);
@@ -468,7 +394,7 @@ static void MG_load_prefabs(FILE* file, MG_Instance* instance, MG_Object* parent
 		instance->active = false;
 		return;
 	}
-	if (!parent)
+	if (!parent && output == NULL)
 	{
 		instance->prefab_list = calloc(obj_count, sizeof(MG_Object));
 		if (!instance->prefab_list)
@@ -477,12 +403,59 @@ static void MG_load_prefabs(FILE* file, MG_Instance* instance, MG_Object* parent
 			instance->active = false;
 			return;
 		}
+		instance->prefab_count = obj_count;
 	}
 
 	for (uint32_t i = 0; i < obj_count; i++)
 	{
+		uint32_t prefab_name_len = 0;
+		fread(&prefab_name_len, sizeof(uint32_t), 1, file);
+
+		if (prefab_name_len == 0)
+		{
+			uint32_t index = 0;
+			fread(&index, sizeof(uint32_t), 1, file);
+			if (index >= instance->prefab_count)
+			{
+				printf("Error: Invalid prefab reference index %u\n", index);
+				continue;
+			}
+
+			// If loading into a parent or output list, create an untracked copy and add to the list
+			if (parent || output)
+			{
+				MG_Object* copy = MG_object_create_untracked_copy(&instance->prefab_list[index]);
+				if (!copy)
+				{
+					printf("Error: Failed to create untracked copy of prefab %u\n", index);
+					instance->active = false;
+					return;
+				}
+				if (parent)
+					MG_LL_add(&parent->children, copy);
+				else if (output)
+					MG_LL_add(output, copy);
+			}
+			else
+			{
+				MG_Object* copy = MG_object_create_untracked_copy(&instance->prefab_list[index]);
+				if (!copy)
+				{
+					printf("Error: Failed to create untracked copy of prefab %u\n", index);
+					instance->active = false;
+					return;
+				}
+				instance->prefab_list[i] = *copy;
+				// Free the temporary allocation but do not deep free children pointers
+				free(copy);
+			}
+
+			continue;
+		}
+
+		// Creating a new prefab or object
 		MG_Object* prefab;
-		if (parent)
+		if (parent || output)
 		{
 			prefab = calloc(1, sizeof(MG_Object));
 			if (!prefab)
@@ -492,29 +465,31 @@ static void MG_load_prefabs(FILE* file, MG_Instance* instance, MG_Object* parent
 				return;
 			}
 			prefab->parent = parent;
-			MG_LL_add(&parent->children, prefab);
+			if (parent)
+				MG_LL_add(&parent->children, prefab);
+			else if (output)
+				MG_LL_add(output, prefab);
 		}
 		else
 		{
 			prefab = &instance->prefab_list[i];
 		}
 
-		uint32_t prefab_name_len = 0;
-		fread(&prefab_name_len, sizeof(uint32_t), 1, file);
 		if (prefab_name_len > MG_PREFAB_NAME_MAX)
 		{
 			fseek(file, prefab_name_len, SEEK_CUR);
 			prefab_name_len = 0;
 		}
-		prefab->name = malloc(prefab_name_len + 1);
-		if (!prefab->name)
+		char* name = malloc(prefab_name_len + 1);
+		if (!name)
 		{
 			printf("Error: Failed to allocate memory for prefab names\n");
 			instance->active = false;
 			return;
 		}
-		fread(prefab->name, sizeof(char), prefab_name_len, file);
-		prefab->name[prefab_name_len] = '\0';
+		fread(name, sizeof(char), prefab_name_len, file);
+		name[prefab_name_len] = '\0';
+		prefab->id = MG_ID_get_id(name);
 
 		fread(&prefab->flags, sizeof(uint32_t), 1, file);
 
@@ -557,14 +532,19 @@ static void MG_load_prefabs(FILE* file, MG_Instance* instance, MG_Object* parent
 					instance->active = false;
 					return;
 				}
+				// Skip pointer-sized data as per spec
 				fseek(file, 2 * sizeof(void*), SEEK_CUR);
-				fread(component_data, 1, component_data_size - 2 * sizeof(void*), file);
+				if (component_data_size > 2 * sizeof(void*))
+					fread(component_data, 1, component_data_size - 2 * sizeof(void*), file);
 			}
 
 			MG_component_create(prefab, MG_component_get_template_by_name(instance, component_name), component_data);
+			free(component_name);
+			if (component_data)
+				free(component_data);
 		}
 
-		MG_load_prefabs(file, instance, prefab);
+		MG_load_objects(file, instance, prefab, NULL);
 	}
 }
 
@@ -598,6 +578,186 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 		fread(scene->name, sizeof(char), scene_name_len, file);
 		scene->name[scene_name_len] = '\0';
 		
+		MG_load_objects(file, instance, NULL, &scene->objects);
 
+		uint32_t texture_count = 0;
+		fread(&texture_count, sizeof(uint32_t), 1, file);
+		if (texture_count > MG_TEXTURE_MAX)
+		{
+			printf("Error: Scene texture count exceeds maximum limit: %u (max %u)\n", texture_count, MG_TEXTURE_MAX);
+			instance->active = false;
+			return;
+		}
+		scene->texture_count = texture_count;
+		scene->textures = calloc(texture_count, sizeof(MG_Texture*));
+		for (uint32_t j = 0; j < texture_count; j++)
+		{
+			uint32_t texture_index = 0;
+			fread(&texture_index, sizeof(uint32_t), 1, file);
+			if (texture_index < instance->texture_count)
+			{
+				scene->textures[j] = &instance->texture_list[texture_index];
+			}
+		}
+
+		uint32_t model_count = 0;
+		fread(&model_count, sizeof(uint32_t), 1, file);
+		if (model_count > MG_MODEL_MAX)
+		{
+			printf("Error: Scene model count exceeds maximum limit: %u (max %u)\n", model_count, MG_MODEL_MAX);
+			instance->active = false;
+			return;
+		}
+		scene->model_count = model_count;
+		scene->models = calloc(model_count, sizeof(MG_Model*));
+		for (uint32_t j = 0; j < model_count; j++)
+		{
+			uint32_t model_index = 0;
+			fread(&model_index, sizeof(uint32_t), 1, file);
+			if (model_index < instance->model_count)
+			{
+				scene->models[j] = &instance->model_list[model_index];
+			}
+		}
 	}
+}
+
+int MG_load_game(MG_Instance* instance)
+{
+	if (!instance)
+	{
+		printf("Error: MG_load_game called with NULL instance\n");
+		return -1;
+	}
+
+	char mg_file_path[MAX_PATH];
+	DWORD len = GetModuleFileNameA(NULL, mg_file_path, MAX_PATH);
+	if (len == 0 || len == MAX_PATH)
+	{
+		printf("Error: Failed to get module file name\n");
+		return -2;
+	}
+
+	char* extension = strrchr(mg_file_path, '.');
+	if (extension)
+	{
+		size_t remaining = MAX_PATH - (size_t)(extension - mg_file_path);
+		strcpy_s(extension, remaining, ".mg");
+	}
+	else
+		strcat_s(mg_file_path, MAX_PATH, ".mg");
+
+	FILE* mg_file = fopen(mg_file_path, "rb");
+	if (!mg_file)
+	{
+		printf("Error: Failed to open MG file: %s\n", mg_file_path);
+		return -3;
+	}
+
+	char header[5];
+	fread(header, sizeof(char), sizeof(header), mg_file);
+	if (memcmp(header, "MGINE", 5) != 0)
+	{
+		printf("Error: Invalid MG file format: %s\n", mg_file_path);
+		fclose(mg_file);
+		return -4;
+	}
+	
+	uint32_t version = 0;
+	fread(&version, sizeof(uint32_t), 1, mg_file);
+	if (version != 1)
+	{
+		printf("Error: Unsupported MG file version: %u\n", version);
+		fclose(mg_file);
+		return -5;
+	}
+
+	uint32_t shader_code_count = 0;
+	fread(&shader_code_count, sizeof(uint32_t), 1, mg_file);
+	if (shader_code_count > MG_SHADER_CODE_MAX)
+	{
+		printf("Error: Shader code count exceeds maximum limit: %u (max %u)\n", shader_code_count, MG_SHADER_CODE_MAX);
+		fclose(mg_file);
+		return -6;
+	}
+	char** shader_codes = calloc(shader_code_count, sizeof(char*));
+	if (!shader_codes)
+	{
+		printf("Error: Failed to allocate memory for shader codes\n");
+		fclose(mg_file);
+		return -7;
+	}
+	MG_load_shader_code(mg_file, shader_codes, shader_code_count);
+	instance->shader_code_count = shader_code_count;
+	instance->shader_code_list = shader_codes;
+
+	uint32_t shader_count = 0;
+	fread(&shader_count, sizeof(uint32_t), 1, mg_file);
+	if (shader_count > MG_SHADER_MAX)
+	{
+		printf("Error: Shader count exceeds maximum limit: %u (max %u)\n", shader_count, MG_SHADER_MAX);
+		fclose(mg_file);
+		return -8;
+	}
+	MG_load_shaders(mg_file, instance, shader_codes, shader_code_count, shader_count);
+
+	uint32_t texture_count = 0;
+	fread(&texture_count, sizeof(uint32_t), 1, mg_file);
+	if (texture_count > MG_TEXTURE_MAX)
+	{
+		printf("Error: Texture count exceeds maximum limit: %u (max %u)\n", texture_count, MG_TEXTURE_MAX);
+		fclose(mg_file);
+		return -9;
+	}
+	instance->texture_count = texture_count;
+	instance->texture_list = (MG_Texture*)MG_load_asset_list(mg_file, texture_count, sizeof(MG_Texture), offsetof(MG_Texture, base.path), offsetof(MG_Texture, base.index_in_file));
+
+	uint32_t material_count = 0;
+	fread(&material_count, sizeof(uint32_t), 1, mg_file);
+	if (material_count > MG_MATERIAL_MAX)
+	{
+		printf("Error: Material count exceeds maximum limit: %u (max %u)\n", material_count, MG_MATERIAL_MAX);
+		fclose(mg_file);
+		return -10;
+	}
+	instance->material_count = material_count;
+	MG_load_materials(mg_file, instance, material_count);
+
+	uint32_t model_count = 0;
+	fread(&model_count, sizeof(uint32_t), 1, mg_file);
+	if (model_count > MG_MODEL_MAX)
+	{
+		printf("Error: Model count exceeds maximum limit: %u (max %u)\n", model_count, MG_MODEL_MAX);
+		fclose(mg_file);
+		return -11;
+	}
+	instance->model_count = model_count;
+	instance->model_list = (MG_Model*)MG_load_asset_list(mg_file, model_count, sizeof(MG_Model), offsetof(MG_Model, base.path), offsetof(MG_Model, base.index_in_file));
+
+	MG_load_objects(mg_file, instance, NULL, NULL);
+
+	uint32_t sound_count = 0;
+	fread(&sound_count, sizeof(uint32_t), 1, mg_file);
+	if (sound_count > MG_SOUND_MAX)
+	{
+		printf("Error: Sound count exceeds maximum limit: %u (max %u)\n", sound_count, MG_SOUND_MAX);
+		fclose(mg_file);
+		return -12;
+	}
+	instance->sound_count = sound_count;
+	instance->sound_list = (MG_Sound*)MG_load_asset_list(mg_file, sound_count, sizeof(MG_Sound), offsetof(MG_Sound, base.path), offsetof(MG_Sound, base.index_in_file));
+
+	uint16_t scene_count = 0;
+	fread(&scene_count, sizeof(uint16_t), 1, mg_file);
+	if (scene_count > MG_SCENE_MAX)
+	{
+		printf("Error: Scene count exceeds maximum limit: %u (max %u)\n", scene_count, MG_SCENE_MAX);
+		fclose(mg_file);
+		return -13;
+	}
+	instance->scene_count = scene_count;
+	MG_load_scenes(mg_file, instance, scene_count);
+
+	fclose(mg_file);
+	return 0;
 }

@@ -2,6 +2,7 @@
 
 #include "stc/MG_Transform.h"
 #include "stc/MG_Model.h"
+#include "MG_id.h"
 
 typedef enum
 {
@@ -23,7 +24,7 @@ MG_Component;
 
 typedef struct MG_ComponentTemplate
 {
-	uint32_t id;
+	MG_ID id;
 	size_t size;
 
 	MG_ComponentFuncResult (*on_create)(struct MG_Component* self);

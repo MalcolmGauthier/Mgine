@@ -70,6 +70,23 @@ void* MG_LL_find(MG_Generic_LL* head, void* find)
     return NULL;
 }
 
+void* MG_LL_find_func(MG_Generic_LL* head, void* find, bool (*find_func)(void* data, void* find))
+{
+    if (!find_func)
+		return NULL;
+
+    MG_Generic_LL* current = head;
+    while (current)
+    {
+        if (find_func(current->data, find))
+        {
+            return current->data;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
 int MG_LL_remove_free(MG_Generic_LL** head_ptr, void* find, void (*free_func)(void* data))
 {
     if (!head_ptr || !*head_ptr || !find)

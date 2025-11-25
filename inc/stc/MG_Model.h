@@ -4,6 +4,7 @@
 #include "stc/MG_Object.h"
 #include "stc/MG_Shader.h"
 #include "stc/MG_Material.h"
+#include "stc/MG_Asset.h"
 
 typedef struct MG_Vertex
 {
@@ -52,12 +53,9 @@ typedef MG_Generic_LL MG_TransparentDraw_LL;
 
 typedef struct MG_Model
 {
+	MG_Asset base;
+
 	struct MG_Mesh* meshes;
 	uint32_t mesh_count;
-
-	bool enabled;
-
-	const char* path;
-	uint32_t index_in_file;
 }
 MG_Model;

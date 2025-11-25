@@ -5,11 +5,9 @@
 
 typedef struct MG_Texture
 {
+	MG_Asset base;
+	
 	GLuint id;
-	bool loaded;
-
-	char* path;
-	uint32_t index_in_file;
 }
 MG_Texture;
 

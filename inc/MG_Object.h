@@ -14,22 +14,22 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* source);
 // same as before, but manages the copy. this is mainly for MG_LL_copy usage.
 MG_Object* MG_object_create_tracked_copy(MG_Object* source);
 
-MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id);
+MG_Object* MG_object_get_by_id(MG_Instance* instance, MG_ID id);
 MG_Object_LL* MG_object_get_all(MG_Instance* instance);
 // returns a linked list of all top-level objects (objects without a parent)
 MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance);
 MG_Object_LL* MG_object_get_all_with_flags(MG_Instance* instance, uint32_t flags);
-MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, uint32_t type);
+MG_Object_LL* MG_object_get_all_with_component(MG_Instance* instance, MG_ID type);
 MG_Object_LL* MG_object_get_all_with_component_flags(MG_Instance* instance, uint32_t flags);
 
 int MG_object_add_child(MG_Object* parent, MG_Object* child);
-int MG_object_remove_child(MG_Object* parent, uint64_t child_id);
+int MG_object_remove_child(MG_Object* parent, MG_ID child_id);
 
 int MG_object_add_component(MG_Object* object, MG_Component* component);
-int MG_object_remove_component(MG_Object* object, uint32_t type);
+int MG_object_remove_component(MG_Object* object, MG_ID type);
 
 MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* name);
-MG_Component* MG_object_get_component_by_id(MG_Object* object, uint32_t id);
+MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID id);
 MG_Component_LL* MG_object_get_all_components(MG_Object* object);
 
 MG_Vec3 MG_object_get_world_position(MG_Object* object);
@@ -38,10 +38,10 @@ MG_Matrix MG_object_get_world_transform_matrix(MG_Object* object);
 // frees the memory used by the component linked list. this does not call the component's on_destroy functions.
 void MG_object_free_components(MG_Object* object);
 
-int MG_object_delete(MG_Instance* instance, uint64_t id);
+int MG_object_delete(MG_Instance* instance, MG_ID id);
 // returns void for compatibility with LL functions
 void MG_object_delete_by_ptr(MG_Object* object);
-int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id);
+int MG_object_delete_non_recursive(MG_Instance* instance, MG_ID id);
 int MG_object_delete_all_with_flags(MG_Instance* instance, uint32_t flags);
 int MG_object_delete_all_with_component(MG_Instance* instance, uint32_t type);
 int MG_object_delete_all_with_component_flags(MG_Instance* instance, uint32_t flags);

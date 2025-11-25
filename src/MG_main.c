@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 	SDL_Thread* logic_thread = NULL;
 	SDL_Thread* render_thread = NULL;
 
-    if (MG_sdl_init(&inst, inst.gl_context, false))
+    if (MG_sdl_init(&inst, inst.gl_context, false, false))
     {
 		printf("Failed to initialize SDL\n");
 		return -1;
@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 // turning on no_window will make this instance invisible and in the background.
 // it is highly advised to not lose track of the pointer to this, and to make sure to free it by changing the active boolean.
 // code-wise, it's nearly indentical to main. I would've had main just call this function then do nothing, but that would be a waste of a root thread.
+// AUDIO IS NOT AVAILABLE IN SUB-INSTANCES.
 void MG_create_instance(MG_Instance* out_instance, bool no_window)
 {
     MG_Instance* inst;
@@ -129,7 +130,7 @@ void MG_create_instance(MG_Instance* out_instance, bool no_window)
     SDL_Thread* logic_thread = NULL;
     SDL_Thread* render_thread = NULL;
 
-    if (MG_sdl_init(inst, inst->gl_context, no_window))
+    if (MG_sdl_init(inst, inst->gl_context, no_window, true))
     {
         printf("Failed to initialize SDL\n");
         inst->instance_exit_code = -1;
@@ -173,12 +174,17 @@ void MG_create_instance(MG_Instance* out_instance, bool no_window)
 }
 
 // Initializes SDL and creates a window with an OpenGL context.
-static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_window)
+static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_window, bool sub_instance)
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	int error_code = 0;
+
+    if (!sub_instance)
     {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        return -1;
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+        {
+            printf("SDL_Init failed: %s\n", SDL_GetError());
+            return -1;
+        }
     }
 
     if (no_window)
@@ -197,20 +203,46 @@ static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_
     if (!instance->window)
     {
         printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return -2;
+        error_code = -2;
+		goto fail;
     }
 
     gl_context = SDL_GL_CreateContext(instance->window);
     if (!gl_context)
     {
         printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(instance->window);
-        SDL_Quit();
-        return -3;
+		error_code = -3;
+		goto fail2;
     }
 
+    if (sub_instance)
+		return 0;
+
+    if (!Mix_Init(0xFF))
+    {
+        printf("SDL Mixer init failed: %s\n", Mix_GetError());
+		error_code = -4;
+		goto fail3;
+    }
+    if (!Mix_OpenAudio(MG_A_OUTPUT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048))
+    {
+        printf("SDL Mixer audio init failed: %s\n", Mix_GetError());
+        error_code = -5;
+        goto fail4;
+    }
+	Mix_AllocateChannels(MG_A_CHANNEL_COUNT);
+
     return 0;
+
+fail4:
+	Mix_Quit();
+fail3:
+    SDL_GL_DeleteContext(gl_context);
+fail2:
+    SDL_DestroyWindow(instance->window);
+fail:
+    SDL_Quit();
+    return error_code;
 }
 
 // Initializes OpenGL using GLAD and sets the viewport.
@@ -243,11 +275,19 @@ static void MG_instance_init(MG_Instance* instance)
 	instance->window_data.windowed_mode = true;
 	instance->window_data.focused = true;
 
+	instance->game_data.instance = instance;
 	instance->game_data.tickrate = MG_L_TRICKRATE;
 	instance->game_data.global_timer = 0;
 	instance->game_data.next_object_id = 1;
 	instance->game_data.object_count = 0;
 	instance->game_data.object_list = NULL;
+
+    extern MG_Audio* mg_audio;
+	mg_audio = &instance->audio_data;
+	instance->audio_data.instance = instance;
+    instance->audio_data.ears = &instance->game_data.camera.position;
+	instance->audio_data.ears_yaw = &instance->game_data.camera.rotation.y;
+	Mix_ChannelFinished(MG_audio_free_channel);
 
 	instance->render_data.instance = instance;
 	instance->render_data.transparency_list = NULL;

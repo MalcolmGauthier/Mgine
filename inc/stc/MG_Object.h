@@ -34,8 +34,7 @@ typedef struct MG_Object
 
 	MG_Instance* instance;
 
-	char* name;
-	uint64_t id;
+	MG_ID id;
 	uint32_t flags;
 }
 MG_Object;

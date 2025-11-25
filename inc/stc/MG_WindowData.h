@@ -1,6 +1,5 @@
 #pragma once
-
-typedef struct MG_Instance MG_Instance;
+#include "MG_include.h"
 
 // This is a union that represents the keyboard state.
 // Currently supported keys include A-Z, 0-9, numpad 0-9, arrow keys, .,;`/, ret, bksp, tab, space, ctrl, shift, alt.

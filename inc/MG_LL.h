@@ -13,6 +13,9 @@ void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find);
 
 void* MG_LL_find(MG_Generic_LL* head, void* find);
 
+// find_func must be able to handle null.
+void* MG_LL_find_func(MG_Generic_LL* head, void* find, bool (*find_func)(void* data, void* find));
+
 // copies a linked list by value.
 // the copy_func is used to copy the data pointer of each node. if null, standard pointer assignment is used.
 MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source));

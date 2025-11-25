@@ -110,7 +110,7 @@ MG_Object* MG_object_create_tracked_copy(MG_Object* source)
 }
 
 
-MG_Object* MG_object_get_by_id(MG_Instance* instance, uint64_t id)
+MG_Object* MG_object_get_by_id(MG_Instance* instance, MG_ID id)
 {
 	if (!instance)
 	{
@@ -198,7 +198,7 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 	return 0;
 }
 
-int MG_object_remove_child(MG_Object* parent, uint64_t child_id)
+int MG_object_remove_child(MG_Object* parent, MG_ID child_id)
 {
 	if (!parent)
 	{
@@ -222,7 +222,7 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 		return NULL;
 	}
 
-	uint32_t type = MG_component_get_id_by_name(name);
+	MG_ID type = MG_ID_get_id(name);
 
 	MG_Component_LL* current = object->components;
 	while (current)
@@ -237,7 +237,7 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 	return NULL;
 }
 
-MG_Component* MG_object_get_component_by_id(MG_Object* object, uint32_t id)
+MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID id)
 {
 	if (!object)
 	{
@@ -335,7 +335,7 @@ void MG_object_free_components(MG_Object* object)
 }
 
 
-int MG_object_delete(MG_Instance* instance, uint64_t id)
+int MG_object_delete(MG_Instance* instance, MG_ID id)
 {
 	if (!instance)
 	{
@@ -407,7 +407,7 @@ void MG_object_delete_by_ptr(MG_Object* object)
 	MG_object_delete(object->instance, object->id);
 }
 
-int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)
+int MG_object_delete_non_recursive(MG_Instance* instance, MG_ID id)
 {
 	if (!instance)
 	{
@@ -428,8 +428,8 @@ int MG_object_delete_non_recursive(MG_Instance* instance, uint64_t id)
 	while (current && current->data)
 	{
 		MG_Object* child = (MG_Object*)current->data;
-		current = current->next;
 		child->parent = object->parent;
+		current = current->next;
 	}
 
 	// delete childless object
