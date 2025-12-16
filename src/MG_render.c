@@ -79,7 +79,7 @@ int MG_render_loop(void* MG_instance)
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	MG_LL_free_LL_only(transparency_ll);
+	MG_LL_free_LL_only(&transparency_ll);
 	return 0;
 }
 
@@ -165,6 +165,9 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	{
 		if (((MG_Object*)current->data)->id == obj_id)
 		{
+			if (((MG_Object*)current->data)->flags & MG_OBJECT_FLAG_NO_INTERP)
+				return *new_matrix;
+
 			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(current->data, "MG_transform");
 			if (!t) return *new_matrix;
 			old_transform = &t->transform;
@@ -307,7 +310,7 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	if (!object->components) return;
 
 	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object, "MG_Model");
-	if (!current_model || !current_model->model.enabled)
+	if (!current_model || !current_model->model.meshes)
 		return;
 
 	MG_Matrix current_matrix = MG_object_get_world_transform_matrix(object);
@@ -341,7 +344,7 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 
 			new_node->mesh = mesh;
 			new_node->render_matrix = render_matrix;
-			MG_LL_add(render_data->transparency_list, new_node);
+			MG_LL_add(&render_data->transparency_list, new_node);
 			continue;
 		}
 
@@ -355,8 +358,17 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		}
 
 		MG_shader_use(mesh->material->shader);
-		MG_shader_set_mat4(mesh->material->shader, "uModel", &render_matrix);
-		MG_shader_set_mat4(mesh->material->shader, "uView", &render_data->view_matrix);
+		if (model->UI_element)
+		{
+			MG_Matrix empty = { MG_MATRIX_IDENTITY };
+			MG_shader_set_mat4(mesh->material->shader, "uModel", &empty);
+			MG_shader_set_mat4(mesh->material->shader, "uView", &render_matrix);
+		}
+		else
+		{
+			MG_shader_set_mat4(mesh->material->shader, "uModel", &render_matrix);
+			MG_shader_set_mat4(mesh->material->shader, "uView", &render_data->view_matrix);
+		}
 		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
 		MG_MaterialShaderVariable_LL* var_ll = mesh->material->shader_variables;
@@ -502,7 +514,7 @@ static void MG_render_OIT(MG_RenderData* render_data)
 
 	MG_render_WBOIT_composite(render_data);
 
-	MG_LL_free(render_data->transparency_list, NULL);
+	MG_LL_free(&render_data->transparency_list, NULL);
 }
 
 static void MG_render_WBOIT_composite(MG_RenderData* render_data)

@@ -57,5 +57,7 @@ typedef struct MG_Model
 
 	struct MG_Mesh* meshes;
 	uint32_t mesh_count;
+
+	bool UI_element;
 }
 MG_Model;

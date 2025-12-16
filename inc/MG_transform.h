@@ -4,6 +4,8 @@
 #include "stc/MG_Transform.h"
 #include "stc/MG_Component.h"
 
+inline SDL_Color MG_color_from_vec4(MG_Vec4 color);
+
 MG_Vec3 MG_transform_position_get(MG_Transform* transform);
 MG_Vec3 MG_transform_rotation_get(MG_Transform* transform);
 MG_Vec3 MG_transform_scale_get(MG_Transform* transform);

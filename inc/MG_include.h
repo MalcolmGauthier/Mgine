@@ -13,11 +13,14 @@
 #define _MATH_DEFINES_DEFINED
 
 // windows defines must come first to prevent macro redefinition warnings
-#include <Windows.h>
+#ifdef _WIN32
+#include <windows.h>
 #include <timeapi.h>
+#endif
 
 #include <SDL.h>
 #include <SDL_mixer.h>
+#include <SDL_ttf.h>
 #include <glad.h>
 #include <cglm.h>
 

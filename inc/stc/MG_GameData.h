@@ -3,16 +3,17 @@
 #include "MG_include.h"
 #include "MG_LL.h"
 #include "stc/MG_Camera.h"
+#include "MG_id.h"
 
 typedef MG_Generic_LL MG_Object_LL;
 
 typedef struct MG_GameData
 {
-	MG_Instance* instance;
+	struct MG_Instance* instance;
 
 	uint64_t global_timer;
-	uint64_t next_object_id;
-	uint32_t next_component_id;
+	MG_ID next_object_id;
+	MG_ID next_component_id;
 	unsigned int tickrate;
 	// this should be constant unless tickrate is uncapped.
 	// however, this still acurately reports tick length even when tickrate is capped. usefull for lag detection.

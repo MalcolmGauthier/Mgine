@@ -1,6 +1,5 @@
 #pragma once
 
-#include "stc/MG_Instance.h"
 #include "stc/MG_Shader.h"
 
 typedef MG_Generic_LL MG_Mesh_LL;
@@ -8,7 +7,7 @@ typedef MG_Generic_LL MG_TransparentDraw_LL;
 
 typedef struct MG_RenderData
 {
-	MG_Instance* instance;
+	struct MG_Instance* instance;
 
 	MG_GameData old_data;
 	MG_GameData latest_data;

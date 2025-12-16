@@ -1,6 +1,6 @@
 #include "MG_object.h"
 
-uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags)
+MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags)
 {
 	MG_Object* object = calloc(1, sizeof(MG_Object));
 	if (!object)
@@ -30,13 +30,13 @@ uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t fla
 	}
 	else
 	{
-		MG_LL_add(instance->game_data.object_list, object);
+		MG_LL_add(&instance->game_data.object_list, object);
 	}
 
 	return object->id;
 }
 
-uint64_t MG_object_create_by_copy(MG_Object* object)
+MG_ID MG_object_create_by_copy(MG_Object* object)
 {
 	if (!object)
 	{
@@ -44,7 +44,7 @@ uint64_t MG_object_create_by_copy(MG_Object* object)
 		return -1;
 	}
 
-	uint64_t obj_id = MG_object_create(object->instance, object->parent, object->flags);
+	MG_ID obj_id = MG_object_create(object->instance, object->parent, object->flags);
 	MG_Object* obj = MG_object_get_by_id(object->instance, obj_id);
 
 	obj->children = MG_LL_copy(object->children, MG_object_create_tracked_copy);
@@ -60,7 +60,7 @@ uint64_t MG_object_create_by_copy(MG_Object* object)
 	return obj_id;
 }
 
-uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags)
+MG_ID MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags)
 {
 	if (!parent_object)
 	{
@@ -105,7 +105,7 @@ MG_Object* MG_object_create_tracked_copy(MG_Object* source)
 		printf("Failed to create tracked copy: source is NULL\n");
 		return NULL;
 	}
-	uint64_t obj_id = MG_object_create_by_copy(source);
+	MG_ID obj_id = MG_object_create_by_copy(source);
 	return MG_object_get_by_id(source->instance, obj_id);
 }
 
@@ -157,7 +157,7 @@ MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
 	{
 		if (!((MG_Object*)current->data)->parent)
 		{
-			MG_LL_add(top_level_objects, current->data);
+			MG_LL_add(&top_level_objects, current->data);
 		}
 		current = current->next;
 	}
@@ -194,7 +194,7 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 	}
 
 	child->parent = parent;
-	MG_LL_add(parent->children, child);
+	MG_LL_add(&parent->children, child);
 	return 0;
 }
 
@@ -206,7 +206,7 @@ int MG_object_remove_child(MG_Object* parent, MG_ID child_id)
 		return -1;
 	}
 
-	if (MG_LL_remove(parent->children, MG_object_get_by_id(parent->instance, child_id)))
+	if (MG_LL_remove(&parent->children, MG_object_get_by_id(parent->instance, child_id)))
 		return 0;
 
 	printf("Failed to remove child with ID %u: not found\n", (uint32_t)child_id);
@@ -330,7 +330,7 @@ void MG_object_free_components(MG_Object* object)
 		return;
 	}
 
-	MG_LL_free(object->components, MG_component_free);
+	MG_LL_free(&object->components, MG_component_free);
 	object->components = NULL;
 }
 
@@ -382,8 +382,8 @@ int MG_object_delete(MG_Instance* instance, MG_ID id)
 				object->components = object->components->next;
 			}
 
-			MG_LL_free(object->children, MG_object_delete_by_ptr);
-			MG_LL_free(object->components, MG_component_free);
+			MG_LL_free(&object->children, MG_object_delete_by_ptr);
+			MG_LL_free(&object->components, MG_component_free);
 			free(object);
 			free(current);
 			return 0;
@@ -418,7 +418,7 @@ int MG_object_delete_non_recursive(MG_Instance* instance, MG_ID id)
 	MG_Object* object = MG_object_get_by_id(instance, id);
 	if (!object)
 	{
-		printf("Failed to delete object with ID %llu: not found\n", id);
+		printf("Failed to delete object with ID %u: not found\n", id);
 		return -2;
 	}
 

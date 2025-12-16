@@ -4,7 +4,7 @@ int MG_model_load(MG_Model* model)
 {
     const struct aiScene* scene = aiImportFileFromMemory(
         model->base.asset_file_data,
-        model->base.asset_file_size,
+        (uint32_t)model->base.asset_file_size,
         aiProcess_Triangulate |
         aiProcess_GenNormals |
         aiProcess_CalcTangentSpace |
@@ -153,5 +153,6 @@ void MG_model_enable(MG_Model* model, bool static_model)
 		glBindVertexArray(0);
     }
 
-	model->enabled = true;
+	//model->enabled = true;
+    model->base.loaded = true;
 }

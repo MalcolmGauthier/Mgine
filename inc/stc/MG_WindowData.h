@@ -88,7 +88,7 @@ struct Mouse
 
 typedef struct MG_WindowData
 {
-	MG_Instance* instance;
+	struct MG_Instance* instance;
 
 	int32_t x_pos;
 	int32_t y_pos;

@@ -1,5 +1,15 @@
 #include "MG_transform.h"
 
+inline SDL_Color MG_color_from_vec4(MG_Vec4 color)
+{
+    return (SDL_Color) {
+        .r = (byte)(color.r * 255.0f),
+        .g = (byte)(color.r * 255.0f),
+        .b = (byte)(color.r * 255.0f),
+        .a = (byte)(color.r * 255.0f)
+    };
+}
+
 MG_Vec3 MG_transform_position_get(MG_Transform* transform)
 {
     if (!transform)

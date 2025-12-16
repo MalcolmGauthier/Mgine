@@ -3,7 +3,6 @@
 #include "MG_include.h"
 #include "MG_WindowData.h"
 #include "MG_GameData.h"
-#include "MG_Object.h"
 #include "MG_RenderData.h"
 #include "MG_Audio.h"
 
@@ -27,7 +26,7 @@ typedef struct MG_Instance
 
 	int gl_error_code;
 	int instance_exit_code;
-	int64_t instance_id;
+	MG_ID instance_id;
 
 	uint32_t shader_code_count;
 	char** shader_code_list;

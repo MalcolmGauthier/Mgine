@@ -147,6 +147,7 @@
     <ClCompile Include="lib\glad.c" />
     <ClCompile Include="src\MG_camera.c" />
     <ClCompile Include="src\MG_components.c" />
+    <ClCompile Include="src\MG_debug.c" />
     <ClCompile Include="src\MG_file.c" />
     <ClCompile Include="src\MG_id.c" />
     <ClCompile Include="src\MG_LL.c" />
@@ -160,11 +161,13 @@
     <ClCompile Include="src\MG_audio.c" />
     <ClCompile Include="src\MG_textures.c" />
     <ClCompile Include="src\MG_transform.c" />
+    <ClCompile Include="src\MG_ui.c" />
     <ClCompile Include="src\MG_window.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\MG_camera.h" />
     <ClInclude Include="inc\MG_components.h" />
+    <ClInclude Include="inc\MG_debug.h" />
     <ClInclude Include="inc\MG_file.h" />
     <ClInclude Include="inc\MG_id.h" />
     <ClInclude Include="inc\MG_include.h" />
@@ -179,6 +182,7 @@
     <ClInclude Include="inc\MG_audio.h" />
     <ClInclude Include="inc\MG_textures.h" />
     <ClInclude Include="inc\MG_transform.h" />
+    <ClInclude Include="inc\MG_ui.h" />
     <ClInclude Include="inc\MG_window.h" />
     <ClInclude Include="inc\stc\MG_Asset.h" />
     <ClInclude Include="inc\stc\MG_Camera.h" />
@@ -203,6 +207,8 @@
     <Import Project="packages\Assimp.3.0.0\build\native\Assimp.targets" Condition="Exists('packages\Assimp.3.0.0\build\native\Assimp.targets')" />
     <Import Project="packages\sdl2_mixer.nuget.redist.2.8.1\build\native\sdl2_mixer.nuget.redist.targets" Condition="Exists('packages\sdl2_mixer.nuget.redist.2.8.1\build\native\sdl2_mixer.nuget.redist.targets')" />
     <Import Project="packages\sdl2_mixer.nuget.2.8.1\build\native\sdl2_mixer.nuget.targets" Condition="Exists('packages\sdl2_mixer.nuget.2.8.1\build\native\sdl2_mixer.nuget.targets')" />
+    <Import Project="packages\sdl2_ttf.nuget.redist.2.24.0\build\native\sdl2_ttf.nuget.redist.targets" Condition="Exists('packages\sdl2_ttf.nuget.redist.2.24.0\build\native\sdl2_ttf.nuget.redist.targets')" />
+    <Import Project="packages\sdl2_ttf.nuget.2.24.0\build\native\sdl2_ttf.nuget.targets" Condition="Exists('packages\sdl2_ttf.nuget.2.24.0\build\native\sdl2_ttf.nuget.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -214,5 +220,7 @@
     <Error Condition="!Exists('packages\Assimp.3.0.0\build\native\Assimp.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Assimp.3.0.0\build\native\Assimp.targets'))" />
     <Error Condition="!Exists('packages\sdl2_mixer.nuget.redist.2.8.1\build\native\sdl2_mixer.nuget.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2_mixer.nuget.redist.2.8.1\build\native\sdl2_mixer.nuget.redist.targets'))" />
     <Error Condition="!Exists('packages\sdl2_mixer.nuget.2.8.1\build\native\sdl2_mixer.nuget.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2_mixer.nuget.2.8.1\build\native\sdl2_mixer.nuget.targets'))" />
+    <Error Condition="!Exists('packages\sdl2_ttf.nuget.redist.2.24.0\build\native\sdl2_ttf.nuget.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2_ttf.nuget.redist.2.24.0\build\native\sdl2_ttf.nuget.redist.targets'))" />
+    <Error Condition="!Exists('packages\sdl2_ttf.nuget.2.24.0\build\native\sdl2_ttf.nuget.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2_ttf.nuget.2.24.0\build\native\sdl2_ttf.nuget.targets'))" />
   </Target>
 </Project>

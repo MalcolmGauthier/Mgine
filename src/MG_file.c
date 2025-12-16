@@ -24,18 +24,19 @@
 
 #define MG_PATH_MAX 1024
 
-byte* MG_load_asset(FILE* file, MG_Asset* asset)
+byte* MG_asset_load(FILE* file, MG_Asset* asset)
 {
 	bool close_file = false;
 
 	if (!file)
 	{
-		file = fopen(asset->path, "rb");
-		if (!file)
+		errno_t err = fopen_s(&file, asset->path, "rb");
+		if (err)
 		{
-			printf("Error: Failed to open asset file: %s\n", asset->path);
+			printf("Error: Failed to open asset file: %s with error %i\n", asset->path, (int)err);
 			return NULL;
 		}
+		close_file = true;
 	}
 
 	char header[6];
@@ -47,7 +48,7 @@ byte* MG_load_asset(FILE* file, MG_Asset* asset)
 	fread(header, sizeof(char), sizeof(header), file);
 	if (memcmp(header, "MGINEA", 6) != 0)
 	{
-		printf("Error: Invalid asset file format: %u\n", asset->path);
+		printf("Error: Invalid asset file format: %s\n", asset->path);
 		goto fail;
 	}
 
@@ -106,20 +107,29 @@ byte* MG_load_asset(FILE* file, MG_Asset* asset)
 	{
 		printf("Error: Failed to read asset data from file\n");
 		free(asset_data);
+		asset_data = NULL;
 		goto fail;
 	}
 
 	asset->asset_file_data = asset_data;
 	asset->asset_file_size = (size_t)asset_length;
 	asset->asset_file_loaded = true;
-	if (close_file)
-		fclose(file);
-	return asset_data;
 
 fail:
 	if (close_file)
 		fclose(file);
-	return NULL;
+	return asset_data;
+}
+
+void MG_asset_free(MG_Asset* asset)
+{
+	if (asset->asset_file_data)
+	{
+		free(asset->asset_file_data);
+		asset->asset_file_data = NULL;
+	}
+
+	asset->asset_file_loaded = false;
 }
 
 

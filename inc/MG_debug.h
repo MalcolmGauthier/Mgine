@@ -1,0 +1,19 @@
+#pragma once
+
+#include "stc/MG_Instance.h"
+#include "MG_include.h"
+#include "MG_transform.h"
+
+#define CENTRE SDL_MAX_SINT32
+#define NO_SCROLL SDL_MAX_SINT32
+#define BLANC 0xFFFFFF
+#define ROUGE 0xFF0000
+#define VERT 0x00FF00
+#define BLEU 0x0000FF
+#define NOIR 0x000000
+#define OPAQ 255
+#define LARGEUR_DEFAUT 5.0f
+#define HAUTEUR_DEFAUT 10.0f
+#define ESPACE_DEFAUT 3.0f
+
+void MG_debug_panic_text(MG_Instance* jeu, char* text, MG_Vec2 position, float size, int color, int alpha, int scroll);

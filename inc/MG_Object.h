@@ -5,9 +5,9 @@
 #include "MG_components.h"
 #include "MG_transform.h"
 
-uint64_t MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags);
-uint64_t MG_object_create_by_copy(MG_Object* object);
-uint64_t MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags);
+MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags);
+MG_ID MG_object_create_by_copy(MG_Object* object);
+MG_ID MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags);
 // create a copy of the object that is not tracked by the engine.
 // this returns a new object with the same data, but does not add it to the object list, and thus the object is not managed by the engine.
 MG_Object* MG_object_create_untracked_copy(MG_Object* source);

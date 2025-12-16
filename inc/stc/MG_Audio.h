@@ -1,6 +1,5 @@
 #pragma once
 #include <SDL_mixer.h>
-#include "MG_Instance.h"
 #include "MG_LL.h"
 #include "MG_Transform.h"
 #include "MG_Asset.h"
@@ -24,6 +23,9 @@ typedef struct MG_SFX
 	Mix_Chunk* chunk;
 	int sdl_channel;
 
+	int loops;
+	int8_t volume;
+
 	MG_Vec3 position;
 	MG_Vec3* position_ref;
 }
@@ -34,13 +36,14 @@ typedef MG_Generic_LL MG_SFX_LL;
 // all the audio info, part of an instance
 typedef struct MG_Audio
 {
-	MG_Instance* instance;
+	struct MG_Instance* instance;
 
 	MG_Sound* music_sound;
 	MG_Sound* cued_music_sound;
 	Mix_Music* music;
 	bool music_playing;
 	bool loop_music;
+	int8_t music_volume;
 
 	bool stereo;
 	uint8_t stereo_intensity;

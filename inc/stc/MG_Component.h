@@ -70,5 +70,6 @@ typedef struct MG_ComponentModel
 	MG_Component base;
 
 	MG_Model model;
+	bool UI_element;
 }
 MG_ComponentModel;

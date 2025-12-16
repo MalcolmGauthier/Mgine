@@ -70,7 +70,7 @@ int MG_texture_load(MG_Texture* texture)
 	stbi_set_flip_vertically_on_load(true);
 
 	int width, height, channel_cnt;
-	stbi_uc* pixels = stbi_load_from_memory(texture->base.asset_file_data, texture->base.asset_file_size, &width, &height, &channel_cnt, 0);
+	stbi_uc* pixels = stbi_load_from_memory(texture->base.asset_file_data, (int)texture->base.asset_file_size, &width, &height, &channel_cnt, 0);
 	if (!pixels)
 	{
 		printf("Warning: Failed to load texture from path: %s, %u\n", texture->base.path, texture->base.index_in_file);
@@ -107,10 +107,13 @@ int MG_texture_load(MG_Texture* texture)
 	if (pixels != _MG_default_texture)
 		stbi_image_free(pixels);
 
-	texture->base.loaded = true;
 	free(texture->base.asset_file_data);
+	texture->base.loaded = true;
 	texture->base.asset_file_data = NULL;
 	texture->base.asset_file_loaded = false;
+	texture->width = width;
+	texture->height = height;
+	texture->channels = (byte)channel_cnt;
 
 	return 0;
 }

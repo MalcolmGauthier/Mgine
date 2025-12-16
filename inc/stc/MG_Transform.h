@@ -36,6 +36,29 @@ typedef struct
 		float roll;
 	};
 } MG_Vec3;
+typedef struct
+{
+	union
+	{
+		float x;
+		float r;
+	};
+	union
+	{
+		float y;
+		float g;
+	};
+	union
+	{
+		float z;
+		float b;
+	};
+	union
+	{
+		float w;
+		float a;
+	};
+} MG_Vec4;
 
 typedef struct MG_Transform
 {

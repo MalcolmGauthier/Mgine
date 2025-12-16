@@ -13,7 +13,7 @@ MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct
 		return NULL;
 	}
 
-	comp_template->id = MG_component_get_id_by_name(name);
+	comp_template->id = MG_ID_get_id(name);
 	comp_template->on_create = on_create;
 	comp_template->on_tick = on_update;
 	comp_template->on_destroy = on_destroy;
@@ -90,7 +90,7 @@ MG_Component* MG_component_create(MG_Object* object, MG_ComponentTemplate* comp_
 	if (size > 0 && data)
 		memcpy_s((char*)component + offset, size, (char*)data + offset, size);
 
-	MG_LL_add(object->components, component);
+	MG_LL_add(&object->components, component);
 
 	if (component->base->on_create)
 		component->base->on_create(component);
@@ -119,7 +119,7 @@ MG_Component* MG_component_create_copy(MG_Component* src, MG_Object* dst_parent)
 
 	if (dst_parent)
 	{
-		MG_LL_add(dst_parent->components, component);
+		MG_LL_add(&dst_parent->components, component);
 	}
 	component->owner = dst_parent;
 	return component;

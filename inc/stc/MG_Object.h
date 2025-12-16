@@ -8,7 +8,7 @@
 
 typedef enum MG_ObjectFlags
 {
-	// signals to the engine if the object should interpolate its position
+	// signals to the engine if the object is able to move
 	MG_OBJECT_FLAG_DYNAMIC = 1 << 0,
 	// signals to the engine if the object skip collision checks
 	MG_OBJECT_FLAG_SOLID = 1 << 1,
