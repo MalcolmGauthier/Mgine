@@ -10,7 +10,7 @@ MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct
 	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),
 	void (*on_destroy)(struct MG_Component* self));
 
-void MG_initialize_components(MG_GameData* game_data);
+void MG_initialize_components(MG_Instance* game_data);
 
 
 MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, MG_ID id);

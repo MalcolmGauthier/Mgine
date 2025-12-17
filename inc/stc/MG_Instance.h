@@ -14,6 +14,8 @@ typedef enum
 }
 MG_GameDataLockOwner;
 
+typedef MG_Generic_LL MG_ComponentTemplate_LL;
+
 typedef struct MG_Instance
 {
 	SDL_Window* window;
@@ -46,7 +48,7 @@ typedef struct MG_Instance
 	uint32_t sound_count;
 	struct MG_Sound* sound_list;
 
-	struct MG_ComponentTemplate_LL* component_list;
+	MG_ComponentTemplate_LL* component_list;
 
 	bool active : 1;
 	bool initialized : 1;

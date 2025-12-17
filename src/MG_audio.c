@@ -2,6 +2,11 @@
 
 MG_Audio* mg_audio = NULL;
 
+static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name);
+static MG_SFX* MG_audio_create_sfx(MG_Audio* audio, MG_Sound* sound, MG_Vec3 position, MG_Vec3* position_ref);
+static int MG_audio_load_sfx(MG_Audio* audio, MG_SFX* sfx);
+static inline void MG_audio_start_sfx(MG_Audio* audio, MG_SFX* sfx);
+
 int MG_audio_play_sfx(MG_Audio* audio, const char* sfx_name, int loops)
 {
 	if (!audio || !sfx_name)
@@ -32,7 +37,7 @@ int MG_audio_play_sfx(MG_Audio* audio, const char* sfx_name, int loops)
 int MG_audio_play_sfx_3D(MG_Audio* audio, const char* sfx_name, MG_Vec3 position, int loops, int8_t volume);
 int MG_audio_play_sfx_3D_ref(MG_Audio* audio, const char* sfx_name, MG_Vec3* position, int loops, int8_t volume);
 
-MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
+static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
 {
 	if (!audio || !sfx_name)
 	{
@@ -111,7 +116,7 @@ static int MG_audio_load_sfx(MG_Audio* audio, MG_SFX* sfx)
 		}
 	}
 
-	sfx->sdl_mem = SDL_RWFromMem(sfx->sound->base.asset_file_data, sfx->sound->base.asset_file_size);
+	sfx->sdl_mem = SDL_RWFromMem(sfx->sound->base.asset_file_data, (int)sfx->sound->base.asset_file_size);
 	if (!sfx->sdl_mem)
 	{
 		printf("Error: Failed to convert sound file to SDL RWop. SDL_Error: %s", SDL_GetError());

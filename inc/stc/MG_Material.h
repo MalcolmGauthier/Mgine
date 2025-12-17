@@ -12,7 +12,7 @@ typedef struct MG_MaterialShaderVariable
 }
 MG_MaterialShaderVariable;
 
-typedef MG_Generic_LL MG_MaterialShaderVariable_LL;
+//typedef MG_Generic_LL MG_MaterialShaderVariable_LL;
 
 typedef struct MG_Material
 {

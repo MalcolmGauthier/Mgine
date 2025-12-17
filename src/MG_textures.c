@@ -4,6 +4,7 @@
 #include "stbi.h"
 #undef STB_IMAGE_IMPLEMENTATION
 
+uint8_t _MG_default_texture[_MG_default_tex_width * _MG_default_tex_height * 3] = { 0 };
 static void MG_texture_init_default(void)
 {
 	memset(_MG_default_texture, 0xFF, sizeof(_MG_default_texture));

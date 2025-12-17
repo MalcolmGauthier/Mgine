@@ -36,7 +36,7 @@ MG_ComponentTemplate;
 typedef MG_Generic_LL MG_ComponentTemplate_LL;
 
 
-typedef void (*MG_DeferredRegFunc)(MG_GameData*);
+typedef void (*MG_DeferredRegFunc)(MG_Instance*);
 extern MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct_size, const char* name,
 	MG_ComponentFuncResult(*on_create)(struct MG_Component* self),
 	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),

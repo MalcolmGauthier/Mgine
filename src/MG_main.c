@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     }
 
 	MG_instance_init(&inst);
-    MG_initialize_components(&inst.game_data);
+    MG_initialize_components(&inst);
     MG_load_game(&inst);
 
     // windows is stupid, and without this any sleep calls cannot be guarenteed to last less than ~16ms

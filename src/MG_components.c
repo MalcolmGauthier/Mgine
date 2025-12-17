@@ -46,11 +46,11 @@ __declspec(allocate(".MGREG$Z")) MG_DeferredRegFunc __MGreg_end = 0;
 MG_COMPONENT(MG_ComponentTransform, "Transform", NULL, MG_transformcomponent_on_update, NULL)
 MG_COMPONENT(MG_ComponentModel, "Model", NULL, NULL, NULL)
 
-void MG_initialize_components(MG_GameData* game_data)
+void MG_initialize_components(MG_Instance* instance)
 {
 	//extern MG_DeferredRegFunc __MGreg_start, __MGreg_end;
 	for (MG_DeferredRegFunc* f = &__MGreg_start + 1; f < &__MGreg_end; ++f)
-		if (*f) (*f)(game_data);
+		if (*f) (*f)(instance);
 }
 
 MG_ComponentTemplate* MG_component_get_template_by_id(MG_Instance* instance, MG_ID id)

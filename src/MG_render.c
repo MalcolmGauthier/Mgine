@@ -371,13 +371,12 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		}
 		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-		MG_MaterialShaderVariable_LL* var_ll = mesh->material->shader_variables;
 		int num_textures = 0;
 		int max_textures;
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_textures);
-		while (var_ll && var_ll->data)
+		for (uint32_t j = 0; j < mesh->material->shader_variable_count; j++)
 		{
-			MG_MaterialShaderVariable* var = var_ll->data;
+			MG_MaterialShaderVariable* var = &mesh->material->shader_variables[j];
 
 			void* value_ptr = (void*)((char*)mesh->material + var->offset_in_material);
 			switch (var->type)
@@ -424,8 +423,6 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
 				break;
 			}
-
-			var_ll = var_ll->next;
 		}
 
 		glBindVertexArray(mesh->VAO);
@@ -433,6 +430,7 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 	}
 }
 
+//TODO: this is wayyyyy to similar to the other render function. merge them.
 static void MG_render_OIT(MG_RenderData* render_data)
 {
 	MG_render_OIT_prepare(render_data);
@@ -466,10 +464,9 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		MG_shader_set_mat4(material->shader, "uView", &render_data->view_matrix);
 		MG_shader_set_mat4(material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-		MG_MaterialShaderVariable_LL* var_ll = material->shader_variables;
-		while (var_ll && var_ll->data)
+		for (uint32_t j = 0; j < material->shader_variable_count; j++)
 		{
-			MG_MaterialShaderVariable* var = var_ll->data;
+			MG_MaterialShaderVariable* var = &material->shader_variables[j];
 
 			void* value_ptr = (void*)((char*)material + var->offset_in_material);
 			switch (var->type)
@@ -504,8 +501,6 @@ static void MG_render_OIT(MG_RenderData* render_data)
 				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
 				break;
 			}
-
-			var_ll = var_ll->next;
 		}
 
 		glBindVertexArray(t_draw->mesh->VAO);
