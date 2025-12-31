@@ -292,7 +292,7 @@ void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, fl
 	SDL_memcpy(working_text, text, strlen + 1);
 	for (int i = 0; working_text[i]; i++)
 	{
-		working_text[i] = SDL_tolower(working_text[i]);
+		working_text[i] = (char)SDL_tolower(working_text[i]);
 	}
 
 	int32_t extra_y = 0;
@@ -320,7 +320,7 @@ void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, fl
 	float y;
 	int current_info_index;
 
-	for (int i = 0; i < strlen; i++)
+	for (unsigned int i = 0; i < strlen; i++)
 	{
 		y = position.y + extra_y;
 		x = position.x + i * (LARGEUR_DEFAUT + ESPACE_DEFAUT) * size - return_length;

@@ -1,7 +1,9 @@
 #include "MG_transform.h"
 
-inline SDL_Color MG_color_from_vec4(MG_Vec4 color)
+SDL_Color MG_color_from_vec4(MG_Vec4 color)
 {
+    glm_vec4_clamp((float*)&color, 0, 1);
+
     return (SDL_Color) {
         .r = (byte)(color.r * 255.0f),
         .g = (byte)(color.r * 255.0f),

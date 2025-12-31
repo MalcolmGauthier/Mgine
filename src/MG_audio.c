@@ -143,7 +143,7 @@ static inline void MG_audio_start_sfx(MG_Audio* audio, MG_SFX* sfx)
 	Mix_Volume(sfx->sdl_channel, sfx->volume);
 }
 
-static void MG_audio_free_channel(int channel)
+void MG_audio_free_channel(int channel)
 {
 	MG_SFX_LL* current = mg_audio->sfx_list;
 	while (current)

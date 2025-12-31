@@ -36,11 +36,19 @@ MG_ComponentTemplate;
 typedef MG_Generic_LL MG_ComponentTemplate_LL;
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*MG_DeferredRegFunc)(MG_Instance*);
-extern MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct_size, const char* name,
+MG_API extern MG_ComponentTemplate* MG_component_register(MG_Instance* instance, size_t struct_size, const char* name,
 	MG_ComponentFuncResult(*on_create)(struct MG_Component* self),
 	MG_ComponentFuncResult(*on_update)(struct MG_Component* self, float delta_time),
 	void (*on_destroy)(struct MG_Component* self));
+
+#ifdef __cplusplus
+}
+#endif
 
 #pragma section(".MGREG$A", read)
 #pragma section(".MGREG$Z", read)

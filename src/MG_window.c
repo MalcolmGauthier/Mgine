@@ -133,46 +133,46 @@ static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent win
 	case SDL_WINDOWEVENT_ENTER:
 		window_data->mouse_above_window = true;
 		if (window_data->callback_mouse_above_enter)
-			window_data->callback_mouse_above_enter();
+			window_data->callback_mouse_above_enter(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_LEAVE:
 		window_data->mouse_above_window = false;
 		if (window_data->callback_mouse_above_exit)
-			window_data->callback_mouse_above_exit();
+			window_data->callback_mouse_above_exit(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_FOCUS_GAINED:
 		window_data->focused = true;
 		if (window_data->callback_focus_gained)
-			window_data->callback_focus_gained();
+			window_data->callback_focus_gained(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_FOCUS_LOST:
 		window_data->focused = false;
 		if (window_data->callback_focus_lost)
-			window_data->callback_focus_lost();
+			window_data->callback_focus_lost(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_MOVED:
 		window_data->x_pos = window_event.data1;
 		window_data->y_pos = window_event.data2;
 		if (window_data->callback_moving)
-			window_data->callback_moving();
+			window_data->callback_moving(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_RESIZED:
 		window_data->width = window_event.data1;
 		window_data->height = window_event.data2;
 		if (window_data->callback_manually_resized)
-			window_data->callback_manually_resized();
+			window_data->callback_manually_resized(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_SIZE_CHANGED:
 		window_data->width = window_event.data1;
 		window_data->height = window_event.data2;
 		if (window_data->callback_resized)
-			window_data->callback_resized();
+			window_data->callback_resized(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_MINIMIZED:
@@ -180,7 +180,7 @@ static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent win
 		window_data->maximized = false;
 		window_data->windowed_mode = false;
 		if (window_data->callback_minimized)
-			window_data->callback_minimized();
+			window_data->callback_minimized(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_MAXIMIZED:
@@ -188,7 +188,7 @@ static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent win
 		window_data->maximized = true;
 		window_data->windowed_mode = false;
 		if (window_data->callback_maximized)
-			window_data->callback_maximized();
+			window_data->callback_maximized(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_RESTORED:
@@ -196,7 +196,7 @@ static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent win
 		window_data->maximized = false;
 		window_data->windowed_mode = true;
 		if (window_data->callback_windowed_mode)
-			window_data->callback_windowed_mode();
+			window_data->callback_windowed_mode(window_data->instance);
 		break;
 
 	case SDL_WINDOWEVENT_TAKE_FOCUS:
@@ -219,7 +219,8 @@ static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent win
 // Parses the SDL_Keycode and updates the MG_WindowData accordingly.
 static int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle)
 {
-	if (!window_data) return 0;
+	if (!window_data)
+		return 0;
 
 	if (key_code == SDL_SCANCODE_ESCAPE)
 		return 1;
@@ -495,4 +496,45 @@ void MG_input_poll_mouse_scroll(MG_WindowData* window_data, float* out_rel_scrol
 	if (out_rel_scroll) *out_rel_scroll = window_data->mouse_wheel_rel;
 
 	window_data->mouse_wheel_rel = 0;
+}
+
+bool MG_input_key_down(MG_WindowData* window_data, MG_Key key_code)
+{
+	// might break in the future or on various platforms lol
+	return window_data->keyboard_pressed.raw & (1ULL << key_code);
+}
+
+bool MG_input_key_held(MG_WindowData* window_data, MG_Key key_code)
+{
+	return window_data->keyboard_held.raw & (1ULL << key_code);
+}
+
+bool MG_input_mouse_button_down(MG_WindowData* window_data, MG_MouseButton button)
+{
+	switch (button)
+	{
+	case MG_MOUSE_BUTTON_LEFT:
+		return window_data->mouse_pressed.LEFT;
+	case MG_MOUSE_BUTTON_RIGHT:
+		return window_data->mouse_pressed.RIGHT;
+	case MG_MOUSE_BUTTON_MIDDLE:
+		return window_data->mouse_pressed.MIDDLE;
+	default:
+		return false;
+	}
+}
+
+bool MG_input_mouse_button_held(MG_WindowData* window_data, MG_MouseButton button)
+{
+	switch (button)
+	{
+	case MG_MOUSE_BUTTON_LEFT:
+		return window_data->mouse_held.LEFT;
+	case MG_MOUSE_BUTTON_RIGHT:
+		return window_data->mouse_held.RIGHT;
+	case MG_MOUSE_BUTTON_MIDDLE:
+		return window_data->mouse_held.MIDDLE;
+	default:
+		return false;
+	}
 }

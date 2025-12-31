@@ -5,6 +5,14 @@
 #include "stc/MG_Instance.h"
 #include "MG_object.h"
 
-int MG_logic_loop(void* instance);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void MG_logic_free(MG_GameData* game_data);
+MG_API int MG_logic_loop(void* instance);
+
+MG_API void MG_logic_free(MG_GameData* game_data);
+
+#ifdef __cplusplus
+}
+#endif

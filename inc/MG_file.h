@@ -8,11 +8,19 @@
 #include "MG_object.h"
 #include "stc/MG_Audio.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // pass NULL to file to open new file descriptor
-byte* MG_asset_load(FILE* file, MG_Asset* asset);
+MG_API byte* MG_asset_load(FILE* file, MG_Asset* asset);
 
 // free asset data, and just the data.
-void MG_asset_free(MG_Asset* asset);
+MG_API void MG_asset_free(MG_Asset* asset);
 
 // loads the game data from file into the instance
-int MG_load_game(MG_Instance* instance);
+MG_API int MG_load_game(MG_Instance* instance);
+
+#ifdef __cplusplus
+}
+#endif

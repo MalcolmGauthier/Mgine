@@ -16,6 +16,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <timeapi.h>
+#include <shlwapi.h>
 #endif
 
 #include <SDL.h>
@@ -28,6 +29,12 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdarg.h>
+
+#ifdef MG_EXPORT
+#define MG_API __declspec(dllexport)
+#else
+#define MG_API __declspec(dllimport)
+#endif
 
 ///////////////////////////////
 // DEFAULT SETTINGS

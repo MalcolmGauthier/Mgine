@@ -1,11 +1,11 @@
 #include "MG_ui.h"
 
-MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int fonst_size, byte font_style, MG_Vec4 color)
+MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color)
 {
     if (!font_name || !text)
         return NULL;
 
-    TTF_Font* font = TTF_OpenFont(MG_UI_find_font_file_windows(font_name), fonst_size);
+    TTF_Font* font = TTF_OpenFont(MG_UI_find_font_file_windows(font_name), font_size);
     if (!font)
         return NULL;
 
@@ -13,19 +13,12 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
 
     SDL_Color sdl_color = MG_color_from_vec4(color);
 
-    char* utf8 = SDL_iconv_string(
-        "UTF-8",
-        sizeof(wchar_t) == 2 ? "UTF-16" : "UTF-32",
-        (const char*)text,
-        (size_t)-1
-    );
-
+    char* utf8 = SDL_iconv_wchar_utf8(text);
     if (!utf8)
     {
         TTF_CloseFont(font);
         return NULL;
     }
-
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, utf8, sdl_color);
     free(utf8);
 
@@ -35,9 +28,10 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
         return NULL;
     }
 
+    // create managed texture struct and manually set its data
     MG_Texture* tex = MG_texture_init(NULL, 0);
     tex->base.asset_file_data = surface->pixels;
-	tex->base.asset_file_size = (size_t)surface->w * surface->h * surface->format->BytesPerPixel;
+	tex->base.asset_file_size = (size_t)surface->w * (size_t)surface->h * surface->format->BytesPerPixel;
     if (MG_texture_load(tex))
         return NULL;
 
@@ -52,12 +46,23 @@ char* MG_UI_find_font_file_windows(const char* font_name)
     if (!font_name)
         return NULL;
 
-    const char* fontDir = "C:\\Windows\\Fonts\\";
+    const char* font_dir = "C:\\Windows\\Fonts\\";
+    char* full_path = malloc(MAX_PATH);
+    if (!full_path) return NULL;
+
     WIN32_FIND_DATAA data;
     HANDLE h;
 
+	// check for exact match first
+    snprintf(full_path, MAX_PATH, "%s%s", font_dir, data.cFileName);
+    if (PathFileExistsA(full_path))
+    {
+        return full_path;
+    }
+
+    // next, case-insensitive substring match
     char searchPath[MAX_PATH];
-    snprintf(searchPath, sizeof(searchPath), "%s*.ttf", fontDir);
+    snprintf(searchPath, sizeof(searchPath), "%s*.ttf", font_dir);
 
     h = FindFirstFileA(searchPath, &data);
     if (h == INVALID_HANDLE_VALUE)
@@ -65,18 +70,12 @@ char* MG_UI_find_font_file_windows(const char* font_name)
 
     do
     {
-        // case-insensitive substring match
         if (!StrStrIA(data.cFileName, font_name))
             continue;
 
-        char* fullPath = malloc(MAX_PATH);
-        if (fullPath)
-        {
-            snprintf(fullPath, MAX_PATH, "%s%s",
-                fontDir, data.cFileName);
-        }
+        snprintf(full_path, MAX_PATH, "%s%s", font_dir, data.cFileName);
         FindClose(h);
-        return fullPath;
+        return full_path;
     }
     while (FindNextFileA(h, &data));
 

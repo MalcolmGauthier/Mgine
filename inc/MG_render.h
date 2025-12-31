@@ -9,4 +9,12 @@
 #include "MG_shaders.h"
 #include "MG_camera.h"
 
-int MG_render_loop(void* MG_instance);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MG_API int MG_render_loop(void* MG_instance);
+
+#ifdef __cplusplus
+}
+#endif

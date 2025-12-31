@@ -5,4 +5,12 @@
 #include "stc/MG_Asset.h"
 #include "MG_file.h"
 
-void MG_audio_free_channel(int channel);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MG_API void MG_audio_free_channel(int channel);
+
+#ifdef __cplusplus
+}
+#endif

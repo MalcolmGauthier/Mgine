@@ -2,12 +2,12 @@
 
 static void MG_render_update_data(MG_RenderData* render_data);
 static void MG_render_update_interp_value(MG_RenderData* render_data);
-static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint64_t obj_id);
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, MG_ID obj_id);
 static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data);
 static void MG_render_OIT_init(MG_RenderData* render_data);
 static void MG_render_OIT_prepare(MG_RenderData* render_data);
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int64_t obj_id);
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, MG_ID obj_id);
 static void MG_render_OIT(MG_RenderData* render_data);
 static void MG_render_WBOIT_composite(MG_RenderData* render_data);
 
@@ -142,7 +142,7 @@ static void MG_render_update_interp_value(MG_RenderData* render_data)
 	}
 }
 
-static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, uint64_t obj_id)
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, MG_ID obj_id)
 {
 	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
 		return *new_matrix;
@@ -318,7 +318,7 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	MG_render_model(render_data, &current_model->model, &current_matrix, object->id);
 }
 
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, int64_t obj_id)
+static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, MG_ID obj_id)
 {
 	if (!model || !pos)
 		return;

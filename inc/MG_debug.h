@@ -4,6 +4,10 @@
 #include "MG_include.h"
 #include "MG_transform.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CENTRE SDL_MAX_SINT32
 #define NO_SCROLL SDL_MAX_SINT32
 #define BLANC 0xFFFFFF
@@ -16,4 +20,8 @@
 #define HAUTEUR_DEFAUT 10.0f
 #define ESPACE_DEFAUT 3.0f
 
-void MG_debug_panic_text(MG_Instance* jeu, char* text, MG_Vec2 position, float size, int color, int alpha, int scroll);
+MG_API void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, float size, uint32_t color_rgba);
+
+#ifdef __cplusplus
+}
+#endif
