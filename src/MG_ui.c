@@ -29,7 +29,7 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
     }
 
     // create managed texture struct and manually set its data
-    MG_Texture* tex = MG_texture_init(NULL, 0);
+    MG_Texture* tex = MG_texture_init_MGA(NULL, 0);
     tex->base.asset_file_data = surface->pixels;
 	tex->base.asset_file_size = (size_t)surface->w * (size_t)surface->h * surface->format->BytesPerPixel;
     if (MG_texture_load(tex))

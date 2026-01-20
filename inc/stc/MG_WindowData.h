@@ -148,7 +148,7 @@ typedef enum MG_Key
 	MG_KEY_ARROW_UP,
 	MG_KEY_ARROW_DOWN,
 	MG_KEY_ARROW_LEFT,
-	MG_KEY_ARROW_RIGHT,
+	MG_KEY_ARROW_RIGHT
 }
 MG_Key;
 
@@ -205,21 +205,21 @@ typedef struct MG_WindowData
 	bool mouse_hidden : 1;
 	bool mouse_grabbed : 1;
 
-	void (*callback_mouse_above_enter)(MG_Instance*);
-	void (*callback_mouse_above_exit)(MG_Instance*);
+	void (*callback_mouse_above_enter)(struct MG_Instance*);
+	void (*callback_mouse_above_exit)(struct MG_Instance*);
 
-	void (*callback_focus_gained)(MG_Instance*);
-	void (*callback_focus_lost)(MG_Instance*);
+	void (*callback_focus_gained)(struct MG_Instance*);
+	void (*callback_focus_lost)(struct MG_Instance*);
 
-	void (*callback_moving)(MG_Instance*);
+	void (*callback_moving)(struct MG_Instance*);
 
 	// only called when the window is resized by the user, not anything else
-	void (*callback_manually_resized)(MG_Instance*);
-	void (*callback_resized)(MG_Instance*);
+	void (*callback_manually_resized)(struct MG_Instance*);
+	void (*callback_resized)(struct MG_Instance*);
 
-	void (*callback_minimized)(MG_Instance*);
+	void (*callback_minimized)(struct MG_Instance*);
 	// does NOT get sent if the user restores a minimized window that was previously maximized, despite still being maximized.
-	void (*callback_maximized)(MG_Instance*);
-	void (*callback_windowed_mode)(MG_Instance*);
+	void (*callback_maximized)(struct MG_Instance*);
+	void (*callback_windowed_mode)(struct MG_Instance*);
 }
 MG_WindowData;

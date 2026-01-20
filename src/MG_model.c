@@ -1,9 +1,34 @@
 #include "MG_model.h"
 
+MG_Model* MG_model_init(MG_Instance* instance, const char* path)
+{
+	return MG_model_init_MGA(instance, path, -1);
+}
+
+MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
+{
+    MG_Model* model;
+
+    MG_Model* new_list = realloc(instance->model_list, sizeof(MG_Model*) * (instance->model_count + 1));
+    if (!new_list)
+    {
+        printf("Failed to allocate memory for new model metadata\n");
+        return NULL;
+    }
+    instance->model_list = new_list;
+    model = &instance->model_list[instance->model_count];
+    instance->model_count++;
+
+    model->base.path = (char*)path;
+    model->base.index_in_file = index_in_file;
+
+    return model;
+}
+
 int MG_model_load(MG_Model* model)
 {
     const struct aiScene* scene = aiImportFileFromMemory(
-        model->base.asset_file_data,
+        (const char*)model->base.asset_file_data,
         (uint32_t)model->base.asset_file_size,
         aiProcess_Triangulate |
         aiProcess_GenNormals |

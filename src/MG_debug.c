@@ -391,4 +391,7 @@ void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, fl
 	SDL_free(working_text);
 }
 
-void MG_debug_text(MG_Instance* instance);
+void MG_debug_text(MG_Instance* instance)
+{
+	instance;
+}

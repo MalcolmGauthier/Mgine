@@ -1,8 +1,8 @@
 #include "MG_window.h"
 
-int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_event);
-int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle);
-void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEvent button_event, bool toggle);
+static int MG_window_event_parse(MG_WindowData* window_data, SDL_WindowEvent window_event);
+static int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code, bool toggle);
+static void MG_mouse_button_event_parse(MG_WindowData* window_data, SDL_MouseButtonEvent button_event, bool toggle);
 
 // Main loop for the window and I/O events.
 int MG_window_loop(void* MG_instance)

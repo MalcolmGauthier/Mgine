@@ -1,6 +1,6 @@
 #include "MG_object.h"
 
-MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags)
+MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* name, uint32_t flags)
 {
 	MG_Object* object = calloc(1, sizeof(MG_Object));
 	if (!object)
@@ -13,26 +13,18 @@ MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, uint32_t flags)
 	object->instance = instance;
 	object->parent = parent;
 	object->flags = flags;
+	object->name = MG_ID_get_id(name);
 	object->id = instance->game_data.next_object_id;
 	instance->game_data.next_object_id++;
 
-	instance->game_data.object_count++;
-	if (!instance->game_data.object_list)
+	if (MG_LL_add(&instance->game_data.object_list, object))
 	{
-		instance->game_data.object_list = calloc(1, sizeof(MG_Object_LL));
-		if (!instance->game_data.object_list)
-		{
-			printf("Failed to allocate memory for object list\n");
-			free(object);
-			return -1;
-		}
-		instance->game_data.object_list->data = object;
-	}
-	else
-	{
-		MG_LL_add(&instance->game_data.object_list, object);
+		printf("Failed to add object to instance object list\n");
+		free(object);
+		return -2;
 	}
 
+	instance->game_data.object_count++;
 	return object->id;
 }
 
@@ -44,9 +36,10 @@ MG_ID MG_object_create_by_copy(MG_Object* object)
 		return -1;
 	}
 
-	MG_ID obj_id = MG_object_create(object->instance, object->parent, object->flags);
+	MG_ID obj_id = MG_object_create(object->instance, object->parent, "", object->flags);
 	MG_Object* obj = MG_object_get_by_id(object->instance, obj_id);
 
+	obj->name = object->name;
 	obj->children = MG_LL_copy(object->children, MG_object_create_tracked_copy);
 	// can't use real copy function because that takes 2 params and LL_Copy only takes 1
 	obj->components = MG_LL_copy(object->components, MG_component_copy_untracked);
@@ -60,7 +53,7 @@ MG_ID MG_object_create_by_copy(MG_Object* object)
 	return obj_id;
 }
 
-MG_ID MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags)
+MG_ID MG_object_create_with_parent(MG_Object* parent_object, const char* name, uint32_t flags)
 {
 	if (!parent_object)
 	{
@@ -68,7 +61,7 @@ MG_ID MG_object_create_with_parent(MG_Object* parent_object, uint32_t flags)
 		return -1;
 	}
 
-	return MG_object_create(parent_object->instance, parent_object, flags);
+	return MG_object_create(parent_object->instance, parent_object, name, flags);
 }
 
 MG_Object* MG_object_create_untracked_copy(MG_Object* source)
@@ -129,6 +122,30 @@ MG_Object* MG_object_get_by_id(MG_Instance* instance, MG_ID id)
 	}
 
 	printf("Failed to get object with ID %u: not found\n", (uint32_t)id);
+	return NULL;
+}
+
+MG_Object* MG_object_get_by_name(MG_Instance* instance, const char* name)
+{
+	if (!instance)
+	{
+		printf("Failed to get object: instance is NULL\n");
+		return NULL;
+	}
+
+	MG_ID name_id = MG_ID_get_id(name);
+
+	MG_Object_LL* current = instance->game_data.object_list;
+	while (current)
+	{
+		if (((MG_Object*)current->data)->name == name_id)
+		{
+			return current->data;
+		}
+		current = current->next;
+	}
+
+	printf("Failed to get object with name %s: not found\n", name);
 	return NULL;
 }
 
@@ -222,12 +239,12 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 		return NULL;
 	}
 
-	MG_ID type = MG_ID_get_id(name);
+	MG_ID name = MG_ID_get_id(name);
 
 	MG_Component_LL* current = object->components;
 	while (current)
 	{
-		if (current->data && ((MG_Component*)current->data)->base->id == type)
+		if (current->data && ((MG_Component*)current->data)->base->id == name)
 		{
 			return current->data;
 		}
@@ -286,7 +303,7 @@ MG_Vec3 MG_object_get_world_position(MG_Object* object)
 	return world_pos;
 }
 
-MG_Matrix MG_object_get_world_transform_matrix(MG_Object* object)
+MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* object)
 {
 	if (!object)
 	{
@@ -304,12 +321,8 @@ MG_Matrix MG_object_get_world_transform_matrix(MG_Object* object)
 		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
 		if (transform)
 		{
-			world_pos.x += transform->transform.position.x;
-			world_pos.y += transform->transform.position.y;
-			world_pos.z += transform->transform.position.z;
-			world_rot.x += transform->transform.rotation.x;
-			world_rot.y += transform->transform.rotation.y;
-			world_rot.z += transform->transform.rotation.z;
+			world_pos = MG_vec3_add(world_pos, transform->transform.position);
+			world_rot = MG_vec3_add(world_rot, transform->transform.rotation);
 			world_scale.x *= transform->transform.scale.x;
 			world_scale.y *= transform->transform.scale.y;
 			world_scale.z *= transform->transform.scale.z;
@@ -343,57 +356,22 @@ int MG_object_delete(MG_Instance* instance, MG_ID id)
 		return -1;
 	}
 
-	MG_Object_LL* current = instance->game_data.object_list;
-	MG_Object_LL* previous = NULL;
-	MG_Object* object = NULL;
-	while (current)
+	MG_Object* object = MG_object_get_by_id(instance, id);
+	if (!object)
 	{
-		object = (MG_Object*)current->data;
-
-		if (object->id == id)
-		{
-			if (previous)
-			{
-				previous->next = current->next;
-			}
-			else
-			{
-				instance->game_data.object_list = current->next;
-			}
-
-			instance->game_data.object_count--;
-
-			// delete children recursively
-			while (object->children && object->children->data)
-			{
-				MG_Object* child = (MG_Object*)object->children->data;
-				object->children = object->children->next;
-				MG_object_delete(instance, child->id);
-			}
-
-			// call on_destroy for all components
-			while (object->components && object->components->data)
-			{
-				MG_Component* component = (MG_Component*)object->components->data;
-				if (component->base->on_destroy)
-				{
-					component->base->on_destroy(component);
-				}
-				object->components = object->components->next;
-			}
-
-			MG_LL_free(&object->children, MG_object_delete_by_ptr);
-			MG_LL_free(&object->components, MG_component_free);
-			free(object);
-			free(current);
-			return 0;
-		}
-
-		previous = current;
-		current = current->next;
+		printf("Failed to delete object with ID %u: not found\n", id);
+		return 1;
 	}
 
-	return 1;
+	// delete children recursively
+	MG_LL_free(&object->children, MG_object_delete_by_ptr);
+	// call on_destroy for all components
+	MG_LL_free(&object->components, MG_component_free);
+	MG_LL_remove(&instance->game_data.object_list, object);
+
+	instance->game_data.object_count--;
+	free(object);
+	return 0;
 }
 
 void MG_object_delete_by_ptr(MG_Object* object)

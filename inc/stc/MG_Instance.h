@@ -24,17 +24,21 @@ typedef struct MG_Instance
 	MG_GameData game_data;
 	MG_Audio audio_data;
 	MG_RenderData render_data;
+
 	MG_GameDataLockOwner lock_owner;
 
 	int gl_error_code;
 	int instance_exit_code;
 	MG_ID instance_id;
 
+	//TODO: GIANT ASS PROBLEM: using arrays means using realloc to add new data which means anything pointing to stuff here becomes invalid.
+	// should change all of this to become linked lists. will use more memory, but said memory will not cause dangling pointers.
 	uint32_t shader_code_count;
 	char** shader_code_list;
 	uint32_t shader_count;
 	struct MG_Shader* shader_list;
 	uint32_t material_count;
+	// material list is double pointer due to materials having variable size
 	struct MG_Material** material_list;
 	uint32_t prefab_count;
 	struct MG_Object* prefab_list;

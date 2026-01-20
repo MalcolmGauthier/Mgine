@@ -23,7 +23,8 @@ MG_API MG_ComponentTemplate* MG_component_get_template_by_name(MG_Instance* inst
 MG_API MG_Component* MG_component_create(MG_Object* object, MG_ComponentTemplate* comp_template, void* data);
 
 MG_API MG_Component* MG_component_create_copy(MG_Component* src, MG_Object* dst_parent);
-// only exists to be used as a callback for MG_LL_copy. parent is set to NULL.
+// creates a copy of a component instance with no attached object. used internally for object copying. 
+// use not recommended. either manually attach to object or free after use.
 MG_API MG_Component* MG_component_copy_untracked(MG_Component* source);
 
 MG_API void MG_component_free(MG_Component* component);

@@ -63,7 +63,7 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
     // This loop here checks for GL errors at the moment. Debug tools could be added in the future.
     while (inst->active)
     {
-        if (inst->gl_error_code = glGetError())
+        if ((inst->gl_error_code = glGetError()))
         {
             switch (inst->gl_error_code)
             {
@@ -247,5 +247,6 @@ static void MG_instance_init(MG_Instance* instance)
 // Frees the memory used by the instance (objects, components, data, etc.)
 static void MG_instance_free(MG_Instance* instance)
 {
+    instance;
     //TODO
 }

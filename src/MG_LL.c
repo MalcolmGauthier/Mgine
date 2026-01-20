@@ -1,13 +1,13 @@
 #include "MG_LL.h"
 
-void MG_LL_add(MG_Generic_LL** head_ptr, void* value)
+int MG_LL_add(MG_Generic_LL** head_ptr, void* value)
 {
     if (!head_ptr)
-        return;
+        return -1;
 
     MG_Generic_LL* new_node = malloc(sizeof(MG_Generic_LL));
     if (!new_node)
-        return;
+        return -2;
 
     new_node->data = value;
     new_node->next = NULL;
@@ -15,7 +15,7 @@ void MG_LL_add(MG_Generic_LL** head_ptr, void* value)
     if (!*head_ptr)
     {
         *head_ptr = new_node;
-        return;
+        return 0;
     }
 
     MG_Generic_LL* head = *head_ptr;
@@ -24,6 +24,8 @@ void MG_LL_add(MG_Generic_LL** head_ptr, void* value)
         head = head->next;
     }
     head->next = new_node;
+
+    return 0;
 }
 
 void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find)

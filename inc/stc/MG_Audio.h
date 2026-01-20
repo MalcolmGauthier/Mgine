@@ -5,20 +5,10 @@
 #include "MG_Asset.h"
 #include "MG_id.h"
 
-// data for a sound file
-typedef struct MG_Sound
-{
-	MG_Asset base;
-
-	MG_ID id;
-	int (*update)(struct MG_Audio* audio, struct MG_Sound* self);
-}
-MG_Sound;
-
 // a loaded (or intended to be loaded) sound effect
 typedef struct MG_SFX
 {
-	MG_Sound* sound;
+	struct MG_Sound* sound;
 	SDL_RWops* sdl_mem;
 	Mix_Chunk* chunk;
 	int sdl_channel;
@@ -38,8 +28,8 @@ typedef struct MG_Audio
 {
 	struct MG_Instance* instance;
 
-	MG_Sound* music_sound;
-	MG_Sound* cued_music_sound;
+	struct MG_Sound* music_sound;
+	struct MG_Sound* cued_music_sound;
 	Mix_Music* music;
 	bool music_playing;
 	bool loop_music;
@@ -54,3 +44,13 @@ typedef struct MG_Audio
 	MG_SFX_LL* sfx_list;
 }
 MG_Audio;
+
+// data for a sound file
+typedef struct MG_Sound
+{
+	MG_Asset base;
+
+	MG_ID id;
+	int (*update)(struct MG_Audio* audio, struct MG_Sound* self);
+}
+MG_Sound;

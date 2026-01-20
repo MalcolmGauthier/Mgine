@@ -36,6 +36,8 @@
 #define MG_API __declspec(dllimport)
 #endif
 
+#define UNUSED(input) (input);
+
 ///////////////////////////////
 // DEFAULT SETTINGS
 

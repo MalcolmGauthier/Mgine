@@ -28,6 +28,9 @@ byte* MG_asset_load(FILE* file, MG_Asset* asset)
 {
 	bool close_file = false;
 
+	if (!asset)
+		return NULL;
+
 	if (!file)
 	{
 		errno_t err = fopen_s(&file, asset->path, "rb");
@@ -45,6 +48,32 @@ byte* MG_asset_load(FILE* file, MG_Asset* asset)
 	size_t file_size = 0;
 
 	rewind(file);
+
+	// index less than 0 means the filepath is to an asset and not an MGA file
+	if (asset->index_in_file < 0)
+	{
+		fseek(file, 0, SEEK_END);
+		asset->asset_file_size = ftell(file);
+		rewind(file);
+
+		asset->asset_file_data = malloc(asset->asset_file_size);
+		if (!asset->asset_file_data)
+		{
+			printf("Error: Failed to allocate memory for asset data\n");
+			goto fail;
+		}
+		size_t read_bytes = fread(asset->asset_file_data, 1, asset->asset_file_size, file);
+		if (read_bytes != asset->asset_file_size)
+		{
+			printf("Error: Failed to read asset data from file\n");
+			free(asset->asset_file_data);
+			asset->asset_file_data = NULL;
+			goto fail;
+		}
+		asset->asset_file_loaded = true;
+		return asset->asset_file_data;
+	}
+
 	fread(header, sizeof(char), sizeof(header), file);
 	if (memcmp(header, "MGINEA", 6) != 0)
 	{
@@ -600,6 +629,11 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 		}
 		scene->texture_count = texture_count;
 		scene->textures = calloc(texture_count, sizeof(MG_Texture*));
+		if (!scene->textures)
+		{
+			instance->active = false;
+			return;
+		}
 		for (uint32_t j = 0; j < texture_count; j++)
 		{
 			uint32_t texture_index = 0;
@@ -620,6 +654,11 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 		}
 		scene->model_count = model_count;
 		scene->models = calloc(model_count, sizeof(MG_Model*));
+		if (!scene->models)
+		{
+			instance->active = false;
+			return;
+		}
 		for (uint32_t j = 0; j < model_count; j++)
 		{
 			uint32_t model_index = 0;

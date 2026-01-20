@@ -135,5 +135,11 @@ void MG_component_free(MG_Component* component)
 {
 	if (!component) return;
 
+	if (component->base->on_destroy)
+	{
+		component->base->on_destroy(component);
+	}
+
+	// also frees extra data used by component
 	free(component);
 }

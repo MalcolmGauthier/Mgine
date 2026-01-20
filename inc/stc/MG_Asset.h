@@ -9,6 +9,6 @@ typedef struct MG_Asset
 	bool loaded;
 
 	char* path;
-	uint32_t index_in_file;
+	int32_t index_in_file;
 }
 MG_Asset;

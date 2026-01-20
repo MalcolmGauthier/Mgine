@@ -135,11 +135,13 @@ static void MG_render_update_interp_value(MG_RenderData* render_data)
 	}
 
 	// if it's been more than some time since the latest data, freeze.
-	if (!MG_R_INTERPOLATION_PREDICTION || time_since_latest >= 1.0f)
+#if MG_R_INTERPOLATION_PREDICTION == true
+	if (time_since_latest >= 1.0f)
 	{
 		if (render_data->interp_value < 0.0f) render_data->interp_value = 0.0f;
 		if (render_data->interp_value > 1.0f) render_data->interp_value = 1.0f;
 	}
+#endif
 }
 
 static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, MG_ID obj_id)
@@ -215,8 +217,8 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	MG_Vec3 old_euler = MG_transform_deg_to_rad(render_data->old_data.camera.rotation);
 	MG_Vec3 new_euler = MG_transform_deg_to_rad(render_data->latest_data.camera.rotation);
 
-	glm_euler_xyz_quat((float*)&old_euler, old_q);
-	glm_euler_xyz_quat((float*)&new_euler, new_q);
+	glm_euler_yzx_quat((float*)&old_euler, old_q);
+	glm_euler_yzx_quat((float*)&new_euler, new_q);
 
 	// SLERP between quaternions
 	versor interp_q;
@@ -313,7 +315,7 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	if (!current_model || !current_model->model.meshes)
 		return;
 
-	MG_Matrix current_matrix = MG_object_get_world_transform_matrix(object);
+	MG_Matrix current_matrix = MG_object_calculate_world_transform_matrix(object);
 
 	MG_render_model(render_data, &current_model->model, &current_matrix, object->id);
 }

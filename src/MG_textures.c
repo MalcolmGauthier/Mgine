@@ -26,14 +26,24 @@ static void MG_texture_init_default(void)
 		}
 }
 
-MG_Texture* MG_texture_init(const char* path, uint32_t index_in_file)
+MG_Texture* MG_texture_init(MG_Instance* instance, const char* path)
 {
-	MG_Texture* texture = calloc(1, sizeof(MG_Texture));
-	if (!texture)
+	return MG_texture_init_MGA(instance, path, -1);
+}
+
+MG_Texture* MG_texture_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
+{
+	MG_Texture* texture;
+
+	MG_Texture* new_list = realloc(instance->texture_list, sizeof(MG_Texture*) * (instance->texture_count + 1));
+	if (!new_list)
 	{
-		printf("Failed to allocate memory for texture\n");
+		printf("Failed to allocate memory for new texture metadata\n");
 		return NULL;
 	}
+	instance->texture_list = new_list;
+	texture = &instance->texture_list[instance->texture_count];
+	instance->texture_count++;
 
 	texture->base.path = (char*)path;
 	texture->base.index_in_file = index_in_file;
@@ -58,8 +68,8 @@ int MG_texture_load(MG_Texture* texture)
 
 	if (!texture->base.asset_file_loaded)
 	{
-		printf("Error: Failed to load texture: asset is not loaded\n");
-		return -2;
+		printf("Warning: Texture is not loaded. Loading texture.\n");
+		MG_asset_load(NULL, &texture->base);
 	}
 	
 	glGenTextures(1, &texture->id);

@@ -11,7 +11,7 @@ typedef struct MG_Generic_LL
     struct MG_Generic_LL* next;
 } MG_Generic_LL;
 
-MG_API void MG_LL_add(MG_Generic_LL** head_ptr, void* value);
+MG_API int MG_LL_add(MG_Generic_LL** head_ptr, void* value);
 
 MG_API void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find);
 

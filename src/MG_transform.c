@@ -1,5 +1,50 @@
 #include "MG_transform.h"
 
+inline MG_Vec2 MG_vec2_add(MG_Vec2 a, MG_Vec2 b)
+{
+    return (MG_Vec2){ a.x + b.x, a.y + b.y };
+}
+
+inline MG_Vec2 MG_vec2_sub(MG_Vec2 a, MG_Vec2 b)
+{
+    return (MG_Vec2){ a.x - b.x, a.y - b.y };
+}
+
+inline MG_Vec2 MG_vec2_scale(MG_Vec2 v, float scalar)
+{
+    return (MG_Vec2){ v.x * scalar, v.y * scalar };
+}
+
+inline MG_Vec3 MG_vec3_add(MG_Vec3 a, MG_Vec3 b)
+{
+    return (MG_Vec3){ a.x + b.x, a.y + b.y, a.z + b.z };
+}
+
+inline MG_Vec3 MG_vec3_sub(MG_Vec3 a, MG_Vec3 b)
+{
+    return (MG_Vec3){ a.x - b.x, a.y - b.y, a.z - b.z };
+}
+
+inline MG_Vec3 MG_vec3_scale(MG_Vec3 v, float scalar)
+{
+    return (MG_Vec3){ v.x * scalar, v.y * scalar, v.z * scalar };
+}
+
+inline MG_Vec4 MG_vec4_add(MG_Vec4 a, MG_Vec4 b)
+{
+    return (MG_Vec4){ a.r + b.r, a.g + b.g, a.b + b.b, a.a + b.a };
+}
+
+inline MG_Vec4 MG_vec4_sub(MG_Vec4 a, MG_Vec4 b)
+{
+    return (MG_Vec4){ a.r - b.r, a.g - b.g, a.b - b.b, a.a - b.a };
+}
+
+inline MG_Vec4 MG_vec4_scale(MG_Vec4 v, float scalar)
+{
+    return (MG_Vec4){ v.r * scalar, v.g * scalar, v.b * scalar, v.a * scalar };
+}
+
 SDL_Color MG_color_from_vec4(MG_Vec4 color)
 {
     glm_vec4_clamp((float*)&color, 0, 1);
@@ -62,6 +107,11 @@ MG_Vec3 MG_transform_deg_to_rad(MG_Vec3 degrees)
     return (MG_Vec3){ glm_rad(degrees.pitch), glm_rad(degrees.yaw), glm_rad(degrees.roll) };
 }
 
+MG_Vec3 MG_transform_rad_to_deg(MG_Vec3 radians)
+{
+    return (MG_Vec3) { glm_deg(radians.pitch), glm_deg(radians.yaw), glm_deg(radians.roll) };
+}
+
 MG_Matrix MG_transform_get_matrix(MG_Transform* transform)  
 {  
     if (!transform)  
@@ -88,7 +138,43 @@ MG_Matrix MG_transform_make_matrix(MG_Vec3 position, MG_Vec3 rotation, MG_Vec3 s
 // update function for the transform component to recalculate the quaternion and matrix
 MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self, float delta_time)
 {
+    UNUSED(delta_time)
 	MG_ComponentTransform* t_self = (MG_ComponentTransform*)self;
-	t_self->transform_matrix = MG_transform_get_matrix(&t_self->transform);
+
+    if (t_self->base.owner->flags & MG_OBJECT_FLAG_BILLBOARD)
+    {
+        // make the object face the camera
+        MG_Camera* camera = &t_self->base.owner->instance->game_data.camera;
+        if (!camera)
+			return MG_COMPONENT_FUNC_RESULT_ERROR;
+
+        MG_Vec3 obj_pos = t_self->transform.position;
+        MG_Vec3 cam_pos = camera->position;
+        vec3 dir = {
+            cam_pos.x - obj_pos.x,
+            cam_pos.y - obj_pos.y,
+            cam_pos.z - obj_pos.z
+        };
+        glm_vec3_normalize(dir);
+
+        versor q;
+        glm_quat_from_vecs((vec3){ 1, 0, 0 }, dir, q);
+
+        mat4 rot;
+        glm_quat_mat4(q, rot);
+
+        MG_Vec3 euler;
+        glm_euler_angles(rot, (vec3*)&euler);
+
+		euler = MG_transform_rad_to_deg(euler);
+
+        // yzx ordering
+        t_self->transform.rotation.pitch = euler.y;
+        t_self->transform.rotation.yaw = euler.z;
+        t_self->transform.rotation.roll = euler.x;
+	}
+
+    t_self->transform_matrix = MG_transform_get_matrix(&t_self->transform);
+
 	return MG_COMPONENT_FUNC_RESULT_OK;
 }
