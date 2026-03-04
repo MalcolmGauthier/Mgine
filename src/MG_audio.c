@@ -7,7 +7,7 @@ static MG_SFX* MG_audio_create_sfx(MG_Audio* audio, MG_Sound* sound, MG_Vec3 pos
 static int MG_audio_load_sfx(MG_Audio* audio, MG_SFX* sfx);
 static inline void MG_audio_start_sfx(MG_SFX* sfx);
 
-int MG_audio_play_sfx(MG_Audio* audio, const char* sfx_name/*, int loops*/)
+int MG_audio_play_sfx(MG_Audio* audio, const char* sfx_name)
 {
 	if (!audio || !sfx_name)
 	{
@@ -34,8 +34,8 @@ int MG_audio_play_sfx(MG_Audio* audio, const char* sfx_name/*, int loops*/)
 	return 0;
 }
 
-int MG_audio_play_sfx_3D(MG_Audio* audio, const char* sfx_name, MG_Vec3 position, int loops, int8_t volume);
-int MG_audio_play_sfx_3D_ref(MG_Audio* audio, const char* sfx_name, MG_Vec3* position, int loops, int8_t volume);
+int MG_audio_play_sfx_3D(MG_Audio* audio, const char* sfx_name, MG_Vec3 position, int8_t volume);
+int MG_audio_play_sfx_3D_ref(MG_Audio* audio, const char* sfx_name, MG_Vec3* position, int8_t volume);
 
 static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
 {
@@ -49,7 +49,7 @@ static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
 	//TODO: implement caching
 	for (uint32_t i = 0; i < audio->instance->sound_count; i++)
 	{
-		if (audio->instance->sound_list[i].id == id)
+		if (audio->instance->sound_list[i]->id == id)
 			return &audio->instance->sound_list[i];
 	}
 
@@ -143,6 +143,23 @@ static inline void MG_audio_start_sfx(MG_SFX* sfx)
 	Mix_Volume(sfx->sdl_channel, sfx->volume);
 }
 
+static void MG_audio_free_sfx(MG_SFX* sfx)
+{
+	if (!sfx)
+		return;
+	if (sfx->chunk)
+	{
+		Mix_FreeChunk(sfx->chunk);
+		sfx->chunk = NULL;
+	}
+	if (sfx->sdl_mem)
+	{
+		SDL_FreeRW(sfx->sdl_mem);
+		sfx->sdl_mem = NULL;
+	}
+	free(sfx);
+}
+
 void MG_audio_free_channel(int channel)
 {
 	MG_SFX_LL* current = mg_audio->sfx_list;
@@ -155,18 +172,21 @@ void MG_audio_free_channel(int channel)
 			continue;
 		}
 
-		if (sfx->chunk)
-		{
-			Mix_FreeChunk(sfx->chunk);
-			sfx->chunk = NULL;
-		}
-		if (sfx->sdl_mem)
-		{
-			SDL_FreeRW(sfx->sdl_mem);
-			sfx->sdl_mem = NULL;
-		}
-		free(sfx);
+		MG_audio_free_sfx(sfx);
 		current->data = NULL;
 		break;
 	}
+}
+
+void MG_audio_free(MG_Audio* audio)
+{
+	if (!audio)
+		return;
+
+	Mix_PauseAudio(1);
+	MG_LL_free(&audio->sfx_list, MG_audio_free_sfx);
+	Mix_FreeMusic(audio->music);
+
+	Mix_CloseAudio();
+	Mix_Quit();
 }

@@ -15,6 +15,8 @@ extern "C" {
 
 MG_API int MG_render_loop(void* MG_instance);
 
+MG_API void MG_render_free(MG_RenderData* render_data);
+
 #ifdef __cplusplus
 }
 #endif

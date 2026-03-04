@@ -31,26 +31,27 @@ typedef struct MG_Instance
 	int instance_exit_code;
 	MG_ID instance_id;
 
-	//TODO: GIANT ASS PROBLEM: using arrays means using realloc to add new data which means anything pointing to stuff here becomes invalid.
-	// should change all of this to become linked lists. will use more memory, but said memory will not cause dangling pointers.
-	uint32_t shader_code_count;
-	char** shader_code_list;
+	// these are lists instead of linked lists, because realistically outside of the initial loading phase, these lists will not be modified much.
+	// using arrays means using realloc to add new data which means storing an index to the list or a pointer to the list is a no-go.
+	// all of these are arrays of pointers to each asset.
 	uint32_t shader_count;
-	struct MG_Shader* shader_list;
+	struct MG_Shader** shader_list;
+	// note: materials have variable size
 	uint32_t material_count;
-	// material list is double pointer due to materials having variable size
 	struct MG_Material** material_list;
 	uint32_t prefab_count;
-	struct MG_Object* prefab_list;
+	struct MG_Object** prefab_list;
 	uint32_t scene_count;
-	struct MG_Scene* scene_list;
+	struct MG_Scene** scene_list;
 
+	// these three take up more meory, so unlike the previous assets,
+	// they're not always loaded, and thus need to be loaded from a file before use.
 	uint32_t model_count;
-	struct MG_Model* model_list;
+	struct MG_Model** model_list;
 	uint32_t texture_count;
-	struct MG_Texture* texture_list;
+	struct MG_Texture** texture_list;
 	uint32_t sound_count;
-	struct MG_Sound* sound_list;
+	struct MG_Sound** sound_list;
 
 	MG_ComponentTemplate_LL* component_list;
 

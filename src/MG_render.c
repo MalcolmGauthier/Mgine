@@ -533,3 +533,15 @@ static void MG_render_WBOIT_composite(MG_RenderData* render_data)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
+
+void MG_render_free(MG_RenderData* render_data)
+{
+	MG_logic_free(&render_data->old_data);
+	MG_logic_free(&render_data->latest_data);
+
+	MG_LL_free(&render_data->transparency_list, NULL);
+
+	glDeleteTextures(1, &render_data->accum_tex);
+	glDeleteTextures(1, &render_data->reveal_tex);
+	glDeleteFramebuffers(1, &render_data->OIT_FBO);
+}

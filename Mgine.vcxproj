@@ -130,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);MG_EXPORT</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>lib;inc;lib\cglm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>shaders;lib;lib\cglm;inc</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>

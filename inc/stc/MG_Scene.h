@@ -2,22 +2,11 @@
 
 #include "MG_include.h"
 #include "stc/MG_Object.h"
-
-typedef struct MG_Texture
-{
-	MG_Asset base;
-	
-	GLuint id;
-	int width;
-	int height;
-	byte channels;
-}
-MG_Texture;
+#include "stc/MG_Texture.h"
 
 typedef struct MG_Scene
 {
-	char* name;
-	uint32_t id;
+	MG_ID id;
 
 	MG_Object_LL* objects;
 	void (*on_load)(void* input_data);

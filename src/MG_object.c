@@ -413,3 +413,12 @@ int MG_object_delete_non_recursive(MG_Instance* instance, MG_ID id)
 	// delete childless object
 	return MG_object_delete(instance, id);
 }
+
+
+void MG_object_free_prefab(MG_Object* prefab)
+{
+	MG_LL_free(&prefab->children, MG_object_free_prefab);
+	MG_LL_free(&prefab->components, MG_component_free);
+
+	free(prefab);
+}

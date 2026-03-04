@@ -25,5 +25,7 @@ typedef struct MG_Material
 	struct MG_Shader* shader;
 	uint32_t shader_variable_count;
 	MG_MaterialShaderVariable* shader_variables;
+
+	void (*free_func)(struct MG_Material* self);
 }
 MG_Material;

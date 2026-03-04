@@ -6,3 +6,8 @@ void MG_scene_load(MG_Instance* instance, uint32_t scene_index)
 	(void)instance;
 	(void)scene_index;
 }
+
+void MG_scene_free(MG_Scene* scene)
+{
+
+}

@@ -109,6 +109,4 @@ void MG_logic_free(MG_GameData* game_data)
 		return;
 
 	MG_LL_free(&game_data->object_list, MG_object_delete_by_ptr);
-	// at the moment this function is only used with copies and not pointers
-	//free(game_data);
 }

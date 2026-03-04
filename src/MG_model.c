@@ -5,20 +5,25 @@ MG_Model* MG_model_init(MG_Instance* instance, const char* path)
 	return MG_model_init_MGA(instance, path, -1);
 }
 
+MG_Model* MG_model_init_raw(MG_Instance* instance)
+{
+    MG_Model* m = MG_model_init_MGA(instance, NULL, 0);
+    m->base.loaded = true;
+    return m;
+}
+
 MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
 {
-    MG_Model* model;
+    MG_Model* model = calloc(1, sizeof(MG_Model*));
 
-    MG_Model* new_list = realloc(instance->model_list, sizeof(MG_Model*) * (instance->model_count + 1));
-    if (!new_list)
+    if (MG_asset_add(&instance->model_list, &instance->model_count, model))
     {
-        printf("Failed to allocate memory for new model metadata\n");
+        printf("Failed to add shader to instance shader list.\n");
+        free(model);
         return NULL;
     }
-    instance->model_list = new_list;
-    model = &instance->model_list[instance->model_count];
-    instance->model_count++;
 
+#pragma warning(suppress : 6011)
     model->base.path = (char*)path;
     model->base.index_in_file = index_in_file;
 
@@ -27,6 +32,9 @@ MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t ind
 
 int MG_model_load(MG_Model* model)
 {
+    if (!model)
+        return -1;
+
     const struct aiScene* scene = aiImportFileFromMemory(
         (const char*)model->base.asset_file_data,
         (uint32_t)model->base.asset_file_size,
@@ -180,4 +188,20 @@ void MG_model_enable(MG_Model* model, bool static_model)
 
 	//model->enabled = true;
     model->base.loaded = true;
+}
+
+void MG_model_free(MG_Model* model)
+{
+    for (int i = 0; i < model->mesh_count; i++)
+    {
+#pragma warning(suppress: 6001)
+        free(model->meshes[i].vertices);
+#pragma warning(suppress: 6001)
+        free(model->meshes[i].indices);
+    }
+    MG_asset_free(&model->base);
+    free(model->meshes);
+    model->meshes = NULL;
+    model->mesh_count = 0;
+    free(model);
 }

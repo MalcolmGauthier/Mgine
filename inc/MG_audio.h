@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 MG_API void MG_audio_free_channel(int channel);
+MG_API void MG_audio_free(MG_Audio* audio);
 
 #ifdef __cplusplus
 }

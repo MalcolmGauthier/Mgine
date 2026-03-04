@@ -4,18 +4,20 @@
 #include "stc/MG_Shader.h"
 #include "stc/MG_Transform.h"
 #include "stc/MG_Material.h"
+#include "MG_file.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MG_API MG_Shader MG_shader_create(char* vertex_shader, char* fragment_shader);
+MG_API MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, const char* fragment_shader);
 MG_API int MG_shader_define(char** ptr_to_shader_file_text, int define_count, ...);
 MG_API int MG_shader_compile(MG_Shader* shader);
 MG_API void MG_shader_use(MG_Shader* shader);
 MG_API int MG_shader_free(MG_Shader* shader);
 
 MG_API int MG_material_register_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material);
+MG_API void MG_material_free(MG_Material* material);
 
 MG_API void MG_shader_set_int(MG_Shader* shader, const char* name, int value);
 MG_API void MG_shader_set_ivec2(MG_Shader* shader, const char* name, int* value);

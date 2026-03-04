@@ -1,7 +1,7 @@
 /////////////////////////////////
 //                             //
 //  MGINE BY MALCOLM GAUTHIER  //
-//             2025            //
+//        (c) 2025-2026        //
 //                             //
 /////////////////////////////////
 
@@ -11,6 +11,8 @@ static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context, bool no_wi
 static int MG_gl_init(SDL_GLContext gl_context);
 static void MG_instance_init(MG_Instance* instance);
 static void MG_instance_free(MG_Instance* instance);
+
+extern void MG_object_free_prefab(MG_Object* prefab);
 
 int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_instance)
 {
@@ -105,8 +107,6 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
     if (!no_window)
     {
         SDL_WaitThread(render_thread, NULL);
-        SDL_GL_DeleteContext(inst->gl_context);
-        SDL_DestroyWindow(inst->window);
     }
     MG_instance_free(inst);
     SDL_Quit();
@@ -247,6 +247,17 @@ static void MG_instance_init(MG_Instance* instance)
 // Frees the memory used by the instance (objects, components, data, etc.)
 static void MG_instance_free(MG_Instance* instance)
 {
-    instance;
-    //TODO
+    SDL_GL_DeleteContext(instance->gl_context);
+    SDL_DestroyWindow(instance->window);
+
+    MG_logic_free(&instance->game_data);
+    MG_audio_free(&instance->audio_data);
+	MG_render_free(&instance->render_data);
+
+    for (int i = 0; i < instance->shader_count; i++)
+		MG_shader_free(instance->shader_list[i]);
+	for (int i = 0; i < instance->material_count; i++)
+		MG_material_free(instance->material_list[i]);
+    for (int i = 0; i < instance->prefab_count; i++)
+		MG_object_free_prefab(instance->prefab_list[i]);
 }

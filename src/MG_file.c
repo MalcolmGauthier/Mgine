@@ -24,6 +24,28 @@
 
 #define MG_PATH_MAX 1024
 
+int MG_asset_add(void** asset_list_ref, uint32_t* asset_count_ref, void* asset)
+{
+	if (!asset_list_ref || !asset_count_ref || !asset)
+	{
+		printf("Error: Null parameter(s) to add asset to asset list\n");
+		return -1;
+	}
+
+	void* aset_list_bak = *asset_list_ref;
+	*asset_list_ref = realloc(*asset_list_ref, (*asset_count_ref + 1) * sizeof(void*));
+	if (!*asset_list_ref)
+	{
+		printf("Error: Failed to allocate memory for asset list\n");
+		*asset_list_ref = aset_list_bak;
+		return -2;
+	}
+
+	((void**)*asset_list_ref)[*asset_count_ref] = asset;
+	(*asset_count_ref)++;
+	return 0;
+}
+
 byte* MG_asset_load(FILE* file, MG_Asset* asset)
 {
 	bool close_file = false;
@@ -207,7 +229,7 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 	
 	for (uint32_t i = 0; i < shader_count; i++)
 	{
-		MG_Shader* shader = &instance->shader_list[i];
+		MG_Shader* shader;
 		uint32_t vertex_code_index = 0;
 		uint32_t fragment_code_index = 0;
 		fread(&vertex_code_index, sizeof(uint32_t), 1, file);
@@ -218,7 +240,7 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 			vertex_code_index = 0;
 			fragment_code_index = 0;
 		}
-		*shader = MG_shader_create(shader_codes[vertex_code_index], shader_codes[fragment_code_index]);
+		shader = MG_shader_create(instance, shader_codes[vertex_code_index], shader_codes[fragment_code_index]);
 
 		uint16_t define_count = 0;
 		fread(&define_count, sizeof(uint16_t), 1, file);
@@ -484,7 +506,7 @@ static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent
 					instance->active = false;
 					return;
 				}
-				instance->prefab_list[i] = *copy;
+				instance->prefab_list[i] = copy;
 				// Free the temporary allocation but do not deep free children pointers
 				free(copy);
 			}
@@ -737,8 +759,6 @@ int MG_load_game(MG_Instance* instance)
 		return -7;
 	}
 	MG_load_shader_code(mg_file, shader_codes, shader_code_count);
-	instance->shader_code_count = shader_code_count;
-	instance->shader_code_list = shader_codes;
 
 	uint32_t shader_count = 0;
 	fread(&shader_count, sizeof(uint32_t), 1, mg_file);

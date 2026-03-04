@@ -10,19 +10,19 @@ static void MG_texture_init_default(void)
 	memset(_MG_default_texture, 0xFF, sizeof(_MG_default_texture));
 	for (int i = 2; i < sizeof(_MG_default_texture) - 1; i += 3)
 		_MG_default_texture[i] = 0;
-	for (int i = 0; i < _MG_default_tex_height / 2; i++)
-		for (int j = _MG_default_tex_width / 2; j < _MG_default_tex_width; j++)
+	for (int i = 0; i < _MG_default_tex_height / 2; i += 3)
+		for (int j = _MG_default_tex_width / 2; j < _MG_default_tex_width; j += 3)
 		{
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 0] = 0;
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 1] = 0;
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 2] = 0;
+			_MG_default_texture[i * _MG_default_tex_height + j + 0] = 0;
+			_MG_default_texture[i * _MG_default_tex_height + j + 1] = 0;
+			//_MG_default_texture[i * _MG_default_tex_height + j + 2] = 0;
 		}
-	for (int i = _MG_default_tex_height / 2; i < _MG_default_tex_height; i++)
-		for (int j = 0; j < _MG_default_tex_width / 2; j++)
+	for (int i = _MG_default_tex_height / 2; i < _MG_default_tex_height; i += 3)
+		for (int j = 0; j < _MG_default_tex_width / 2; j += 3)
 		{
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 0] = 0;
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 1] = 0;
-			_MG_default_texture[i * _MG_default_tex_height * 3 + j * 3 + 2] = 0;
+			_MG_default_texture[i * _MG_default_tex_height + j + 0] = 0;
+			_MG_default_texture[i * _MG_default_tex_height + j + 1] = 0;
+			//_MG_default_texture[i * _MG_default_tex_height + j + 2] = 0;
 		}
 }
 
@@ -127,4 +127,20 @@ int MG_texture_load(MG_Texture* texture)
 	texture->channels = (byte)channel_cnt;
 
 	return 0;
+}
+
+void MG_texture_free(MG_Texture* texture)
+{
+	if (!texture)
+		return;
+
+	MG_asset_free(&texture->base);
+	if (texture->id)
+	{
+		glDeleteTextures(1, &texture->id);
+		texture->id = 0;
+	}
+
+	free(texture);
+	texture = NULL;
 }
