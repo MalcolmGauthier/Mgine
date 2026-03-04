@@ -50,7 +50,7 @@ static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
 	for (uint32_t i = 0; i < audio->instance->sound_count; i++)
 	{
 		if (audio->instance->sound_list[i]->id == id)
-			return &audio->instance->sound_list[i];
+			return audio->instance->sound_list[i];
 	}
 
 	return NULL;

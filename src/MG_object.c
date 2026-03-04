@@ -7,7 +7,7 @@ MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* nam
 	{
 		printf("Failed to allocate memory for object\n");
 		if (object) free(object);
-		return -1;
+		return 0;
 	}
 
 	object->instance = instance;
@@ -21,7 +21,7 @@ MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* nam
 	{
 		printf("Failed to add object to instance object list\n");
 		free(object);
-		return -2;
+		return 0;
 	}
 
 	instance->game_data.object_count++;
@@ -33,7 +33,7 @@ MG_ID MG_object_create_by_copy(MG_Object* object)
 	if (!object)
 	{
 		printf("Failed to copy object: object is NULL\n");
-		return -1;
+		return 0;
 	}
 
 	MG_ID obj_id = MG_object_create(object->instance, object->parent, "", object->flags);
@@ -58,7 +58,7 @@ MG_ID MG_object_create_with_parent(MG_Object* parent_object, const char* name, u
 	if (!parent_object)
 	{
 		printf("Failed to create object: parent is NULL\n");
-		return -1;
+		return 0;
 	}
 
 	return MG_object_create(parent_object->instance, parent_object, name, flags);
@@ -239,12 +239,12 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 		return NULL;
 	}
 
-	MG_ID name = MG_ID_get_id(name);
+	MG_ID id = MG_ID_get_id(name);
 
 	MG_Component_LL* current = object->components;
 	while (current)
 	{
-		if (current->data && ((MG_Component*)current->data)->base->id == name)
+		if (current->data && ((MG_Component*)current->data)->base->id == id)
 		{
 			return current->data;
 		}

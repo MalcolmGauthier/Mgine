@@ -254,10 +254,10 @@ static void MG_instance_free(MG_Instance* instance)
     MG_audio_free(&instance->audio_data);
 	MG_render_free(&instance->render_data);
 
-    for (int i = 0; i < instance->shader_count; i++)
+    for (uint32_t i = 0; i < instance->shader_count; i++)
 		MG_shader_free(instance->shader_list[i]);
-	for (int i = 0; i < instance->material_count; i++)
+	for (uint32_t i = 0; i < instance->material_count; i++)
 		MG_material_free(instance->material_list[i]);
-    for (int i = 0; i < instance->prefab_count; i++)
+    for (uint32_t i = 0; i < instance->prefab_count; i++)
 		MG_object_free_prefab(instance->prefab_list[i]);
 }

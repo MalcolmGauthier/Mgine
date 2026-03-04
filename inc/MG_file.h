@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 // takes in pointer to asset list in MG_Instance struct, pointer to the count of that asset list, and pointer to asset to add
-MG_API int MG_asset_add(void** asset_list_ref, uint32_t* asset_count_ref, void* asset);
+MG_API int MG_asset_add(void*** asset_list_ref, uint32_t* asset_count_ref, void* asset);
 
 // pass NULL as file to open new file descriptor
 MG_API byte* MG_asset_load(FILE* file, MG_Asset* asset);

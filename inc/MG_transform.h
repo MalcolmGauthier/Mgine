@@ -16,9 +16,9 @@ MG_API MG_Vec3 MG_vec3_add(MG_Vec3 a, MG_Vec3 b);
 MG_API MG_Vec3 MG_vec3_sub(MG_Vec3 a, MG_Vec3 b);
 MG_API MG_Vec3 MG_vec3_scale(MG_Vec3 a, float scalar);
 
-MG_API MG_Vec3 MG_vec4_add(MG_Vec4 a, MG_Vec4 b);
-MG_API MG_Vec3 MG_vec4_sub(MG_Vec4 a, MG_Vec4 b);
-MG_API MG_Vec3 MG_vec4_scale(MG_Vec4 a, float scalar);
+MG_API MG_Vec4 MG_vec4_add(MG_Vec4 a, MG_Vec4 b);
+MG_API MG_Vec4 MG_vec4_sub(MG_Vec4 a, MG_Vec4 b);
+MG_API MG_Vec4 MG_vec4_scale(MG_Vec4 a, float scalar);
 
 MG_API SDL_Color MG_color_from_vec4(MG_Vec4 color);
 

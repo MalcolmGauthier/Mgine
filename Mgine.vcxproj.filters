@@ -202,5 +202,8 @@
     <ClInclude Include="inc\Mgine.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
+    <ClInclude Include="inc\stc\MG_Texture.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

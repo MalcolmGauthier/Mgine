@@ -13,11 +13,12 @@ extern "C" {
 // Empty objects do not do anything. They are invisible, have no location, and run no code. Components must be added to give them functionality or appearence.
 // The parent paramter lets you attach this object to a parent. Objects can use the information from their parents to 
 // influence their actions, such as moving with them with the transform component. Setting with parameter to NULL will make this object a top-level object.
+// The name will let you retreive the object by name in the future. Statically allocate the name, it's not freed later. Unique names are required to avoid confusion on retreival.
 // The flags let you specify extra object properties. These flags are found in the MG_ObjectFlags enum in stc/MG_object.h.
-MG_API MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, MG_ObjectFlags flags);
+MG_API MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* name, MG_ObjectFlags flags);
 MG_API MG_ID MG_object_create_by_copy(MG_Object* object);
 // shortcut function for not having to reference the Mgine instance when creating an object, as it's within the parent object's data.
-MG_API MG_ID MG_object_create_with_parent(MG_Object* parent_object, MG_ObjectFlags flags);
+MG_API MG_ID MG_object_create_with_parent(MG_Object* parent_object, const char* name, MG_ObjectFlags flags);
 // create a copy of the object that is not tracked by the engine.
 // this returns a new object with the same data, but does not add it to the object list, and thus the object is not managed by the engine.
 MG_API MG_Object* MG_object_create_untracked_copy(MG_Object* source);

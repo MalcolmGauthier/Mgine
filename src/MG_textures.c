@@ -31,18 +31,21 @@ MG_Texture* MG_texture_init(MG_Instance* instance, const char* path)
 	return MG_texture_init_MGA(instance, path, -1);
 }
 
+//TODO: REDO
 MG_Texture* MG_texture_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
 {
 	MG_Texture* texture;
 
-	MG_Texture* new_list = realloc(instance->texture_list, sizeof(MG_Texture*) * (instance->texture_count + 1));
+	void* bak = instance->texture_list;
+	MG_Texture** new_list = realloc(instance->texture_list, sizeof(MG_Texture*) * (instance->texture_count + 1));
 	if (!new_list)
 	{
 		printf("Failed to allocate memory for new texture metadata\n");
+		instance->texture_list = bak;
 		return NULL;
 	}
 	instance->texture_list = new_list;
-	texture = &instance->texture_list[instance->texture_count];
+	texture = instance->texture_list[instance->texture_count];
 	instance->texture_count++;
 
 	texture->base.path = (char*)path;

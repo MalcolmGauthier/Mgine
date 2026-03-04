@@ -164,7 +164,7 @@ MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self
         glm_quat_mat4(q, rot);
 
         MG_Vec3 euler;
-        glm_euler_angles(rot, (vec3*)&euler);
+        glm_euler_angles(rot, (float*)&euler);
 
 		euler = MG_transform_rad_to_deg(euler);
 

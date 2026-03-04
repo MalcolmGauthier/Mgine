@@ -206,6 +206,7 @@
     <ClInclude Include="inc\stc\MG_Scene.h" />
     <ClInclude Include="inc\stc\MG_Shader.h" />
     <ClInclude Include="inc\stc\MG_Audio.h" />
+    <ClInclude Include="inc\stc\MG_Texture.h" />
     <ClInclude Include="inc\stc\MG_Transform.h" />
     <ClInclude Include="inc\stc\MG_WindowData.h" />
   </ItemGroup>

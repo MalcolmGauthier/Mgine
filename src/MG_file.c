@@ -24,7 +24,8 @@
 
 #define MG_PATH_MAX 1024
 
-int MG_asset_add(void** asset_list_ref, uint32_t* asset_count_ref, void* asset)
+// triple pointer is ugly, but it's a reference to a dynamic array of pointers.
+int MG_asset_add(void*** asset_list_ref, uint32_t* asset_count_ref, void* asset)
 {
 	if (!asset_list_ref || !asset_count_ref || !asset)
 	{
@@ -41,7 +42,7 @@ int MG_asset_add(void** asset_list_ref, uint32_t* asset_count_ref, void* asset)
 		return -2;
 	}
 
-	((void**)*asset_list_ref)[*asset_count_ref] = asset;
+	(*asset_list_ref)[*asset_count_ref] = asset;
 	(*asset_count_ref)++;
 	return 0;
 }
@@ -66,7 +67,7 @@ byte* MG_asset_load(FILE* file, MG_Asset* asset)
 
 	char header[6];
 	byte* asset_data = NULL;
-	uint32_t asset_count = 0;
+	int32_t asset_count = 0;
 	size_t file_size = 0;
 
 	rewind(file);
@@ -288,7 +289,8 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 	}
 }
 
-static void* MG_load_asset_list(FILE* file, uint32_t asset_count, size_t asset_size, size_t path_offset, size_t index_offset)
+//TODO: REDO
+static void** MG_load_asset_list(FILE* file, uint32_t asset_count, size_t asset_size, size_t path_offset, size_t index_offset)
 {
 	if (asset_count == 0)
 		return NULL;
@@ -387,14 +389,14 @@ static void MG_load_materials(FILE* file, MG_Instance* instance, uint32_t materi
 		uint32_t diffuse_texture_index = 0;
 		fread(&diffuse_texture_index, sizeof(uint32_t), 1, file);
 		if (diffuse_texture_index < instance->texture_count && instance->texture_list)
-			material->diffuse_texture = &instance->texture_list[diffuse_texture_index];
+			material->diffuse_texture = instance->texture_list[diffuse_texture_index];
 		fread(&material->contains_transparency, sizeof(uint8_t), 1, file);
 		if (material->contains_transparency > 1)
 			material->contains_transparency = 1;
 		uint32_t shader_index = 0;
 		fread(&shader_index, sizeof(uint32_t), 1, file);
 		if (shader_index < instance->shader_count && instance->shader_list)
-			material->shader = &instance->shader_list[shader_index];
+			material->shader = instance->shader_list[shader_index];
 
 		byte* material_end = (byte*)material + sizeof(MG_Material);
 		fread(material_end, 1, material_extra_size, file);
@@ -485,7 +487,7 @@ static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent
 			// If loading into a parent or output list, create an untracked copy and add to the list
 			if (parent || output)
 			{
-				MG_Object* copy = MG_object_create_untracked_copy(&instance->prefab_list[index]);
+				MG_Object* copy = MG_object_create_untracked_copy(instance->prefab_list[index]);
 				if (!copy)
 				{
 					printf("Error: Failed to create untracked copy of prefab %u\n", index);
@@ -499,7 +501,7 @@ static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent
 			}
 			else
 			{
-				MG_Object* copy = MG_object_create_untracked_copy(&instance->prefab_list[index]);
+				MG_Object* copy = MG_object_create_untracked_copy(instance->prefab_list[index]);
 				if (!copy)
 				{
 					printf("Error: Failed to create untracked copy of prefab %u\n", index);
@@ -533,7 +535,7 @@ static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent
 		}
 		else
 		{
-			prefab = &instance->prefab_list[i];
+			prefab = instance->prefab_list[i];
 		}
 
 		if (prefab_name_len > MG_PREFAB_NAME_MAX)
@@ -621,7 +623,7 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 
 	for (uint16_t i = 0; i < scene_count; i++)
 	{
-		MG_Scene* scene = &instance->scene_list[i];
+		MG_Scene* scene = instance->scene_list[i];
 		uint32_t scene_name_len = 0;
 		fread(&scene_name_len, sizeof(uint32_t), 1, file);
 		if (scene_name_len > MG_SCENE_NAME_MAX)
@@ -629,15 +631,16 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 			fseek(file, scene_name_len, SEEK_CUR);
 			scene_name_len = 0;
 		}
-		scene->name = malloc(scene_name_len + 1);
-		if (!scene->name)
+		char* name = malloc(scene_name_len + 1);
+		if (!name)
 		{
 			printf("Error: Failed to allocate memory for scene name\n");
 			instance->active = false;
 			return;
 		}
-		fread(scene->name, sizeof(char), scene_name_len, file);
-		scene->name[scene_name_len] = '\0';
+		fread(name, sizeof(char), scene_name_len, file);
+		name[scene_name_len] = '\0';
+		scene->id = MG_ID_get_id(name);
 		
 		MG_load_objects(file, instance, NULL, &scene->objects);
 
@@ -662,7 +665,7 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 			fread(&texture_index, sizeof(uint32_t), 1, file);
 			if (texture_index < instance->texture_count)
 			{
-				scene->textures[j] = &instance->texture_list[texture_index];
+				scene->textures[j] = instance->texture_list[texture_index];
 			}
 		}
 
@@ -687,7 +690,7 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 			fread(&model_index, sizeof(uint32_t), 1, file);
 			if (model_index < instance->model_count)
 			{
-				scene->models[j] = &instance->model_list[model_index];
+				scene->models[j] = instance->model_list[model_index];
 			}
 		}
 	}
@@ -779,7 +782,7 @@ int MG_load_game(MG_Instance* instance)
 		return -9;
 	}
 	instance->texture_count = texture_count;
-	instance->texture_list = (MG_Texture*)MG_load_asset_list(mg_file, texture_count, sizeof(MG_Texture), offsetof(MG_Texture, base.path), offsetof(MG_Texture, base.index_in_file));
+	instance->texture_list = (MG_Texture**)MG_load_asset_list(mg_file, texture_count, sizeof(MG_Texture), offsetof(MG_Texture, base.path), offsetof(MG_Texture, base.index_in_file));
 
 	uint32_t material_count = 0;
 	fread(&material_count, sizeof(uint32_t), 1, mg_file);
@@ -801,7 +804,7 @@ int MG_load_game(MG_Instance* instance)
 		return -11;
 	}
 	instance->model_count = model_count;
-	instance->model_list = (MG_Model*)MG_load_asset_list(mg_file, model_count, sizeof(MG_Model), offsetof(MG_Model, base.path), offsetof(MG_Model, base.index_in_file));
+	instance->model_list = (MG_Model**)MG_load_asset_list(mg_file, model_count, sizeof(MG_Model), offsetof(MG_Model, base.path), offsetof(MG_Model, base.index_in_file));
 
 	MG_load_objects(mg_file, instance, NULL, NULL);
 
@@ -814,7 +817,7 @@ int MG_load_game(MG_Instance* instance)
 		return -12;
 	}
 	instance->sound_count = sound_count;
-	instance->sound_list = (MG_Sound*)MG_load_asset_list(mg_file, sound_count, sizeof(MG_Sound), offsetof(MG_Sound, base.path), offsetof(MG_Sound, base.index_in_file));
+	instance->sound_list = (MG_Sound**)MG_load_asset_list(mg_file, sound_count, sizeof(MG_Sound), offsetof(MG_Sound, base.path), offsetof(MG_Sound, base.index_in_file));
 
 	uint16_t scene_count = 0;
 	fread(&scene_count, sizeof(uint16_t), 1, mg_file);

@@ -192,7 +192,7 @@ void MG_model_enable(MG_Model* model, bool static_model)
 
 void MG_model_free(MG_Model* model)
 {
-    for (int i = 0; i < model->mesh_count; i++)
+    for (uint32_t i = 0; i < model->mesh_count; i++)
     {
 #pragma warning(suppress: 6001)
         free(model->meshes[i].vertices);

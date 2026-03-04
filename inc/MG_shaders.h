@@ -14,7 +14,7 @@ MG_API MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_sha
 MG_API int MG_shader_define(char** ptr_to_shader_file_text, int define_count, ...);
 MG_API int MG_shader_compile(MG_Shader* shader);
 MG_API void MG_shader_use(MG_Shader* shader);
-MG_API int MG_shader_free(MG_Shader* shader);
+MG_API void MG_shader_free(MG_Shader* shader);
 
 MG_API int MG_material_register_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material);
 MG_API void MG_material_free(MG_Material* material);
