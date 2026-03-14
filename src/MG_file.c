@@ -181,6 +181,12 @@ void MG_asset_free(MG_Asset* asset)
 		asset->asset_file_data = NULL;
 	}
 
+	if (asset->path)
+	{
+		free(asset->path);
+		asset->path = NULL;
+	}
+
 	asset->asset_file_loaded = false;
 }
 

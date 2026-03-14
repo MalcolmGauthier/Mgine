@@ -56,9 +56,10 @@ static MG_Sound* MG_audio_get_sound(MG_Audio* audio, const char* sfx_name)
 	return NULL;
 }
 
+//TODO
 void MG_audio_cache_sfx(MG_Sound* sound)
 {
-	sound;
+	UNUSED(sound)
 }
 
 
@@ -189,4 +190,13 @@ void MG_audio_free(MG_Audio* audio)
 
 	Mix_CloseAudio();
 	Mix_Quit();
+}
+
+void MG_sound_free(MG_Sound* sound)
+{
+	if (!sound)
+		return;
+	MG_asset_free(&sound->base);
+	free(sound);
+	sound = NULL;
 }

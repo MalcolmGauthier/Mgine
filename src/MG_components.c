@@ -49,7 +49,7 @@ MG_COMPONENT(MG_ComponentModel, "Model", NULL, NULL, NULL)
 void MG_initialize_components(MG_Instance* instance)
 {
 	//extern MG_DeferredRegFunc __MGreg_start, __MGreg_end;
-	for (MG_DeferredRegFunc* f = &__MGreg_start + 1; f < &__MGreg_end; ++f)
+	for (MG_DeferredRegFunc* f = &__MGreg_start + 1; f < &__MGreg_end; f++)
 		if (*f) (*f)(instance);
 }
 

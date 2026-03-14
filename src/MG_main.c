@@ -47,7 +47,8 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
 
     MG_instance_init(inst);
     MG_initialize_components(inst);
-    MG_load_game(inst);
+	if (MG_USE_MG_FILE)
+        MG_load_game(inst);
 
     // windows is stupid, and without this any sleep calls cannot be guarenteed to last less than ~16ms
     // a single call to this is enough to set the option for all threads, but i couldn't cleanly fit this into the main thread
@@ -60,7 +61,8 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
     if (!no_window)
         render_thread = SDL_CreateThread(MG_render_loop, "MGine Render", inst);
 
-    inst->rendering_enabled = false;
+    inst->rendering_enabled = !no_window;
+	inst->initialized = true;
 
     // This loop here checks for GL errors at the moment. Debug tools could be added in the future.
     while (inst->active)
@@ -165,13 +167,15 @@ static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_
     if (sub_instance)
 		return 0;
 
-    if (!Mix_Init(0xFF))
+    //TODO: add more format compatibility
+    if (Mix_Init(0xFF))
     {
-        printf("SDL Mixer init failed: %s\n", Mix_GetError());
-		error_code = -4;
-		goto fail3;
+        printf("SDL Mixer audio type init failed: %s\n", Mix_GetError());
+        // doesn't halt sdl
+		//error_code = -4;
+		//goto fail3;
     }
-    if (!Mix_OpenAudio(MG_A_OUTPUT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048))
+    if (Mix_OpenAudio(MG_A_OUTPUT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048))
     {
         printf("SDL Mixer audio init failed: %s\n", Mix_GetError());
         error_code = -5;
@@ -183,7 +187,7 @@ static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_
 
 fail4:
 	Mix_Quit();
-fail3:
+//fail3:
     SDL_GL_DeleteContext(gl_context);
 fail2:
     SDL_DestroyWindow(instance->window);
@@ -253,6 +257,7 @@ static void MG_instance_free(MG_Instance* instance)
     MG_logic_free(&instance->game_data);
     MG_audio_free(&instance->audio_data);
 	MG_render_free(&instance->render_data);
+	MG_LL_free(&instance->component_list, NULL);
 
     for (uint32_t i = 0; i < instance->shader_count; i++)
 		MG_shader_free(instance->shader_list[i]);
@@ -260,4 +265,24 @@ static void MG_instance_free(MG_Instance* instance)
 		MG_material_free(instance->material_list[i]);
     for (uint32_t i = 0; i < instance->prefab_count; i++)
 		MG_object_free_prefab(instance->prefab_list[i]);
+	for (uint32_t i = 0; i < instance->scene_count; i++)
+        MG_scene_free(instance->scene_list[i]);
+
+    for (uint32_t i = 0; i < instance->model_count; i++)
+        MG_model_free(instance->model_list[i]);
+    for (uint32_t i = 0; i < instance->texture_count; i++)
+        MG_texture_free(instance->texture_list[i]);
+    for (uint32_t i = 0; i < instance->sound_count; i++)
+        MG_sound_free(instance->sound_list[i]);
+
+    free(instance->shader_list);
+    free(instance->material_list);
+    free(instance->prefab_list);
+    free(instance->scene_list);
+    free(instance->model_list);
+    free(instance->texture_list);
+	free(instance->sound_list);
+
+	free(instance);
+	instance = NULL;
 }

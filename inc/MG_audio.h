@@ -11,6 +11,7 @@ extern "C" {
 
 MG_API void MG_audio_free_channel(int channel);
 MG_API void MG_audio_free(MG_Audio* audio);
+MG_API void MG_sound_free(MG_Sound* sound);
 
 #ifdef __cplusplus
 }

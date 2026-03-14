@@ -182,8 +182,8 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	if (!old_transform)
 		return *new_matrix;
 
-	old_ang_rad = MG_transform_deg_to_rad(old_transform->rotation);
-	new_ang_rad = MG_transform_deg_to_rad(new_transform.rotation);
+	old_ang_rad = MG_transform_to_rad(old_transform->rotation);
+	new_ang_rad = MG_transform_to_rad(new_transform.rotation);
 
 	// can't use glm_decompose because it copies a vec4 into translation, which would be a memory overrun in this scenario
 	glm_vec3_copy((float*)(&new_matrix->m30), (float*)&new_transform.position);
@@ -214,8 +214,8 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 
 	// Convert old and new rotations to quaternions
 	versor old_q, new_q;
-	MG_Vec3 old_euler = MG_transform_deg_to_rad(render_data->old_data.camera.rotation);
-	MG_Vec3 new_euler = MG_transform_deg_to_rad(render_data->latest_data.camera.rotation);
+	MG_Vec3 old_euler = MG_transform_to_rad(render_data->old_data.camera.rotation);
+	MG_Vec3 new_euler = MG_transform_to_rad(render_data->latest_data.camera.rotation);
 
 	glm_euler_yzx_quat((float*)&old_euler, old_q);
 	glm_euler_yzx_quat((float*)&new_euler, new_q);
@@ -231,10 +231,10 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	glm_euler_angles(temp, interp_euler);
 
 	// glm does roll pitch yaw, we use pitch yaw roll
-	interp_cam.rotation.pitch = glm_deg(interp_euler[1]);
-	interp_cam.rotation.yaw = glm_deg(interp_euler[2]);
-	interp_cam.rotation.roll = glm_deg(interp_euler[0]);
-
+	interp_cam.rotation.pitch = interp_euler[1] / (GLM_PIf * 2);
+	interp_cam.rotation.yaw = interp_euler[2] / (GLM_PIf * 2);
+	interp_cam.rotation.roll = interp_euler[0] / (GLM_PIf * 2);
+	
 	if (render_data->old_data.camera.focus && render_data->latest_data.camera.focus)
 	{
 		static MG_Vec3 interp_focus;
@@ -246,55 +246,6 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	// Compute view matrix
 	render_data->view_matrix = MG_camera_get_view_matrix(&interp_cam);
 	return render_data->view_matrix;
-}
-
-static void MG_render_OIT_init(MG_RenderData* render_data)
-{
-	glGenTextures(1, &render_data->accum_tex);
-	glBindTexture(GL_TEXTURE_2D, render_data->accum_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, MG_W_WIDTH, MG_W_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glGenTextures(1, &render_data->reveal_tex);
-	glBindTexture(GL_TEXTURE_2D, render_data->reveal_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, MG_W_WIDTH, MG_W_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glGenFramebuffers(1, &render_data->OIT_FBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_data->accum_tex, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_data->reveal_tex, 0);
-
-	GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-	glDrawBuffers(2, attachments);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		printf("Error: OIT framebuffer incomplete!\n");
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-static void MG_render_OIT_prepare(MG_RenderData* render_data)
-{
-	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
-	GLenum attachments[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-	glDrawBuffers(2, attachments);
-
-	const GLfloat zeroF[4] = { 0, 0, 0, 0 };
-	const GLfloat oneF[4] = { 1, 1, 1, 1 };
-	glClearBufferfv(GL_COLOR, 0, zeroF);
-	glClearBufferfv(GL_COLOR, 1, oneF);
-
-	glEnable(GL_BLEND);
-	glDisable(GL_CULL_FACE);
-
-	// Accumulation blending
-	glBlendFunci(0, GL_ONE, GL_ONE);
-
-	// Revealage blending
-	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
 }
 
 static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
@@ -432,6 +383,87 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 	}
 }
 
+static void MG_render_OIT_init(MG_RenderData* render_data)
+{
+	MG_Shader* wboit_shader_a = MG_shader_create_from_filepaths(render_data->instance, "shaders/MG_std_vert.glsl", "shaders/MG_wboit_accum_frag.glsl");
+	MG_Shader* wboit_shader_c = MG_shader_create_from_filepaths(render_data->instance, "shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
+	MG_shader_compile(wboit_shader_a);
+	MG_shader_compile(wboit_shader_c);
+	if (wboit_shader_a->status != MG_SHADER_STATUS_OK || wboit_shader_c->status != MG_SHADER_STATUS_OK)
+	{
+		printf("Error: Failed to compile OIT shaders.\n");
+		render_data->instance->active = false;
+		return;
+	}
+	render_data->OIT_shader_accum = wboit_shader_a;
+	render_data->OIT_shader_comp = wboit_shader_c;
+
+	glGenVertexArrays(1, &render_data->OIT_VAO_reveal);
+
+	glGenTextures(1, &render_data->accum_tex);
+	glBindTexture(GL_TEXTURE_2D, render_data->accum_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, MG_W_WIDTH, MG_W_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glGenTextures(1, &render_data->reveal_tex);
+	glBindTexture(GL_TEXTURE_2D, render_data->reveal_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, MG_W_WIDTH, MG_W_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glGenRenderbuffers(1, &render_data->OIT_RBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, render_data->OIT_RBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, MG_W_WIDTH, MG_W_HEIGHT);
+
+	glGenFramebuffers(1, &render_data->OIT_FBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, render_data->OIT_FBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_data->accum_tex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_data->reveal_tex, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_data->OIT_RBO);
+
+	GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		printf("Error: OIT framebuffer incomplete!: %u\n", glCheckFramebufferStatus(GL_FRAMEBUFFER));
+		render_data->instance->active = false;
+		return;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+static void MG_render_OIT_prepare(MG_RenderData* render_data)
+{
+	// Copy depth from the opaque pass into the OIT FBO so transparent
+	// geometry tests against it
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, render_data->OIT_FBO);
+	glBlitFramebuffer(
+		0, 0, MG_W_WIDTH, MG_W_HEIGHT,
+		0, 0, MG_W_WIDTH, MG_W_HEIGHT,
+		GL_DEPTH_BUFFER_BIT, GL_NEAREST
+	);
+
+	GLenum attachments[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
+
+	const GLfloat zeroF[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const GLfloat oneF[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glClearBufferfv(GL_COLOR, 0, zeroF);
+	glClearBufferfv(GL_COLOR, 1, oneF);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE); // transparent objects don't write depth
+
+	glEnable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
+	glBlendFunci(0, GL_ONE, GL_ONE);                    // accumulation
+	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);   // revealage
+}
+
 //TODO: this is wayyyyy to similar to the other render function. merge them.
 static void MG_render_OIT(MG_RenderData* render_data)
 {
@@ -455,22 +487,16 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->id);
 
-		//TODO: if shader null, set shader to default minimal shader
-		if (!material->shader)
-		{
-			material->shader = 0; // MG_shader_get_default();
-		}
+		MG_shader_use(render_data->OIT_shader_accum);
+		MG_shader_set_mat4(render_data->OIT_shader_accum, "uModel", &t_draw->render_matrix);
+		MG_shader_set_mat4(render_data->OIT_shader_accum, "uView", &render_data->view_matrix);
+		MG_shader_set_mat4(render_data->OIT_shader_accum, "uProj", &render_data->latest_data.camera.projection_matrix);
 
-		MG_shader_use(material->shader);
-		MG_shader_set_mat4(material->shader, "uModel", &t_draw->render_matrix);
-		MG_shader_set_mat4(material->shader, "uView", &render_data->view_matrix);
-		MG_shader_set_mat4(material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
-
-		for (uint32_t j = 0; j < material->shader_variable_count; j++)
+		/*for (uint32_t j = 0; j < material->shader_variable_count; j++)
 		{
 			MG_MaterialShaderVariable* var = &material->shader_variables[j];
 
-			void* value_ptr = (void*)((char*)material + var->offset_in_material);
+			void* value_ptr = (void*)((byte*)material + var->offset_in_material);
 			switch (var->type)
 			{
 			case GL_FLOAT:
@@ -503,7 +529,7 @@ static void MG_render_OIT(MG_RenderData* render_data)
 				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
 				break;
 			}
-		}
+		}*/
 
 		glBindVertexArray(t_draw->mesh->VAO);
 		glDrawElements(GL_TRIANGLES, t_draw->mesh->index_count, GL_UNSIGNED_INT, 0);
@@ -516,23 +542,33 @@ static void MG_render_OIT(MG_RenderData* render_data)
 
 static void MG_render_WBOIT_composite(MG_RenderData* render_data)
 {
+	glDepthMask(GL_TRUE);
+	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	MG_shader_use(render_data->OIT_shader);
+	MG_shader_use(render_data->OIT_shader_comp);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, render_data->OIT_shader->ID);
-	MG_shader_set_int(render_data->OIT_shader, "uAccumTex", 0);
+	glBindTexture(GL_TEXTURE_2D, render_data->accum_tex);
+	MG_shader_set_int(render_data->OIT_shader_comp, "uAccumTex", 0);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, render_data->OIT_shader->ID);
-	MG_shader_set_int(render_data->OIT_shader, "uRevealTex", 1);
+	glBindTexture(GL_TEXTURE_2D, render_data->reveal_tex);
+	MG_shader_set_int(render_data->OIT_shader_comp, "uRevealTex", 1);
 
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	// positions generated in the vertex shader,
+	// no VBO needed — just a bound empty VAO
+	glBindVertexArray(render_data->OIT_VAO_reveal);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 }
+
 
 void MG_render_free(MG_RenderData* render_data)
 {
@@ -544,4 +580,6 @@ void MG_render_free(MG_RenderData* render_data)
 	glDeleteTextures(1, &render_data->accum_tex);
 	glDeleteTextures(1, &render_data->reveal_tex);
 	glDeleteFramebuffers(1, &render_data->OIT_FBO);
+	glDeleteRenderbuffers(1, &render_data->OIT_RBO);
+	glDeleteVertexArrays(1, &render_data->OIT_VAO_reveal);
 }

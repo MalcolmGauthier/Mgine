@@ -19,6 +19,9 @@ typedef struct MG_RenderData
 	GLuint accum_tex;
 	GLuint reveal_tex;
 	GLuint OIT_FBO;
-	MG_Shader* OIT_shader;
+	GLuint OIT_RBO;
+	GLuint OIT_VAO_reveal;
+	MG_Shader* OIT_shader_accum;
+	MG_Shader* OIT_shader_comp;
 }
 MG_RenderData;

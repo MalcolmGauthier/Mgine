@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 MG_API MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, const char* fragment_shader);
+MG_API MG_Shader* MG_shader_create_from_filepaths(MG_Instance* instance, const char* vertex_shader_path, const char* fragment_shader_path);
 MG_API int MG_shader_define(char** ptr_to_shader_file_text, int define_count, ...);
 MG_API int MG_shader_compile(MG_Shader* shader);
 MG_API void MG_shader_use(MG_Shader* shader);

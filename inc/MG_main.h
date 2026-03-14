@@ -6,6 +6,9 @@
 #include "MG_render.h"
 #include "MG_file.h"
 #include "MG_audio.h"
+#include "MG_scene.h"
+#include "MG_model.h"
+#include "MG_textures.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -9,7 +9,9 @@ typedef struct MG_Scene
 	MG_ID id;
 
 	MG_Object_LL* objects;
-	void (*on_load)(void* input_data);
+
+	void (*on_load)(struct MG_Scene* self, void* input_data);
+	void (*on_reset)(struct MG_Scene* self);
 
 	uint32_t texture_count;
 	MG_Texture** textures;

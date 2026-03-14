@@ -8,6 +8,10 @@
 extern "C" {
 #endif
 
+MG_API void MG_scene_load(MG_Instance* instance, uint32_t scene_index);
+
+MG_API void MG_scene_free(MG_Scene* scene);
+
 #ifdef __cplusplus
 }
 #endif

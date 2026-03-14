@@ -65,6 +65,7 @@ typedef union MG_KeyboardState
 		bool CTRL : 1;
 		bool SHIFT : 1;
 		bool ALT : 1;
+		bool ESCAPE : 1;
 
 		bool COMMA : 1;
 		bool PERIOD : 1;
@@ -138,6 +139,7 @@ typedef enum MG_Key
 	MG_KEY_CTRL,
 	MG_KEY_SHIFT,
 	MG_KEY_ALT,
+	MG_KEY_ESCAPE,
 
 	MG_KEY_COMMA,
 	MG_KEY_PERIOD,

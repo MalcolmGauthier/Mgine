@@ -22,6 +22,7 @@ typedef struct MG_Vec3
 {
 	// Mgine's official order for rotation is PITCH, YAW, ROLL. For use in glm, use the YZX ordering.
 	// furthermore, X+ is FORWARD, Y+ is UP, Z+ is RIGHT
+	// and 1.0 = one rotation; 360 degrees; 2pi radians. rotations are not clamped, so 1 != 2.
 	union
 	{
 		float x;

@@ -222,11 +222,14 @@ static int MG_key_event_parse(MG_WindowData* window_data, SDL_Scancode key_code,
 	if (!window_data)
 		return 0;
 
-	if (key_code == SDL_SCANCODE_ESCAPE)
+	if (key_code == SDL_SCANCODE_ESCAPE && MG_C_EXIT_ON_ESC)
 		return 1;
 
 	switch (key_code)
 	{
+	case SDL_SCANCODE_ESCAPE:
+		window_data->keyboard_held.keys.ESCAPE = toggle;
+		break;
 	case SDL_SCANCODE_RETURN:
 		window_data->keyboard_held.keys.RETURN = toggle;
 		break;

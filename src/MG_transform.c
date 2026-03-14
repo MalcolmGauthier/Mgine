@@ -102,14 +102,23 @@ void MG_transform_scale_set(MG_Transform* transform, MG_Vec3 scale)
 	transform->scale = scale;
 }
 
-MG_Vec3 MG_transform_deg_to_rad(MG_Vec3 degrees)
+MG_Vec3 MG_transform_to_rad(MG_Vec3 rotation)
 {
-    return (MG_Vec3){ glm_rad(degrees.pitch), glm_rad(degrees.yaw), glm_rad(degrees.roll) };
+    return (MG_Vec3){ rotation.pitch * GLM_PIf * 2, rotation.yaw * GLM_PIf * 2, rotation.roll* GLM_PIf * 2 };
 }
 
-MG_Vec3 MG_transform_rad_to_deg(MG_Vec3 radians)
+MG_Vec3 MG_transform_to_deg(MG_Vec3 rotation)
 {
-    return (MG_Vec3) { glm_deg(radians.pitch), glm_deg(radians.yaw), glm_deg(radians.roll) };
+    return (MG_Vec3) { rotation.pitch * 360.f, rotation.yaw * 360.f, rotation.roll * 360.f };
+}
+
+MG_Vec3 MG_transform_rotation_clamp(MG_Vec3 rotation)
+{
+    return (MG_Vec3) {
+        .pitch = fmodf(rotation.pitch, 1.0f),
+        .yaw = fmodf(rotation.yaw, 1.0f),
+        .roll = fmodf(rotation.roll, 1.0f)
+    };
 }
 
 MG_Matrix MG_transform_get_matrix(MG_Transform* transform)  
@@ -119,10 +128,12 @@ MG_Matrix MG_transform_get_matrix(MG_Transform* transform)
 
     vec4 quat;
     MG_Matrix result;
+    MG_Vec3 rad;
 
 	glm_mat4_identity((vec4*)&result);
 	glm_translate((vec4*)&result, (float*)&transform->position);
-	glm_euler_yzx_quat((float*)&transform->rotation, quat);
+	rad = MG_transform_to_rad(transform->rotation);
+	glm_euler_yzx_quat((float*)&rad, quat);
 	glm_quat_rotate((vec4*)&result, quat, (vec4*)&result);
 	glm_scale((vec4*)&result, (float*)&transform->scale);
 
@@ -145,8 +156,6 @@ MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self
     {
         // make the object face the camera
         MG_Camera* camera = &t_self->base.owner->instance->game_data.camera;
-        if (!camera)
-			return MG_COMPONENT_FUNC_RESULT_ERROR;
 
         MG_Vec3 obj_pos = t_self->transform.position;
         MG_Vec3 cam_pos = camera->position;
@@ -166,12 +175,10 @@ MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self
         MG_Vec3 euler;
         glm_euler_angles(rot, (float*)&euler);
 
-		euler = MG_transform_rad_to_deg(euler);
-
         // yzx ordering
-        t_self->transform.rotation.pitch = euler.y;
-        t_self->transform.rotation.yaw = euler.z;
-        t_self->transform.rotation.roll = euler.x;
+        t_self->transform.rotation.pitch = euler.y / (GLM_PIf * 2);
+        t_self->transform.rotation.yaw = euler.z / (GLM_PIf * 2);
+        t_self->transform.rotation.roll = euler.x / (GLM_PIf * 2);
 	}
 
     t_self->transform_matrix = MG_transform_get_matrix(&t_self->transform);

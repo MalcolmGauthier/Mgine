@@ -33,6 +33,51 @@ MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, co
 	return shader;
 }
 
+MG_Shader* MG_shader_create_from_filepaths(MG_Instance* instance, const char* vertex_shader_path, const char* fragment_shader_path)
+{
+	char* vertex_shader_code = NULL;
+	char* fragment_shader_code = NULL;
+	size_t vert_len = 0;
+	size_t frag_len = 0;
+
+	FILE* file_vert = fopen(vertex_shader_path, "rb");
+	FILE* file_frag = fopen(fragment_shader_path, "rb");
+	if (!file_vert || !file_frag)
+	{
+		printf("Failed to open shader file: %s\n", vertex_shader_path);
+		if (file_vert) fclose(file_vert);
+		if (file_frag) fclose(file_frag);
+		return NULL;
+	}
+	fseek(file_vert, 0, SEEK_END);
+	fseek(file_frag, 0, SEEK_END);
+	vert_len = ftell(file_vert);
+	frag_len = ftell(file_frag);
+	fseek(file_vert, 0, SEEK_SET);
+	fseek(file_frag, 0, SEEK_SET);
+	vertex_shader_code = malloc(vert_len + 1);
+	fragment_shader_code = malloc(frag_len + 1);
+	if (!vertex_shader_code || !fragment_shader_code)
+	{
+		printf("Failed to allocate memory for shader code.\n");
+		free(vertex_shader_code);
+		free(fragment_shader_code);
+		fclose(file_vert);
+		return NULL;
+	}
+	fread(vertex_shader_code, 1, vert_len, file_vert);
+	fread(fragment_shader_code, 1, frag_len, file_frag);
+	vertex_shader_code[vert_len] = '\0';
+	fragment_shader_code[frag_len] = '\0';
+	fclose(file_vert);
+	fclose(file_frag);
+
+	MG_Shader* shader = MG_shader_create(instance, vertex_shader_code, fragment_shader_code);
+	free(vertex_shader_code);
+	free(fragment_shader_code);
+	return shader;
+}
+
 int MG_shader_define(char** shader_file_text_ref, int define_count, ...)
 {
 	// defines is the etire block of text we want to add

@@ -42,6 +42,7 @@
 // DEFAULT SETTINGS
 
 #define MG_DEBUG true
+#define MG_USE_MG_FILE false
 
 // WINDOW
 #define MG_W_NAME "Mgine prototype"
@@ -52,6 +53,7 @@
 #define MG_W_MOUSE_GRABBED false
 
 // CONTROLS
+#define MG_C_EXIT_ON_ESC true
 
 // LOGIC
 #define MG_L_TRICKRATE 60

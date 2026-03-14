@@ -8,23 +8,39 @@ MG_Model* MG_model_init(MG_Instance* instance, const char* path)
 MG_Model* MG_model_init_raw(MG_Instance* instance)
 {
     MG_Model* m = MG_model_init_MGA(instance, NULL, 0);
-    m->base.loaded = true;
+    if (m) m->base.loaded = true;
     return m;
 }
 
 MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
 {
+    if (!instance || !path)
+		return NULL;
+
     MG_Model* model = calloc(1, sizeof(MG_Model*));
+    if (!model)
+    {
+        printf("Failed to allocate memory for model.\n");
+        return NULL;
+	}
+
+	char* path_mem = malloc(strlen(path) + 1);
+    if (!path_mem)
+    {
+        printf("Failed to allocate memory for model path.\n");
+        free(model);
+        return NULL;
+	}
 
     if (MG_asset_add(&instance->model_list, &instance->model_count, model))
     {
         printf("Failed to add shader to instance shader list.\n");
         free(model);
+		free(path_mem);
         return NULL;
     }
 
-#pragma warning(suppress : 6011)
-    model->base.path = (char*)path;
+	model->base.path = path_mem;
     model->base.index_in_file = index_in_file;
 
     return model;
@@ -204,4 +220,5 @@ void MG_model_free(MG_Model* model)
     model->meshes = NULL;
     model->mesh_count = 0;
     free(model);
+	model = NULL;
 }
