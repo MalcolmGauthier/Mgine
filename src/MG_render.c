@@ -23,14 +23,13 @@ int MG_render_loop(void* MG_instance)
 
 	MG_Instance* instance = (MG_Instance*)MG_instance;
 	MG_RenderData* render_data = &instance->render_data;
-	MG_TransparentDraw_LL* transparency_ll = calloc(1, sizeof(MG_TransparentDraw_LL));
-	if (!transparency_ll)
+	render_data->transparency_list = calloc(1, sizeof(MG_TransparentDraw_LL));
+	if (!render_data->transparency_list)
 	{
 		printf("Render loop crash: Failed to allocate memory for transparency list\n");
 		instance->active = false;
 		return -2;
 	}
-	render_data->transparency_list = transparency_ll;
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -79,7 +78,6 @@ int MG_render_loop(void* MG_instance)
 		SDL_GL_SwapWindow(instance->window);
 	}
 
-	MG_LL_free_LL_only(&transparency_ll);
 	return 0;
 }
 
@@ -205,46 +203,55 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data)
 {
 	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
-		return MG_camera_get_view_matrix(&render_data->latest_data.camera);
+	{
+		render_data->view_matrix = MG_camera_get_view_matrix(&render_data->latest_data);
+		return render_data->view_matrix;
+	}
 
-	MG_Camera interp_cam = { 0 };
+	MG_Vec3 old_pos = MG_camera_get_world_position(&render_data->old_data);
+	MG_Vec3 new_pos = MG_camera_get_world_position(&render_data->latest_data);
+	vec3 world_pos;
+	glm_vec3_lerp((float*)&old_pos, (float*)&new_pos, render_data->interp_value, world_pos);
 
-	// Interpolate position linearly
-	glm_vec3_lerp((float*)&render_data->old_data.camera.position, (float*)&render_data->latest_data.camera.position, render_data->interp_value, (float*)&interp_cam.position);
+	MG_Vec3 old_rot = MG_camera_get_world_rotation(&render_data->old_data);
+	MG_Vec3 new_rot = MG_camera_get_world_rotation(&render_data->latest_data);
 
-	// Convert old and new rotations to quaternions
-	versor old_q, new_q;
-	MG_Vec3 old_euler = MG_transform_to_rad(render_data->old_data.camera.rotation);
-	MG_Vec3 new_euler = MG_transform_to_rad(render_data->latest_data.camera.rotation);
-
-	glm_euler_yzx_quat((float*)&old_euler, old_q);
-	glm_euler_yzx_quat((float*)&new_euler, new_q);
-
-	// SLERP between quaternions
-	versor interp_q;
+	MG_Vec3 old_rot_rad = MG_transform_to_rad(old_rot);
+	MG_Vec3 new_rot_rad = MG_transform_to_rad(new_rot);
+	versor old_q, new_q, interp_q;
+	glm_euler_yzx_quat((float*)&old_rot_rad, old_q);
+	glm_euler_yzx_quat((float*)&new_rot_rad, new_q);
 	glm_quat_slerp(old_q, new_q, render_data->interp_value, interp_q);
 
-	// Convert interpolated quaternion back to Euler angles
-	vec4 interp_euler;
 	mat4 temp;
+	vec4 interp_euler;
 	glm_quat_mat4(interp_q, temp);
 	glm_euler_angles(temp, interp_euler);
 
-	// glm does roll pitch yaw, we use pitch yaw roll
-	interp_cam.rotation.pitch = interp_euler[1] / (GLM_PIf * 2);
-	interp_cam.rotation.yaw = interp_euler[2] / (GLM_PIf * 2);
-	interp_cam.rotation.roll = interp_euler[0] / (GLM_PIf * 2);
-	
-	if (render_data->old_data.camera.focus && render_data->latest_data.camera.focus)
-	{
-		static MG_Vec3 interp_focus;
-		glm_vec3_lerp((float*)render_data->old_data.camera.focus, (float*)render_data->latest_data.camera.focus, render_data->interp_value, (float*)&interp_focus);
+	// glm_euler_angles returns roll, pitch, yaw
+	float pitch = interp_euler[1];
+	float yaw = interp_euler[2];
+	vec3 front = {
+		cosf(pitch) * cosf(yaw),
+		sinf(pitch),
+		cosf(pitch) * sinf(yaw)
+	};
+	glm_vec3_normalize(front);
 
-		interp_cam.focus = &interp_focus;
+	float interp_roll = glm_lerp(old_rot_rad.roll, new_rot_rad.roll, render_data->interp_value);
+	vec3 up = { 0.0f, 1.0f, 0.0f };
+	if (interp_roll != 0.0f)
+	{
+		mat4 roll_mat;
+		glm_rotate_make(roll_mat, interp_roll, front);
+		vec3 up_rot;
+		glm_mat4_mulv3(roll_mat, up, 0.0f, up_rot);
+		glm_vec3_copy(up_rot, up);
 	}
 
-	// Compute view matrix
-	render_data->view_matrix = MG_camera_get_view_matrix(&interp_cam);
+	vec3 center;
+	glm_vec3_add(world_pos, front, center);
+	glm_lookat(world_pos, center, up, (vec4*)&render_data->view_matrix);
 	return render_data->view_matrix;
 }
 
@@ -389,7 +396,7 @@ static void MG_render_OIT_init(MG_RenderData* render_data)
 	MG_Shader* wboit_shader_c = MG_shader_create_from_filepaths(render_data->instance, "shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
 	MG_shader_compile(wboit_shader_a);
 	MG_shader_compile(wboit_shader_c);
-	if (wboit_shader_a->status != MG_SHADER_STATUS_OK || wboit_shader_c->status != MG_SHADER_STATUS_OK)
+	if (!wboit_shader_a || !wboit_shader_c || wboit_shader_a->status != MG_SHADER_STATUS_OK || wboit_shader_c->status != MG_SHADER_STATUS_OK)
 	{
 		printf("Error: Failed to compile OIT shaders.\n");
 		render_data->instance->active = false;

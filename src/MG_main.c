@@ -245,6 +245,8 @@ static void MG_instance_init(MG_Instance* instance)
 	instance->render_data.transparency_list = NULL;
 
     instance->active = true;
+    // instance_id CANNOT be an MG_ID, because this function adds in a 64bit number, which would overflow onto another struct field.
+    // learned this the hard way...
     QueryPerformanceCounter((LARGE_INTEGER*)&instance->instance_id);
 }
 
@@ -283,6 +285,5 @@ static void MG_instance_free(MG_Instance* instance)
     free(instance->texture_list);
 	free(instance->sound_list);
 
-	free(instance);
 	instance = NULL;
 }

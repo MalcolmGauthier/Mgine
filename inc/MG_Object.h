@@ -42,7 +42,7 @@ MG_API int MG_object_add_component(MG_Object* object, MG_Component* component);
 MG_API int MG_object_remove_component(MG_Object* object, MG_ID type);
 
 MG_API MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* name);
-MG_API MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID id);
+MG_API MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID component_id);
 MG_API MG_Component_LL* MG_object_get_all_components(MG_Object* object);
 
 MG_API MG_Vec3 MG_object_get_world_position(MG_Object* object);

@@ -16,9 +16,9 @@ int MG_logic_loop(void* MG_instance)
 	else
 		game_data->delta_time = FLT_EPSILON;
 
-	uint64_t last_tick_time = SDL_GetPerformanceCounter();
-	uint64_t timer_frequency = SDL_GetPerformanceFrequency();
-	uint64_t current_time;
+	int64_t last_tick_time = (int64_t)SDL_GetPerformanceCounter();
+	int64_t timer_frequency = (int64_t)SDL_GetPerformanceFrequency();
+	int64_t current_time;
 
 	while (game_data->instance->active)
 	{
@@ -80,15 +80,16 @@ int MG_logic_loop(void* MG_instance)
 
 		if (game_data->tickrate > 0)
 		{
-			uint64_t counter_ticks_per_game_tick = timer_frequency / game_data->tickrate;
-			uint64_t time_remaining = counter_ticks_per_game_tick - (current_time - last_tick_time);
+			int64_t counter_ticks_per_game_tick = timer_frequency / game_data->tickrate;
+			// can't use unsigned here, because it causes overflow
+			int64_t time_remaining = counter_ticks_per_game_tick - (current_time - last_tick_time);
 			
 			// sleep as much as possible to reduce CPU usage
 			uint32_t sleep_ms = (uint32_t)((time_remaining * 1000) / timer_frequency);
 			// normally windows would not guarentee sleeping for less than 16ms, but this is taken care of in the program's intialization
 			if (sleep_ms > 1) SDL_Delay(sleep_ms - 1);
 				
-			while ((SDL_GetPerformanceCounter() - last_tick_time) < counter_ticks_per_game_tick);
+			while (((int64_t)SDL_GetPerformanceCounter() - last_tick_time) < counter_ticks_per_game_tick);
 			current_time = SDL_GetPerformanceCounter();
 		}
 

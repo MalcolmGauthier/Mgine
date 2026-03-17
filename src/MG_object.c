@@ -254,7 +254,7 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 	return NULL;
 }
 
-MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID id)
+MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID component_id)
 {
 	if (!object)
 	{
@@ -265,7 +265,7 @@ MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID id)
 	MG_Component_LL* current = object->components;
 	while (current)
 	{
-		if (current->data && ((MG_Component*)current->data)->base->id == id)
+		if (current->data && ((MG_Component*)current->data)->base->id == component_id)
 		{
 			return current->data;
 		}
@@ -303,12 +303,39 @@ MG_Vec3 MG_object_get_world_position(MG_Object* object)
 	return world_pos;
 }
 
+MG_Vec3 MG_object_get_world_rotation(MG_Object* object)
+{
+	if (!object)
+	{
+		printf("Failed to get world rotation: object is NULL\n");
+		return (MG_Vec3) { 0 };
+	}
+
+	MG_Vec3 world_rot = { 0 };
+
+	MG_Object* current = object;
+	while (current)
+	{
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		if (transform)
+		{
+			world_rot.pitch += transform->transform.rotation.pitch;
+			world_rot.yaw += transform->transform.rotation.yaw;
+			world_rot.roll += transform->transform.rotation.roll;
+		}
+
+		current = current->parent;
+	}
+
+	return world_rot;
+}
+
 MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* object)
 {
 	if (!object)
 	{
 		printf("Failed to get world transform matrix: object is NULL\n");
-		return (MG_Matrix) { 0 };
+		return (MG_Matrix) { MG_MATRIX_IDENTITY };
 	}
 
 	MG_Vec3 world_pos = { 0 };

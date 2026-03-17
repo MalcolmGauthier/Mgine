@@ -29,7 +29,7 @@ typedef struct MG_Instance
 
 	int gl_error_code;
 	int instance_exit_code;
-	MG_ID instance_id;
+	uint64_t instance_id;
 
 	// these are lists instead of linked lists, because realistically outside of the initial loading phase, these lists will not be modified much.
 	// using arrays means using realloc to add new data which means storing an index to the list or a pointer to the list is a no-go.
