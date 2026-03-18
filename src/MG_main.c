@@ -7,7 +7,7 @@
 
 #include "MG_main.h"
 
-static int MG_sdl_init(MG_Instance* window, SDL_GLContext gl_context, bool no_window, bool sub_instance);
+static int MG_sdl_init(MG_Instance* window, bool no_window, bool sub_instance);
 static int MG_gl_init(SDL_GLContext gl_context);
 static void MG_instance_init(MG_Instance* instance);
 static void MG_instance_free(MG_Instance* instance);
@@ -29,7 +29,7 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
     SDL_Thread* logic_thread = NULL;
     SDL_Thread* render_thread = NULL;
 
-    if (MG_sdl_init(inst, inst->gl_context, no_window, sub_instance))
+    if (MG_sdl_init(inst, no_window, sub_instance))
     {
         printf("Failed to initialize SDL\n");
         inst->instance_exit_code = -1;
@@ -50,6 +50,9 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
 	if (MG_USE_MG_FILE)
         MG_load_game(inst);
 
+    // to pass opengl context ownership, this function has to be called with null before another thread calls dibs.
+    if (SDL_GL_MakeCurrent(inst->window, NULL))
+		printf("Error: Failed to release OpenGL ownership\n");
     // windows is stupid, and without this any sleep calls cannot be guarenteed to last less than ~16ms
     // a single call to this is enough to set the option for all threads, but i couldn't cleanly fit this into the main thread
     timeBeginPeriod(1);
@@ -67,7 +70,8 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
     // This loop here checks for GL errors at the moment. Debug tools could be added in the future.
     while (inst->active)
     {
-        if ((inst->gl_error_code = glGetError()))
+        // the call to the gl error check function can't be done here. opengl doesn't support multithreading.
+        if (inst->gl_error_code)
         {
             switch (inst->gl_error_code)
             {
@@ -96,7 +100,8 @@ int MG_create_instance(MG_Instance* out_instance, bool no_window, bool sub_insta
                 printf("OpenGL Error: Unknown error code: 0x%X\n", inst->gl_error_code);
                 break;
             }
-            inst->active = 0;
+
+            inst->gl_error_code = 0;
         }
 
         // Without this, the event loop will not be able to process events properly.
@@ -123,7 +128,7 @@ void MG_quit(MG_Instance* instance)
 }
 
 // Initializes SDL and creates a window with an OpenGL context.
-static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_window, bool sub_instance)
+static int MG_sdl_init(MG_Instance* instance, bool no_window, bool sub_instance)
 {
 	int error_code = 0;
 
@@ -156,8 +161,8 @@ static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_
 		goto fail;
     }
 
-    gl_context = SDL_GL_CreateContext(instance->window);
-    if (!gl_context)
+    instance->gl_context = SDL_GL_CreateContext(instance->window);
+    if (!instance->gl_context)
     {
         printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
 		error_code = -3;
@@ -188,7 +193,7 @@ static int MG_sdl_init(MG_Instance* instance, SDL_GLContext gl_context, bool no_
 fail4:
 	Mix_Quit();
 //fail3:
-    SDL_GL_DeleteContext(gl_context);
+    SDL_GL_DeleteContext(instance->gl_context);
 fail2:
     SDL_DestroyWindow(instance->window);
 fail:

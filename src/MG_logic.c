@@ -16,6 +16,7 @@ int MG_logic_loop(void* MG_instance)
 	else
 		game_data->delta_time = FLT_EPSILON;
 
+	// signed instead of unsigned to prevent underflow. see comment below.
 	int64_t last_tick_time = (int64_t)SDL_GetPerformanceCounter();
 	int64_t timer_frequency = (int64_t)SDL_GetPerformanceFrequency();
 	int64_t current_time;
@@ -39,8 +40,9 @@ int MG_logic_loop(void* MG_instance)
 			// render thread only gets to interact with objects between every object process
 			// this waits until render thread is done copying object data
 			// this also means that a frame render could happen between any object processes
-			// [TODO] see if this causes a problem
+			//TODO: see if this causes a problem
 			while (game_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD);
+
 			game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD;
 
 			if (object->components)
@@ -81,7 +83,7 @@ int MG_logic_loop(void* MG_instance)
 		if (game_data->tickrate > 0)
 		{
 			int64_t counter_ticks_per_game_tick = timer_frequency / game_data->tickrate;
-			// can't use unsigned here, because it causes overflow
+			// can't use unsigned here, because it causes underflow
 			int64_t time_remaining = counter_ticks_per_game_tick - (current_time - last_tick_time);
 			
 			// sleep as much as possible to reduce CPU usage
@@ -90,6 +92,7 @@ int MG_logic_loop(void* MG_instance)
 			if (sleep_ms > 1) SDL_Delay(sleep_ms - 1);
 				
 			while (((int64_t)SDL_GetPerformanceCounter() - last_tick_time) < counter_ticks_per_game_tick);
+
 			current_time = SDL_GetPerformanceCounter();
 		}
 

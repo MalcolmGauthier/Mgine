@@ -31,6 +31,14 @@ int MG_render_loop(void* MG_instance)
 		return -2;
 	}
 
+	// opengl can only exist with one thread at a time. the main thread sets it up, but from here on out all opengl api calls must be done in this thread.
+	if (SDL_GL_MakeCurrent(instance->window, instance->gl_context))
+	{
+		printf("Render loop crash: Failed to transfer OpenGL ownership\n");
+		instance->active = false;
+		return -3;
+	}
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -71,9 +79,12 @@ int MG_render_loop(void* MG_instance)
 
 			current = current->next;
 		}
+		instance->gl_error_code = glGetError();
+
 
 		// STEP 4: RENDER TRANSPARENCY
 		MG_render_OIT(render_data);
+		instance->gl_error_code = glGetError();
 
 		SDL_GL_SwapWindow(instance->window);
 	}
