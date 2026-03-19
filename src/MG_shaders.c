@@ -16,8 +16,8 @@ MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, co
 
 	// asset being null is checked in MG_asset_add, yet vs still complains
 #pragma warning(suppress : 6011)
-	shader->vertex_shader_code = malloc(vert_len);
-	shader->fragment_shader_code = malloc(frag_len);
+	shader->vertex_shader_code = malloc(vert_len + 1);
+	shader->fragment_shader_code = malloc(frag_len + 1);
 	if (!shader->vertex_shader_code || !shader->fragment_shader_code)
 	{
 		printf("Failed to allocate memory for shader code.\n");
@@ -28,6 +28,8 @@ MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, co
 
 	memcpy(shader->vertex_shader_code, vertex_shader, vert_len);
 	memcpy(shader->fragment_shader_code, fragment_shader, frag_len);
+	shader->vertex_shader_code[vert_len] = '\0';
+	shader->fragment_shader_code[frag_len] = '\0';
 
 	shader->status = MG_SHADER_STATUS_NOT_IMPLEMENTED;
 	return shader;

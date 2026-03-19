@@ -5,6 +5,7 @@
 #include "stc/MG_Transform.h"
 #include "stc/MG_Material.h"
 #include "MG_file.h"
+#include "MG_LL.h"
 
 #ifdef __cplusplus
 extern "C" {

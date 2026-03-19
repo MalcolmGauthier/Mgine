@@ -489,6 +489,9 @@ static void MG_render_OIT(MG_RenderData* render_data)
 
 	MG_TransparentDraw* t_draw;
 	MG_Material* material;
+	MG_TransparentDraw_LL* root = render_data->transparency_list;
+
+	if (render_data->transparency_list)
 	while (render_data->transparency_list->next)
 	{
 		render_data->transparency_list = render_data->transparency_list->next;
@@ -555,7 +558,8 @@ static void MG_render_OIT(MG_RenderData* render_data)
 
 	MG_render_WBOIT_composite(render_data);
 
-	MG_LL_free(&render_data->transparency_list, NULL);
+	MG_LL_free(&root, NULL);
+	render_data->transparency_list = NULL;
 }
 
 static void MG_render_WBOIT_composite(MG_RenderData* render_data)

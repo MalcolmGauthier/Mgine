@@ -154,9 +154,9 @@
     <None Include="packages.config" />
     <None Include="shaders\MG_std_frag.glsl" />
     <None Include="shaders\MG_std_vert.glsl" />
-    <None Include="shaders\MG_wboit_o_frag.glsl" />
-    <None Include="shaders\MG_wboit_o_vert.glsl" />
-    <None Include="shaders\MG_wboit_t_frag.glsl" />
+    <None Include="shaders\MG_wboit_comp_frag.glsl" />
+    <None Include="shaders\MG_wboit_comp_vert.glsl" />
+    <None Include="shaders\MG_wboit_accum_frag.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\glad.c" />

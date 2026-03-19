@@ -28,13 +28,13 @@
     <None Include="shaders\MG_std_frag.glsl">
       <Filter>Fichiers shaders</Filter>
     </None>
-    <None Include="shaders\MG_wboit_o_frag.glsl">
+    <None Include="shaders\MG_wboit_comp_frag.glsl">
       <Filter>Fichiers shaders</Filter>
     </None>
-    <None Include="shaders\MG_wboit_o_vert.glsl">
+    <None Include="shaders\MG_wboit_comp_vert.glsl">
       <Filter>Fichiers shaders</Filter>
     </None>
-    <None Include="shaders\MG_wboit_t_frag.glsl">
+    <None Include="shaders\MG_wboit_accum_frag.glsl">
       <Filter>Fichiers shaders</Filter>
     </None>
     <None Include="MG file format.md" />

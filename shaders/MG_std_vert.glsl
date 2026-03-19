@@ -8,10 +8,10 @@ uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProj;
 
-out vec2 TexCoord;
+out vec2 vTexCoord;
 
 void main()
 {
-    TexCoord = aTexCoord;
+    vTexCoord = aTexCoord;
     gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
 }
