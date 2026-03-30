@@ -1,20 +1,21 @@
 #include "MG_model.h"
 
-MG_Model* MG_model_init(MG_Instance* instance, const char* path)
+MG_MODEL MG_model_init(const char* path)
 {
-	return MG_model_init_MGA(instance, path, -1);
+	return MG_model_init_MGA(path, -1);
 }
 
-MG_Model* MG_model_init_raw(MG_Instance* instance)
+MG_MODEL MG_model_init_raw()
 {
-    MG_Model* m = MG_model_init_MGA(instance, NULL, 0);
-    if (m) m->base.loaded = true;
-    return m;
+    MG_MODEL m = MG_model_init_MGA(NULL, 0);
+    MG_Model* mod = MG_model_ptr(m);
+    if (mod) mod->base.loaded = true;
+    return mod ? mod->id : 0;
 }
 
-MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
+MG_MODEL MG_model_init_MGA(const char* path, int32_t index_in_file)
 {
-    if (!instance || !path)
+    if (!path)
 		return NULL;
 
     MG_Model* model = calloc(1, sizeof(MG_Model*));
@@ -32,7 +33,7 @@ MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t ind
         return NULL;
 	}
 
-    if (MG_asset_add(&instance->model_list, &instance->model_count, model))
+    if (MG_asset_add(&MG_INSTANCE->model_list, &MG_INSTANCE->model_count, model))
     {
         printf("Failed to add shader to instance shader list.\n");
         free(model);
@@ -46,7 +47,7 @@ MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t ind
     return model;
 }
 
-int MG_model_load(MG_Model* model)
+int MG_model_load(MG_MODEL model)
 {
     if (!model)
         return -1;
@@ -170,7 +171,7 @@ fail:
     return -2;
 }
 
-void MG_model_enable(MG_Model* model, bool static_model)
+void MG_model_enable(MG_MODEL model, bool static_model)
 {
     if (!model || !model->meshes)
     {

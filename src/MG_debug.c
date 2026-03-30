@@ -284,7 +284,7 @@ static int16_t GetListEntry(char c)
 	return 0;
 }
 
-void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, float size, uint32_t color_rgba)
+void MG_debug_panic_text(char* text, MG_Vec2 position, float size, uint32_t color_rgba)
 {
 	size_t strlen = SDL_strlen(text);
 
@@ -304,7 +304,7 @@ void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, fl
 	if (position.y == CENTRE)
 		position.y = (MG_W_HEIGHT / 2) - (HAUTEUR_DEFAUT * size) / 2;
 
-	SDL_Surface* surface = SDL_GetWindowSurface(instance->window);
+	SDL_Surface* surface = SDL_GetWindowSurface(MG_INSTANCE->window);
 	if (!surface)
 		return;
 
@@ -386,12 +386,12 @@ void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, fl
 	}
 
 	SDL_UnlockSurface(surface);
-	SDL_UpdateWindowSurface(instance->window);
+	SDL_UpdateWindowSurface(MG_INSTANCE->window);
 
 	SDL_free(working_text);
 }
 
-void MG_debug_text(MG_Instance* instance)
+void MG_debug_text()
 {
-	instance;
+
 }

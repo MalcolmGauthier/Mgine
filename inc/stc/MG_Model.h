@@ -50,10 +50,12 @@ MG_TransparentDraw;
 
 typedef MG_Generic_LL MG_Mesh_LL;
 typedef MG_Generic_LL MG_TransparentDraw_LL;
+typedef MG_ID MG_MODEL;
 
 typedef struct MG_Model
 {
 	MG_Asset base;
+	MG_MODEL id;
 
 	struct MG_Mesh* meshes;
 	uint32_t mesh_count;

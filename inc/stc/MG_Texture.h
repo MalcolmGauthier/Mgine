@@ -2,11 +2,14 @@
 
 #include "MG_include.h"
 
+typedef MG_ID MG_TEXTURE;
+
 typedef struct MG_Texture
 {
 	MG_Asset base;
 
-	GLuint id;
+	MG_TEXTURE id;
+	GLuint GL_id;
 	int width;
 	int height;
 	byte channels;

@@ -26,33 +26,33 @@ static void MG_texture_init_default(void)
 		}
 }
 
-MG_Texture* MG_texture_init(MG_Instance* instance, const char* path)
+MG_TEXTURE MG_texture_init(const char* path)
 {
-	return MG_texture_init_MGA(instance, path, -1);
+	return MG_texture_init_MGA(path, -1);
 }
 
-//TODO: REDO
-MG_Texture* MG_texture_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file)
+MG_TEXTURE MG_texture_init_raw()
 {
-	MG_Texture* texture;
+	MG_TEXTURE t = MG_texture_init_MGA(NULL, 0);
+	MG_Texture* tex = MG_texture_ptr();
+	if (tex) tex->base.loaded = true;
+	return tex ? tex->id : 0;
+}
 
-	void* bak = instance->texture_list;
-	MG_Texture** new_list = realloc(instance->texture_list, sizeof(MG_Texture*) * (instance->texture_count + 1));
-	if (!new_list)
+MG_TEXTURE MG_texture_init_MGA(const char* path, int32_t index_in_file)
+{
+	MG_Texture* texture = calloc(1, sizeof(MG_Texture));
+	if (!texture || MG_asset_add(&MG_INSTANCE->texture_list, &MG_INSTANCE->texture_count, texture))
 	{
 		printf("Failed to allocate memory for new texture metadata\n");
-		instance->texture_list = bak;
 		return NULL;
 	}
-	instance->texture_list = new_list;
-	texture = instance->texture_list[instance->texture_count];
-	instance->texture_count++;
 
 	texture->base.path = (char*)path;
 	texture->base.index_in_file = index_in_file;
-	texture->id = 0;
+	texture->GL_id = 0;
 
-	return texture;
+	return texture->id;
 }
 
 int MG_texture_load(MG_Texture* texture)
@@ -63,7 +63,7 @@ int MG_texture_load(MG_Texture* texture)
 		return -1;
 	}
 
-	if (texture->id != 0)
+	if (texture->GL_id != 0)
 	{
 		printf("Warning: Texture already loaded.");
 		return 0;
@@ -75,8 +75,8 @@ int MG_texture_load(MG_Texture* texture)
 		MG_asset_load(NULL, &texture->base);
 	}
 	
-	glGenTextures(1, &texture->id);
-	glBindTexture(GL_TEXTURE_2D, texture->id);
+	glGenTextures(1, &texture->GL_id);
+	glBindTexture(GL_TEXTURE_2D, texture->GL_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -138,10 +138,10 @@ void MG_texture_free(MG_Texture* texture)
 		return;
 
 	MG_asset_free(&texture->base);
-	if (texture->id)
+	if (texture->GL_id)
 	{
-		glDeleteTextures(1, &texture->id);
-		texture->id = 0;
+		glDeleteTextures(1, &texture->GL_id);
+		texture->GL_id = 0;
 	}
 
 	free(texture);

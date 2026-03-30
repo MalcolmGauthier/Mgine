@@ -3,6 +3,7 @@
 #include "MG_include.h"
 #include "stc/MG_Transform.h"
 #include "stc/MG_Component.h"
+#include "MG_object.h"
 
 #ifdef __cplusplus
 extern "C" {

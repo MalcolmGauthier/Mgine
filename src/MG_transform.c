@@ -152,10 +152,11 @@ MG_ComponentFuncResult MG_transformcomponent_on_update(struct MG_Component* self
     UNUSED(delta_time)
 	MG_ComponentTransform* t_self = (MG_ComponentTransform*)self;
 
-    if (t_self->base.owner->flags & MG_OBJECT_FLAG_BILLBOARD)
+    MG_Object* obj = MG_object_ptr(t_self->base.id.owner);
+    if (obj->flags & MG_OBJECT_FLAG_BILLBOARD)
     {
         // make the object face the camera
-        MG_Camera* camera = &t_self->base.owner->instance->game_data.camera;
+        MG_Camera* camera = &MG_INSTANCE->game_data.camera;
 
         MG_Vec3 obj_pos = t_self->transform.position;
         MG_Vec3 cam_pos = camera->position;

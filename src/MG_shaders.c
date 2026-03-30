@@ -1,10 +1,10 @@
 #include "MG_shaders.h"
 
-MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, const char* fragment_shader)
+MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shader)
 {
 	MG_Shader* shader = calloc(1, sizeof(MG_Shader));
 	// returns error code if shader is null
-	if (MG_asset_add(&instance->shader_list, &instance->shader_count, shader))
+	if (MG_asset_add(&MG_INSTANCE->shader_list, &MG_INSTANCE->shader_count, shader))
 	{
 		printf("Failed to add shader to instance shader list.\n");
 		free(shader);
@@ -32,10 +32,10 @@ MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, co
 	shader->fragment_shader_code[frag_len] = '\0';
 
 	shader->status = MG_SHADER_STATUS_NOT_IMPLEMENTED;
-	return shader;
+	return shader->id;
 }
 
-MG_Shader* MG_shader_create_from_filepaths(MG_Instance* instance, const char* vertex_shader_path, const char* fragment_shader_path)
+MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	char* vertex_shader_code = NULL;
 	char* fragment_shader_code = NULL;
@@ -74,7 +74,7 @@ MG_Shader* MG_shader_create_from_filepaths(MG_Instance* instance, const char* ve
 	fclose(file_vert);
 	fclose(file_frag);
 
-	MG_Shader* shader = MG_shader_create(instance, vertex_shader_code, fragment_shader_code);
+	MG_SHADER shader = MG_shader_create(vertex_shader_code, fragment_shader_code);
 	free(vertex_shader_code);
 	free(fragment_shader_code);
 	return shader;
@@ -166,8 +166,9 @@ int MG_shader_define(char** shader_file_text_ref, int define_count, ...)
 	return 0;
 }
 
-int MG_shader_compile(MG_Shader* shader)
+int MG_shader_compile(MG_SHADER shader_id)
 {
+	MG_Shader* shader = MG_shader_get(shader_id);
 	if (!shader)
 	{
 		printf("Failed to compile shader: shader is NULL\n");
@@ -177,14 +178,14 @@ int MG_shader_compile(MG_Shader* shader)
 	GLuint vertex_shader = 0;
 	GLuint fragment_shader = 0;
 
-	if (shader->ID)
+	if (shader->GL_id)
 	{
 		printf("WARNING: shader already compiled. recompiling.\n");
-		glDeleteProgram(shader->ID);
-		shader->ID = 0;
+		glDeleteProgram(shader->GL_id);
+		shader->GL_id = 0;
 	}
 
-	shader->ID = glCreateProgram();
+	shader->GL_id = glCreateProgram();
 	vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 	fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -215,14 +216,14 @@ int MG_shader_compile(MG_Shader* shader)
 		return -3;
 	}
 
-	glAttachShader(shader->ID, vertex_shader);
-	glAttachShader(shader->ID, fragment_shader);
-	glLinkProgram(shader->ID);
-	glGetProgramiv(shader->ID, GL_LINK_STATUS, &success);
+	glAttachShader(shader->GL_id, vertex_shader);
+	glAttachShader(shader->GL_id, fragment_shader);
+	glLinkProgram(shader->GL_id);
+	glGetProgramiv(shader->GL_id, GL_LINK_STATUS, &success);
 	if (!success)
 	{
 		char infoLog[512];
-		glGetProgramInfoLog(shader->ID, 512, NULL, infoLog);
+		glGetProgramInfoLog(shader->GL_id, 512, NULL, infoLog);
 		glDeleteShader(vertex_shader);
 		glDeleteShader(fragment_shader);
 		printf("ERROR linking shader: %s\n", infoLog);
@@ -239,8 +240,10 @@ int MG_shader_compile(MG_Shader* shader)
 }
 
 
-int MG_material_register_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material)
+int MG_material_register_variable(MG_MATERIAL material_id, const char* name, GLenum type, uint32_t offset_in_material)
 {
+	MG_Material* material = MG_material_get(material_id);
+
 	if (!material || !material->shader || !name)
 	{
 		printf("Failed to register material shader variable: material, name or material shader is NULL\n");
@@ -407,7 +410,7 @@ void MG_shader_use(MG_Shader* shader)
 		return;
 	}
 
-	glUseProgram(shader->ID);
+	glUseProgram(shader->GL_id);
 }
 
 void MG_shader_free(MG_Shader* shader)
@@ -415,10 +418,10 @@ void MG_shader_free(MG_Shader* shader)
 	if (!shader)
 		return;
 
-	if (shader->ID)
+	if (shader->GL_id)
 	{
-		glDeleteProgram(shader->ID);
-		shader->ID = 0;
+		glDeleteProgram(shader->GL_id);
+		shader->GL_id = 0;
 	}
 
 	free(shader);
@@ -433,7 +436,7 @@ void MG_shader_set_int(MG_Shader* shader, const char* name, int value)
 		printf("Warning: Failed to set shader int: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform1i(glGetUniformLocation(shader->ID, name), value);
+	glUniform1i(glGetUniformLocation(shader->GL_id, name), value);
 }
 
 void MG_shader_set_ivec2(MG_Shader* shader, const char* name, int* vec)
@@ -443,7 +446,7 @@ void MG_shader_set_ivec2(MG_Shader* shader, const char* name, int* vec)
 		printf("Warning: Failed to set shader ivec2: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform2iv(glGetUniformLocation(shader->ID, name), 1, vec);
+	glUniform2iv(glGetUniformLocation(shader->GL_id, name), 1, vec);
 }
 
 void MG_shader_set_ivec3(MG_Shader* shader, const char* name, int* vec)
@@ -453,7 +456,7 @@ void MG_shader_set_ivec3(MG_Shader* shader, const char* name, int* vec)
 		printf("Warning: Failed to set shader ivec3: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform3iv(glGetUniformLocation(shader->ID, name), 1, vec);
+	glUniform3iv(glGetUniformLocation(shader->GL_id, name), 1, vec);
 }
 
 void MG_shader_set_float(MG_Shader* shader, const char* name, float value)
@@ -463,7 +466,7 @@ void MG_shader_set_float(MG_Shader* shader, const char* name, float value)
 		printf("Warning: Failed to set shader float: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform1f(glGetUniformLocation(shader->ID, name), value);
+	glUniform1f(glGetUniformLocation(shader->GL_id, name), value);
 }
 
 void MG_shader_set_vec2(MG_Shader* shader, const char* name, MG_Vec2 vec)
@@ -473,7 +476,7 @@ void MG_shader_set_vec2(MG_Shader* shader, const char* name, MG_Vec2 vec)
 		printf("Warning: Failed to set shader vec2: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform2fv(glGetUniformLocation(shader->ID, name), 1, (const GLfloat*)&vec);
+	glUniform2fv(glGetUniformLocation(shader->GL_id, name), 1, (const GLfloat*)&vec);
 }
 
 void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 vec)
@@ -483,7 +486,7 @@ void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 vec)
 		printf("Warning: Failed to set shader vec3: shader is NULL or not compiled\n");
 		return;
 	}
-	glUniform3fv(glGetUniformLocation(shader->ID, name), 1, (const GLfloat*)&vec);
+	glUniform3fv(glGetUniformLocation(shader->GL_id, name), 1, (const GLfloat*)&vec);
 }
 
 void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix* mat)
@@ -494,5 +497,5 @@ void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix* mat)
 		return;
 	}
 	
-	glUniformMatrix4fv(glGetUniformLocation(shader->ID, name), 1, false, (const GLfloat*)mat);
+	glUniformMatrix4fv(glGetUniformLocation(shader->GL_id, name), 1, false, (const GLfloat*)mat);
 }

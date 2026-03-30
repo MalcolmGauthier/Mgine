@@ -9,18 +9,16 @@ typedef MG_Generic_LL MG_Object_LL;
 
 typedef struct MG_GameData
 {
-	struct MG_Instance* instance;
-
 	uint64_t global_timer;
 	MG_ID next_object_id;
 	MG_ID next_component_id;
 	unsigned int tickrate;
 	// this should be constant unless tickrate is uncapped.
-	// however, this still acurately reports tick length even when tickrate is capped. usefull for lag detection.
+	// however, this still acurately reports tick length even when tickrate is capped. useful for lag detection.
 	float delta_time;
 	double uptime;
 
-	// list of top level object. all object obtained by filling out tree.
+	// list of ALL currently existing objects. not just orphan objects.
 	MG_Object_LL* object_list;
 	// complete count of objects, including children.
 	uint32_t object_count;

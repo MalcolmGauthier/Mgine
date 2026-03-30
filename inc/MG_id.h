@@ -6,8 +6,9 @@ extern "C" {
 #endif
 
 typedef uint32_t MG_ID;
+typedef uint32_t MG_NAME;
 
-MG_API MG_ID MG_ID_get_id(const char* name);
+MG_API MG_NAME MG_ID_hash_string(const char* name);
 
 #ifdef __cplusplus
 }

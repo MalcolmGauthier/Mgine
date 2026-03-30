@@ -1,15 +1,9 @@
 #include "MG_logic.h"
 
 // The main logic loop of the game engine
-int MG_logic_loop(void* MG_instance)
+int MG_logic_loop()
 {
-	if (!MG_instance)
-	{
-		printf("Logic loop crash: instance is NULL\n");
-		return -1;
-	}
-
-	MG_GameData* game_data = &((MG_Instance*)MG_instance)->game_data;
+	MG_GameData* game_data = &MG_INSTANCE->game_data;
 
 	if (game_data->tickrate > 0)
 		game_data->delta_time = 1.0f / game_data->tickrate;
@@ -21,9 +15,9 @@ int MG_logic_loop(void* MG_instance)
 	int64_t timer_frequency = (int64_t)SDL_GetPerformanceFrequency();
 	int64_t current_time;
 
-	while (game_data->instance->active)
+	while (MG_INSTANCE->active)
 	{
-		MG_input_poll_pressed(&game_data->instance->window_data);
+		MG_input_poll_pressed();
 
 		MG_Object_LL* current = game_data->object_list;
 		MG_Object* object = NULL;
@@ -41,9 +35,9 @@ int MG_logic_loop(void* MG_instance)
 			// this waits until render thread is done copying object data
 			// this also means that a frame render could happen between any object processes
 			//TODO: see if this causes a problem
-			while (game_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD);
+			while (MG_INSTANCE->lock_owner == MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD);
 
-			game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD;
+			MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD;
 
 			if (object->components)
 			{
@@ -63,20 +57,20 @@ int MG_logic_loop(void* MG_instance)
 
 			if (object->flags & MG_OBJECT_FLAG_MARKED_FOR_DELETION)
 			{
-				MG_object_delete(game_data->instance, object->id);
+				MG_object_delete(object->id);
 			}
 
-			game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+			MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 
 			current = current->next;
 		}
 
 		// reset mouse relative position and scroll
-		MG_input_poll_mouse_relative_pos(&game_data->instance->window_data, NULL, NULL);
-		MG_input_poll_mouse_scroll(&game_data->instance->window_data, NULL);
+		MG_input_poll_mouse_relative_pos(NULL, NULL);
+		MG_input_poll_mouse_scroll(NULL);
 
 		// not necessary, just making sure
-		game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+		MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 
 		current_time = SDL_GetPerformanceCounter();
 
@@ -103,7 +97,7 @@ int MG_logic_loop(void* MG_instance)
 		game_data->global_timer++;
 	}
 
-	game_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+	MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 	return 0;
 }
 
@@ -112,5 +106,6 @@ void MG_logic_free(MG_GameData* game_data)
 	if (!game_data)
 		return;
 
-	MG_LL_free(&game_data->object_list, MG_object_delete_by_ptr);
+	extern void MG_object_free(MG_Object * object);
+	MG_LL_free(&game_data->object_list, MG_object_free);
 }

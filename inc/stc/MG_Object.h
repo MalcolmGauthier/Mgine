@@ -26,27 +26,30 @@ MG_ObjectFlags;
 typedef MG_Generic_LL MG_Object_LL;
 typedef MG_Generic_LL MG_Component_LL;
 
-// to avoid letting the user face the terrifying world of public struct members and raw pointers in a C++ world, all common object interactions are done with an ID.
+// In order to make serialization easy and possible in many contexts and also to avoid letting the user face the terrifying world of public struct members and raw 
+// pointers in a C++ world, all asset interactions are done with an ID, strongly encouraging the requirement of having no pointers in component fields.
 // the ID is used along with the instance pointer to find the object before interacting with it. The coder thus only sees a number on his end. The giant downside of this
-// is that any object function will require an O(n) search. maybe in the future i will include a duplicated version of all these functions that let you use the pointer.
-// However, with the current scope of the engine, this is fiiiiiiine. whateeeevs.
+// is that any object function will require an O(n) search. However, this is likely to change in the future.
 typedef MG_ID MG_OBJ;
 typedef struct MG_OBJ_ARRAY
 {
 	MG_OBJ* data;
 	uint32_t count;
-} MG_OBJ_ARRAY;
+}
+MG_OBJ_ARRAY;
 
 typedef struct MG_Object
 {
+	// an object's parent will be their personal origin.
+	// components can make use of an object's parent for various things. for example,
+	// an object's transform component's will be relative to the parent's transform, if it has one. (this keeps going recursively is the parent also has a parent)
+	// objects with no parent are either called an orphan object or a top-level object.
 	struct MG_Object* parent;
 	MG_Object_LL* children;
 	MG_Component_LL* components;
 
-	MG_Instance* instance;
-
 	MG_OBJ id;
-	MG_ID name;
+	MG_NAME name;
 	uint32_t flags;
 }
 MG_Object;

@@ -9,9 +9,10 @@
 extern "C" {
 #endif
 
-MG_API int MG_logic_loop(void* instance);
+//TODO: hide from user
+MG_API int MG_logic_loop();
 
-MG_API void MG_logic_free(MG_GameData* game_data);
+MG_API void MG_logic_free();
 
 #ifdef __cplusplus
 }

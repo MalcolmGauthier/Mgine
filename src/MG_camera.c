@@ -7,18 +7,14 @@ MG_Camera MG_camera_init(float FOV, float screen_width, float screen_height, flo
 	return output;
 }
 
-MG_Vec3 MG_camera_get_world_position(MG_GameData* game_data)
+MG_Vec3 MG_camera_get_world_position()
 {
-    MG_Camera* camera = &game_data->camera;
+    MG_Camera* camera = &MG_INSTANCE->game_data.camera;
 
     if (!camera->anchor)
 		return camera->position;
 
-    MG_Object* obj = MG_object_get_by_id(game_data->instance, camera->anchor);
-    if (!obj)
-		return camera->position;
-
-    MG_Vec3 world_pos = MG_object_get_world_position(obj);
+    MG_Vec3 world_pos = MG_object_get_world_position(camera->anchor);
 
     return (MG_Vec3)
     {
@@ -28,20 +24,20 @@ MG_Vec3 MG_camera_get_world_position(MG_GameData* game_data)
     };
 }
 
-MG_Vec3 MG_camera_get_world_rotation(MG_GameData* game_data)
+MG_Vec3 MG_camera_get_world_rotation()
 {
-    MG_Camera* camera = &game_data->camera;
+    MG_Camera* camera = &MG_INSTANCE->game_data.camera;
     // set roll+default
     MG_Vec3 result = camera->rotation;
 
     if (!camera->focus)
 		return result;
 
-    MG_Object* obj = MG_object_get_by_id(game_data->instance, camera->focus);
+    MG_Object* obj = MG_object_ptr(camera->focus);
     if (!obj)
 		return result;
 
-    MG_Vec3 cam_pos = MG_camera_get_world_position(game_data);
+    MG_Vec3 cam_pos = MG_camera_get_world_position();
     MG_Vec3 world_pos = MG_object_get_world_position(obj);
     vec3 diff = {
         world_pos.x - cam_pos.x,

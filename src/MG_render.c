@@ -1,41 +1,34 @@
 #include "MG_render.h"
 
-static void MG_render_update_data(MG_RenderData* render_data);
-static void MG_render_update_interp_value(MG_RenderData* render_data);
-static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, MG_ID obj_id);
-static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data);
-static void MG_render_OIT_init(MG_RenderData* render_data);
-static void MG_render_OIT_prepare(MG_RenderData* render_data);
-static void MG_render_object(MG_RenderData* render_data, MG_Object* object);
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, MG_ID obj_id);
-static void MG_render_OIT(MG_RenderData* render_data);
-static void MG_render_WBOIT_composite(MG_RenderData* render_data);
+static void MG_render_update_data();
+static void MG_render_update_interp_value();
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_Matrix* new_matrix, MG_ID obj_id);
+static MG_Matrix MG_render_calculate_interp_view_matrix();
+static void MG_render_OIT_init();
+static void MG_render_OIT_prepare();
+static void MG_render_object(MG_Object* object);
+static void MG_render_model(MG_Model* model, MG_Matrix* pos, MG_ID obj_id);
+static void MG_render_OIT();
+static void MG_render_WBOIT_composite();
 
 // The main render loop of the game engine. This renders the game objects to the screen.
 // It iterates down the component tree of each object and renders the found models.
-int MG_render_loop(void* MG_instance)
+int MG_render_loop()
 {
-	if (!MG_instance)
-	{
-		printf("Render loop crash: instance is NULL\n");
-		return -1;
-	}
-
-	MG_Instance* instance = (MG_Instance*)MG_instance;
-	MG_RenderData* render_data = &instance->render_data;
+	MG_RenderData* render_data = &MG_INSTANCE->render_data;
 	render_data->transparency_list = calloc(1, sizeof(MG_TransparentDraw_LL));
 	if (!render_data->transparency_list)
 	{
 		printf("Render loop crash: Failed to allocate memory for transparency list\n");
-		instance->active = false;
+		MG_INSTANCE->active = false;
 		return -2;
 	}
 
-	// opengl can only exist with one thread at a time. the main thread sets it up, but from here on out all opengl api calls must be done in this thread.
-	if (SDL_GL_MakeCurrent(instance->window, instance->gl_context))
+	// opengl can only exist with one thread at a time. the engine init sets it up, but from here on out all opengl api calls must be done in this thread.
+	if (SDL_GL_MakeCurrent(MG_INSTANCE->window, MG_INSTANCE->gl_context))
 	{
 		printf("Render loop crash: Failed to transfer OpenGL ownership\n");
-		instance->active = false;
+		MG_INSTANCE->active = false;
 		return -3;
 	}
 
@@ -46,7 +39,7 @@ int MG_render_loop(void* MG_instance)
 
 	MG_render_OIT_init(render_data);
 
-	while (instance->active)
+	while (MG_INSTANCE->active)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | (MG_R_BACKGROUND_REFRESH ? GL_DEPTH_BUFFER_BIT : 0));
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -58,7 +51,7 @@ int MG_render_loop(void* MG_instance)
 		MG_render_update_interp_value(render_data);
 		MG_render_calculate_interp_view_matrix(render_data);
 
-		if (!instance->rendering_enabled)
+		if (!MG_INSTANCE->rendering_enabled)
 		{
 			SDL_Delay(1);
 			continue;
@@ -79,83 +72,88 @@ int MG_render_loop(void* MG_instance)
 
 			current = current->next;
 		}
-		instance->gl_error_code = glGetError();
+		MG_INSTANCE->gl_error_code = glGetError();
 
 
 		// STEP 4: RENDER TRANSPARENCY
 		MG_render_OIT(render_data);
-		instance->gl_error_code = glGetError();
+		MG_INSTANCE->gl_error_code = glGetError();
 
-		SDL_GL_SwapWindow(instance->window);
+		SDL_GL_SwapWindow(MG_INSTANCE->window);
 	}
 
 	return 0;
 }
 
-static void MG_render_update_data(MG_RenderData* render_data)
+static void MG_render_update_data()
 {
-	while (render_data->instance->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD);
-	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
+	MG_RenderData* rd = &MG_INSTANCE->render_data;
 
 	// in the case where for some reason ticks take longer than render frames, this will cause ticks to be skipped,
 	// and interpolation could cause objects to take crazy paths.
-	if (render_data->instance->game_data.global_timer == render_data->latest_data.global_timer)
+	if (MG_INSTANCE->game_data.global_timer == rd->latest_data.global_timer)
 	{
-		render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+		MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 		return;
 	}
 
 	if (MG_R_INTERPOLATION_ENABLED)
 	{
-		MG_logic_free(&render_data->old_data);
-		memcpy_s(&render_data->old_data, sizeof(MG_GameData), &render_data->latest_data, sizeof(MG_GameData));
+		MG_logic_free(&rd->old_data);
+		memcpy_s(&rd->old_data, sizeof(MG_GameData), &rd->latest_data, sizeof(MG_GameData));
 	}
 	else
 	{
-		MG_logic_free(&render_data->latest_data);
+		MG_logic_free(&rd->latest_data);
 	}
-	memcpy_s(&render_data->latest_data, sizeof(MG_GameData), &render_data->instance->game_data, sizeof(MG_GameData));
+
+	while (MG_INSTANCE->lock_owner == MG_GAME_DATA_LOCK_OWNER_LOGIC_THREAD) { }
+	MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_RENDER_THREAD;
+
+	memcpy_s(&rd->latest_data, sizeof(MG_GameData), &MG_INSTANCE->game_data, sizeof(MG_GameData));
 
 	// copy the object list from the game data to the render data
-	render_data->latest_data.object_list = MG_LL_copy(render_data->instance->game_data.object_list, MG_object_create_untracked_copy);
+	rd->latest_data.object_list = MG_LL_copy(MG_INSTANCE->game_data.object_list, MG_object_create_untracked_copy);
 
-	render_data->instance->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
+	MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 	return;
 }
 
-static void MG_render_update_interp_value(MG_RenderData* render_data)
+static void MG_render_update_interp_value()
 {
-	if (!MG_R_INTERPOLATION_ENABLED || render_data->latest_data.delta_time <= 0)
+	MG_RenderData* rd = &MG_INSTANCE->render_data;
+
+	if (!MG_R_INTERPOLATION_ENABLED || rd->latest_data.delta_time <= 0)
 	{
-		render_data->interp_value = 1.0f;
+		rd->interp_value = 1.0f;
 		return;
 	}
 
-	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - (float)render_data->latest_data.uptime;
+	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - (float)rd->latest_data.uptime;
 
-	if (render_data->latest_data.tickrate != 0)
+	if (rd->latest_data.tickrate != 0)
 	{
-		float tick_len = 1.0f / render_data->latest_data.tickrate;
-		render_data->interp_value = time_since_latest / tick_len;
+		float tick_len = 1.0f / rd->latest_data.tickrate;
+		rd->interp_value = time_since_latest / tick_len;
 	}
 	else
 	{
-		render_data->interp_value = time_since_latest / render_data->latest_data.delta_time;
+		rd->interp_value = time_since_latest / rd->latest_data.delta_time;
 	}
 
 	// if it's been more than some time since the latest data, freeze.
 #if MG_R_INTERPOLATION_PREDICTION == true
 	if (time_since_latest >= 1.0f)
 	{
-		if (render_data->interp_value < 0.0f) render_data->interp_value = 0.0f;
-		if (render_data->interp_value > 1.0f) render_data->interp_value = 1.0f;
+		if (rd->interp_value < 0.0f) rd->interp_value = 0.0f;
+		if (rd->interp_value > 1.0f) rd->interp_value = 1.0f;
 	}
 #endif
 }
 
-static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_data, MG_Matrix* new_matrix, MG_ID obj_id)
+static MG_Matrix MG_render_calculate_interp_model_matrix(MG_Matrix* new_matrix, MG_ID obj_id)
 {
-	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
+	if ((MG_INSTANCE->render_data.interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
 		return *new_matrix;
 
 	MG_Transform* old_transform = NULL;
@@ -171,7 +169,7 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	MG_Matrix output;
 
 	// can't call MG_object_find_by_id here because it wants the instance, but we can only provide game data.
-	MG_Object_LL* current = render_data->old_data.object_list;
+	MG_Object_LL* current = MG_INSTANCE->render_data.old_data.object_list;
 	while (current)
 	{
 		if (((MG_Object*)current->data)->id == obj_id)
@@ -179,7 +177,7 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 			if (((MG_Object*)current->data)->flags & MG_OBJECT_FLAG_NO_INTERP)
 				return *new_matrix;
 
-			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(current->data, "MG_transform");
+			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(current->data, "transform");
 			if (!t) return *new_matrix;
 			old_transform = &t->transform;
 			break;
@@ -200,9 +198,9 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	glm_euler_yzx_quat((float*)&new_ang_rad, new_quat);
 	glm_euler_yzx_quat((float*)&old_ang_rad, old_quat);
 
-	glm_vec3_lerp((float*)&old_transform->position, (float*)&new_transform.position, render_data->interp_value, (float*)&interp_transform.position);
-	glm_quat_slerp(old_quat, new_quat, render_data->interp_value, interp_quat);
-	glm_vec3_lerp((float*)&old_transform->scale, (float*)&new_transform.scale, render_data->interp_value, (float*)&interp_transform.scale);
+	glm_vec3_lerp((float*)&old_transform->position, (float*)&new_transform.position, MG_INSTANCE->render_data.interp_value, (float*)&interp_transform.position);
+	glm_quat_slerp(old_quat, new_quat, MG_INSTANCE->render_data.interp_value, interp_quat);
+	glm_vec3_lerp((float*)&old_transform->scale, (float*)&new_transform.scale, MG_INSTANCE->render_data.interp_value, (float*)&interp_transform.scale);
 
 	glm_mat4_identity((vec4*)&output);
 	glm_translate((vec4*)&output, (float*)&interp_transform.position);
@@ -211,14 +209,17 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_RenderData* render_d
 	return output;
 }
 
-static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_data)
+static MG_Matrix MG_render_calculate_interp_view_matrix()
 {
+	MG_RenderData* render_data = &MG_INSTANCE->render_data;
+
 	if ((render_data->interp_value >= 1.f && !MG_R_INTERPOLATION_PREDICTION) || !MG_R_INTERPOLATION_ENABLED)
 	{
 		render_data->view_matrix = MG_camera_get_view_matrix(&render_data->latest_data);
 		return render_data->view_matrix;
 	}
 
+	//TODO THESE FUNCTIONS USE THE DEFAULT GAMEDATA, MAKE NEW FUNCTION FOR CUSTOM GAMEDATA
 	MG_Vec3 old_pos = MG_camera_get_world_position(&render_data->old_data);
 	MG_Vec3 new_pos = MG_camera_get_world_position(&render_data->latest_data);
 	vec3 world_pos;
@@ -266,7 +267,7 @@ static MG_Matrix MG_render_calculate_interp_view_matrix(MG_RenderData* render_da
 	return render_data->view_matrix;
 }
 
-static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
+static void MG_render_object(MG_Object* object)
 {
 	if (object->flags & MG_OBJECT_FLAG_INVISIBLE)
 		return;
@@ -274,27 +275,28 @@ static void MG_render_object(MG_RenderData* render_data, MG_Object* object)
 	MG_Object_LL* children = object->children;
 	while (children && children->data)
 	{
-		MG_render_object(render_data, children->data);
+		MG_render_object(children->data);
 		children = children->next;
 	}
 
 	if (!object->components) return;
 
-	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object, "MG_Model");
-	if (!current_model || !current_model->model.meshes)
+	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object, "Model");
+	if (!current_model || !current_model->model->meshes)
 		return;
 
+	extern MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* object);
 	MG_Matrix current_matrix = MG_object_calculate_world_transform_matrix(object);
 
-	MG_render_model(render_data, &current_model->model, &current_matrix, object->id);
+	MG_render_model(current_model->model, &current_matrix, object->id);
 }
 
-static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matrix* pos, MG_ID obj_id)
+static void MG_render_model(MG_Model* model, MG_Matrix* pos, MG_ID obj_id)
 {
 	if (!model || !pos)
 		return;
 
-	MG_Matrix render_matrix = MG_render_calculate_interp_model_matrix(render_data, pos, obj_id);
+	MG_Matrix render_matrix = MG_render_calculate_interp_model_matrix(pos, obj_id);
 
 	MG_Mesh* mesh;
 	for (uint32_t i = 0; i < model->mesh_count; i++)
@@ -315,12 +317,12 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 
 			new_node->mesh = mesh;
 			new_node->render_matrix = render_matrix;
-			MG_LL_add(&render_data->transparency_list, new_node);
+			MG_LL_add(&MG_INSTANCE->render_data.transparency_list, new_node);
 			continue;
 		}
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture->id);
+		glBindTexture(GL_TEXTURE_2D, mesh->material->diffuse_texture->GL_id);
 
 		//TODO: if shader null, set shader to default minimal shader
 		if (!mesh->material->shader)
@@ -338,9 +340,9 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 		else
 		{
 			MG_shader_set_mat4(mesh->material->shader, "uModel", &render_matrix);
-			MG_shader_set_mat4(mesh->material->shader, "uView", &render_data->view_matrix);
+			MG_shader_set_mat4(mesh->material->shader, "uView", &MG_INSTANCE->render_data.view_matrix);
 		}
-		MG_shader_set_mat4(mesh->material->shader, "uProj", &render_data->latest_data.camera.projection_matrix);
+		MG_shader_set_mat4(mesh->material->shader, "uProj", &MG_INSTANCE->render_data.latest_data.camera.projection_matrix);
 
 		int num_textures = 0;
 		int max_textures;
@@ -401,16 +403,17 @@ static void MG_render_model(MG_RenderData* render_data, MG_Model* model, MG_Matr
 	}
 }
 
-static void MG_render_OIT_init(MG_RenderData* render_data)
+static void MG_render_OIT_init()
 {
-	MG_Shader* wboit_shader_a = MG_shader_create_from_filepaths(render_data->instance, "shaders/MG_std_vert.glsl", "shaders/MG_wboit_accum_frag.glsl");
-	MG_Shader* wboit_shader_c = MG_shader_create_from_filepaths(render_data->instance, "shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
+	MG_RenderData* render_data = &MG_INSTANCE->render_data;
+	MG_Shader* wboit_shader_a = MG_shader_create_from_filepaths("shaders/MG_std_vert.glsl", "shaders/MG_wboit_accum_frag.glsl");
+	MG_Shader* wboit_shader_c = MG_shader_create_from_filepaths("shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
 	MG_shader_compile(wboit_shader_a);
 	MG_shader_compile(wboit_shader_c);
 	if (!wboit_shader_a || !wboit_shader_c || wboit_shader_a->status != MG_SHADER_STATUS_OK || wboit_shader_c->status != MG_SHADER_STATUS_OK)
 	{
 		printf("Error: Failed to compile OIT shaders.\n");
-		render_data->instance->active = false;
+		MG_INSTANCE->active = false;
 		return;
 	}
 	render_data->OIT_shader_accum = wboit_shader_a;
@@ -446,19 +449,19 @@ static void MG_render_OIT_init(MG_RenderData* render_data)
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		printf("Error: OIT framebuffer incomplete!: %u\n", glCheckFramebufferStatus(GL_FRAMEBUFFER));
-		render_data->instance->active = false;
+		MG_INSTANCE->active = false;
 		return;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-static void MG_render_OIT_prepare(MG_RenderData* render_data)
+static void MG_render_OIT_prepare()
 {
 	// Copy depth from the opaque pass into the OIT FBO so transparent
 	// geometry tests against it
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, render_data->OIT_FBO);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, MG_INSTANCE->render_data.OIT_FBO);
 	glBlitFramebuffer(
 		0, 0, MG_W_WIDTH, MG_W_HEIGHT,
 		0, 0, MG_W_WIDTH, MG_W_HEIGHT,
@@ -482,11 +485,12 @@ static void MG_render_OIT_prepare(MG_RenderData* render_data)
 	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);   // revealage
 }
 
-//TODO: this is wayyyyy to similar to the other render function. merge them.
-static void MG_render_OIT(MG_RenderData* render_data)
+//TODO: this is wayyyyy to similar to the other render function.
+static void MG_render_OIT()
 {
-	MG_render_OIT_prepare(render_data);
+	MG_render_OIT_prepare();
 
+	MG_RenderData* render_data = &MG_INSTANCE->render_data;
 	MG_TransparentDraw* t_draw;
 	MG_Material* material;
 	MG_TransparentDraw_LL* root = render_data->transparency_list;
@@ -506,51 +510,12 @@ static void MG_render_OIT(MG_RenderData* render_data)
 		material = t_draw->mesh->material;
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->id);
+		glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->GL_id);
 
 		MG_shader_use(render_data->OIT_shader_accum);
 		MG_shader_set_mat4(render_data->OIT_shader_accum, "uModel", &t_draw->render_matrix);
 		MG_shader_set_mat4(render_data->OIT_shader_accum, "uView", &render_data->view_matrix);
 		MG_shader_set_mat4(render_data->OIT_shader_accum, "uProj", &render_data->latest_data.camera.projection_matrix);
-
-		/*for (uint32_t j = 0; j < material->shader_variable_count; j++)
-		{
-			MG_MaterialShaderVariable* var = &material->shader_variables[j];
-
-			void* value_ptr = (void*)((byte*)material + var->offset_in_material);
-			switch (var->type)
-			{
-			case GL_FLOAT:
-				MG_shader_set_float(material->shader, var->name, *(float*)value_ptr);
-				break;
-			case GL_FLOAT_VEC2:
-				MG_shader_set_vec2(material->shader, var->name, *(MG_Vec2*)value_ptr);
-				break;
-			case GL_FLOAT_VEC3:
-				MG_shader_set_vec3(material->shader, var->name, *(MG_Vec3*)value_ptr);
-				break;
-			case GL_INT:
-			case GL_BOOL:
-				MG_shader_set_int(material->shader, var->name, *(int*)value_ptr);
-				break;
-			case GL_INT_VEC2:
-			case GL_BOOL_VEC2:
-				MG_shader_set_ivec2(material->shader, var->name, (int*)value_ptr);
-				break;
-			case GL_INT_VEC3:
-			case GL_BOOL_VEC3:
-				MG_shader_set_ivec3(material->shader, var->name, (int*)value_ptr);
-				break;
-
-			case GL_FLOAT_MAT4:
-				MG_shader_set_mat4(material->shader, var->name, (MG_Matrix*)value_ptr);
-				break;
-
-			default:
-				printf("Warning: Unsupported shader variable type %u for variable %s\n", var->type, var->name);
-				break;
-			}
-		}*/
 
 		glBindVertexArray(t_draw->mesh->VAO);
 		glDrawElements(GL_TRIANGLES, t_draw->mesh->index_count, GL_UNSIGNED_INT, 0);
@@ -562,8 +527,10 @@ static void MG_render_OIT(MG_RenderData* render_data)
 	render_data->transparency_list = NULL;
 }
 
-static void MG_render_WBOIT_composite(MG_RenderData* render_data)
+static void MG_render_WBOIT_composite()
 {
+	MG_RenderData* render_data = &MG_INSTANCE->render_data;
+
 	glDepthMask(GL_TRUE);
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);

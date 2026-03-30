@@ -17,15 +17,15 @@
 extern "C" {
 #endif
 
-MG_API MG_Model* MG_model_init(MG_Instance* instance, const char* path);
+MG_API MG_MODEL MG_model_init(const char* path);
 
-MG_API MG_Model* MG_model_init_raw(MG_Instance* instance);
+MG_API MG_MODEL MG_model_init_raw();
 
-MG_API MG_Model* MG_model_init_MGA(MG_Instance* instance, const char* path, int32_t index_in_file);
+MG_API MG_MODEL MG_model_init_MGA(const char* path, int32_t index_in_file);
 
-MG_API int MG_model_load(MG_Model* model);
+MG_API int MG_model_load(MG_MODEL model);
 
-MG_API void MG_model_enable(MG_Model* model, bool static_model);
+MG_API void MG_model_enable(MG_MODEL model, bool static_model);
 
 MG_API void MG_model_free(MG_Model* model);
 

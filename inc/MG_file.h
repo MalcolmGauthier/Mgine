@@ -12,7 +12,10 @@
 extern "C" {
 #endif
 
+//TODO: make ALL these hidden to the public. the horror!
+
 // takes in pointer to asset list in MG_Instance struct, pointer to the count of that asset list, and pointer to asset to add
+// triple pointer is ugly, but it's a reference to a dynamic array of pointers.
 MG_API int MG_asset_add(void*** asset_list_ref, uint32_t* asset_count_ref, void* asset);
 
 // pass NULL as file to open new file descriptor
@@ -22,7 +25,7 @@ MG_API byte* MG_asset_load(FILE* file, MG_Asset* asset);
 MG_API void MG_asset_free(MG_Asset* asset);
 
 // loads the game data from file into the instance
-MG_API int MG_load_game(MG_Instance* instance);
+MG_API int MG_load_game();
 
 #ifdef __cplusplus
 }

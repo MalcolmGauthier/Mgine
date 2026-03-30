@@ -2,61 +2,20 @@
 #include "MG_include.h"
 
 // This is a union that represents the keyboard state.
-// Currently supported keys include A-Z, 0-9, numpad 0-9, arrow keys, .,;`/, ret, bksp, tab, space, ctrl, shift, alt.
+// Currently supported keys include A-Z, 0-9, numpad 0-9, arrow keys, .,;`/, ret, bksp, tab, space, ctrl, shift, alt & esc.
 // Left and right keyboard modifiers are not distinguished.
 typedef union MG_KeyboardState
 {
 	uint64_t raw;
 	struct Keys
 	{
-		bool A : 1;
-		bool B : 1;
-		bool C : 1;
-		bool D : 1;
-		bool E : 1;
-		bool F : 1;
-		bool G : 1;
-		bool H : 1;
-		bool I : 1;
-		bool J : 1;
-		bool K : 1;
-		bool L : 1;
-		bool M : 1;
-		bool N : 1;
-		bool O : 1;
-		bool P : 1;
-		bool Q : 1;
-		bool R : 1;
-		bool S : 1;
-		bool T : 1;
-		bool U : 1;
-		bool V : 1;
-		bool W : 1;
-		bool X : 1;
-		bool Y : 1;
-		bool Z : 1;
+		bool A : 1, B : 1, C : 1, D : 1, E : 1, F : 1, G : 1, H : 1, I : 1, J : 1, K : 1, L : 1, M : 1,
+			 N : 1, O : 1, P : 1, Q : 1, R : 1, S : 1, T : 1, U : 1, V : 1, W : 1, X : 1, Y : 1, Z : 1;
 
-		bool NUM_0 : 1;
-		bool NUM_1 : 1;
-		bool NUM_2 : 1;
-		bool NUM_3 : 1;
-		bool NUM_4 : 1;
-		bool NUM_5 : 1;
-		bool NUM_6 : 1;
-		bool NUM_7 : 1;
-		bool NUM_8 : 1;
-		bool NUM_9 : 1;
+		bool NUM_0 : 1, NUM_1 : 1, NUM_2 : 1, NUM_3 : 1, NUM_4 : 1, NUM_5 : 1, NUM_6 : 1, NUM_7 : 1, NUM_8 : 1, NUM_9 : 1;
 
-		bool NUMPAD_0 : 1;
-		bool NUMPAD_1 : 1;
-		bool NUMPAD_2 : 1;
-		bool NUMPAD_3 : 1;
-		bool NUMPAD_4 : 1;
-		bool NUMPAD_5 : 1;
-		bool NUMPAD_6 : 1;
-		bool NUMPAD_7 : 1;
-		bool NUMPAD_8 : 1;
-		bool NUMPAD_9 : 1;
+		bool NUMPAD_0 : 1, NUMPAD_1 : 1, NUMPAD_2 : 1, NUMPAD_3 : 1, NUMPAD_4 : 1,
+			 NUMPAD_5 : 1, NUMPAD_6 : 1, NUMPAD_7 : 1, NUMPAD_8 : 1, NUMPAD_9 : 1;
 
 		bool RETURN : 1;
 		bool BACKSPACE : 1;
@@ -73,64 +32,21 @@ typedef union MG_KeyboardState
 		bool GRAVE : 1;
 		bool SLASH : 1;
 
-		bool ARROW_UP : 1;
-		bool ARROW_DOWN : 1;
-		bool ARROW_LEFT : 1;
-		bool ARROW_RIGHT : 1;
+		bool ARROW_UP : 1, ARROW_DOWN : 1, ARROW_LEFT : 1, ARROW_RIGHT : 1;
 
 	} keys;
 }
 MG_KeyboardState;
+
 typedef enum MG_Key
 {
-	MG_KEY_A,
-	MG_KEY_B,
-	MG_KEY_C,
-	MG_KEY_D,
-	MG_KEY_E,
-	MG_KEY_F,
-	MG_KEY_G,
-	MG_KEY_H,
-	MG_KEY_I,
-	MG_KEY_J,
-	MG_KEY_K,
-	MG_KEY_L,
-	MG_KEY_M,
-	MG_KEY_N,
-	MG_KEY_O,
-	MG_KEY_P,
-	MG_KEY_Q,
-	MG_KEY_R,
-	MG_KEY_S,
-	MG_KEY_T,
-	MG_KEY_U,
-	MG_KEY_V,
-	MG_KEY_W,
-	MG_KEY_X,
-	MG_KEY_Y,
-	MG_KEY_Z,
+	MG_KEY_A, MG_KEY_B, MG_KEY_C, MG_KEY_D, MG_KEY_E, MG_KEY_F, MG_KEY_G, MG_KEY_H, MG_KEY_I, MG_KEY_J, MG_KEY_K, MG_KEY_L, MG_KEY_M,
+	MG_KEY_N, MG_KEY_O, MG_KEY_P, MG_KEY_Q, MG_KEY_R, MG_KEY_S, MG_KEY_T, MG_KEY_U, MG_KEY_V, MG_KEY_W, MG_KEY_X, MG_KEY_Y, MG_KEY_Z,
 
-	MG_KEY_NUM_0,
-	MG_KEY_NUM_1,
-	MG_KEY_NUM_2,
-	MG_KEY_NUM_3,
-	MG_KEY_NUM_4,
-	MG_KEY_NUM_5,
-	MG_KEY_NUM_6,
-	MG_KEY_NUM_7,
-	MG_KEY_NUM_8,
-	MG_KEY_NUM_9,
+	MG_KEY_0, MG_KEY_1, MG_KEY_2, MG_KEY_3, MG_KEY_4, MG_KEY_5, MG_KEY_6, MG_KEY_7, MG_KEY_8, MG_KEY_9,
 
-	MG_KEY_NUMPAD_0,
-	MG_KEY_NUMPAD_1,
-	MG_KEY_NUMPAD_2,
-	MG_KEY_NUMPAD_3,
-	MG_KEY_NUMPAD_4,
-	MG_KEY_NUMPAD_5,
-	MG_KEY_NUMPAD_6,
-	MG_KEY_NUMPAD_7,
-	MG_KEY_NUMPAD_8,
-	MG_KEY_NUMPAD_9,
+	MG_KEY_NUMPAD_0, MG_KEY_NUMPAD_1, MG_KEY_NUMPAD_2, MG_KEY_NUMPAD_3, MG_KEY_NUMPAD_4,
+	MG_KEY_NUMPAD_5, MG_KEY_NUMPAD_6, MG_KEY_NUMPAD_7, MG_KEY_NUMPAD_8, MG_KEY_NUMPAD_9,
 
 	MG_KEY_RETURN,
 	MG_KEY_BACKSPACE,
@@ -147,10 +63,7 @@ typedef enum MG_Key
 	MG_KEY_GRAVE,
 	MG_KEY_SLASH,
 
-	MG_KEY_ARROW_UP,
-	MG_KEY_ARROW_DOWN,
-	MG_KEY_ARROW_LEFT,
-	MG_KEY_ARROW_RIGHT
+	MG_KEY_ARROW_UP, MG_KEY_ARROW_DOWN, MG_KEY_ARROW_LEFT, MG_KEY_ARROW_RIGHT
 }
 MG_Key;
 
@@ -159,8 +72,10 @@ typedef struct MG_MouseState
 	bool LEFT;
 	bool RIGHT;
 	bool MIDDLE;
+	// can't be a bitfield due to janky code in MG_Window.c
 }
 MG_MouseState;
+
 typedef enum MG_MouseButton
 {
 	MG_MOUSE_BUTTON_LEFT,
@@ -171,8 +86,6 @@ MG_MouseButton;
 
 typedef struct MG_WindowData
 {
-	struct MG_Instance* instance;
-
 	int32_t x_pos;
 	int32_t y_pos;
 
@@ -207,21 +120,25 @@ typedef struct MG_WindowData
 	bool mouse_hidden : 1;
 	bool mouse_grabbed : 1;
 
-	void (*callback_mouse_above_enter)(struct MG_Instance*);
-	void (*callback_mouse_above_exit)(struct MG_Instance*);
+	// ALL OF THESE CALLBACKS ARE NOT SERIALIZED.
+	// if they are changed dynamically during the game, loading a saved game will NOT modify them.
+	// for safety, these should only be set before the user can load a game. otherwise, use at your own risk.
 
-	void (*callback_focus_gained)(struct MG_Instance*);
-	void (*callback_focus_lost)(struct MG_Instance*);
+	void (*callback_mouse_above_enter)();
+	void (*callback_mouse_above_exit)();
 
-	void (*callback_moving)(struct MG_Instance*);
+	void (*callback_focus_gained)();
+	void (*callback_focus_lost)();
+
+	void (*callback_moving)();
 
 	// only called when the window is resized by the user, not anything else
-	void (*callback_manually_resized)(struct MG_Instance*);
-	void (*callback_resized)(struct MG_Instance*);
+	void (*callback_manually_resized)();
+	void (*callback_resized)();
 
-	void (*callback_minimized)(struct MG_Instance*);
+	void (*callback_minimized)();
 	// does NOT get sent if the user restores a minimized window that was previously maximized, despite still being maximized.
-	void (*callback_maximized)(struct MG_Instance*);
-	void (*callback_windowed_mode)(struct MG_Instance*);
+	void (*callback_maximized)();
+	void (*callback_windowed_mode)();
 }
 MG_WindowData;

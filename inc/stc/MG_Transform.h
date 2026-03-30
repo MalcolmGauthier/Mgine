@@ -91,4 +91,7 @@ typedef struct MG_Matrix
 	// however, patching that out means losing assignment copying.
 }
 MG_Matrix;
-#define MG_MATRIX_IDENTITY 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1
+#define MG_MATRIX_IDENTITY  1, 0, 0, 0, \
+							0, 1, 0, 0, \
+							0, 0, 1, 0, \
+							0, 0, 0, 1

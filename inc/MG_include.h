@@ -10,6 +10,7 @@
 
 #pragma once
 
+// one of the libraries breaks without this, i forget which one
 #define _MATH_DEFINES_DEFINED
 
 // windows defines must come first to prevent macro redefinition warnings
@@ -19,12 +20,14 @@
 #include <shlwapi.h>
 #endif
 
+// external libraries
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 #include <glad.h>
 #include <cglm.h>
 
+// stdlib
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -38,8 +41,15 @@
 
 #define UNUSED(input) (input);
 
+// the root of all data
+struct MG_Instance* MG_INSTANCE;
+//TODO
+#ifdef MG_NO_PREFIX
+#define instance MG_INSTANCE
+#endif
+
 ///////////////////////////////
-// DEFAULT SETTINGS
+// ENGINE SETTINGS
 
 #define MG_DEBUG true
 #define MG_USE_MG_FILE false
@@ -48,9 +58,10 @@
 #define MG_W_NAME "Mgine prototype"
 #define MG_W_WIDTH 800
 #define MG_W_HEIGHT 600
-#define MG_W_EXTRA_FLAGS SDL_WINDOW_RESIZABLE | 0/*SDL_WINDOW_INPUT_GRABBED*/
+#define MG_W_EXTRA_FLAGS SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | 0/*SDL_WINDOW_INPUT_GRABBED*/
 #define MG_W_MOUSE_SHOWN true
 #define MG_W_MOUSE_GRABBED false
+#define MG_W_NO_WINDOW false
 
 // CONTROLS
 #define MG_C_EXIT_ON_ESC true

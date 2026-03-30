@@ -1,6 +1,6 @@
 #include "MG_ui.h"
 
-MG_Texture* MG_UI_texture_from_text(MG_Instance* instance, const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color)
+MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color)
 {
     if (!font_name || !text)
         return NULL;
@@ -29,7 +29,7 @@ MG_Texture* MG_UI_texture_from_text(MG_Instance* instance, const char* font_name
     }
 
     // create managed texture struct and manually set its data
-    MG_Texture* tex = MG_texture_init_MGA(instance, NULL, 0);
+    MG_Texture* tex = MG_texture_ptr(MG_texture_init_raw());
     tex->base.asset_file_data = surface->pixels;
 	tex->base.asset_file_size = (size_t)surface->w * (size_t)surface->h * surface->format->BytesPerPixel;
     if (MG_texture_load(tex))

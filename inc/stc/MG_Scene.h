@@ -4,9 +4,12 @@
 #include "stc/MG_Object.h"
 #include "stc/MG_Texture.h"
 
+typedef MG_ID MG_SCENE;
+
 typedef struct MG_Scene
 {
-	MG_ID id;
+	MG_SCENE id;
+	MG_NAME name;
 
 	MG_Object_LL* objects;
 

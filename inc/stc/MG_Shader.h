@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_LL.h"
+#include "MG_id.h"
 
 typedef enum
 {
@@ -11,9 +11,12 @@ typedef enum
 }
 MG_ShaderStatus;
 
+typedef MG_ID MG_SHADER;
+
 typedef struct MG_Shader
 {
-	GLuint ID;
+	GLuint GL_id;
+	MG_SHADER id;
 
 	MG_ShaderStatus status;
 

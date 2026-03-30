@@ -19,7 +19,7 @@ typedef enum
 }
 MG_FontStyle;
 
-MG_API MG_Texture* MG_UI_texture_from_text(MG_Instance* instance, const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color);
+MG_API MG_TEXTURE MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color);
 
 MG_API char* MG_UI_find_font_file_windows(const char* font_name);
 

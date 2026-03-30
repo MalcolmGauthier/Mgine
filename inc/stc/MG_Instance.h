@@ -25,6 +25,9 @@ typedef struct MG_Instance
 	MG_Audio audio_data;
 	MG_RenderData render_data;
 
+	SDL_Thread* event_thread;
+	SDL_Thread* logic_thread;
+	SDL_Thread* render_thread;
 	MG_GameDataLockOwner lock_owner;
 
 	int gl_error_code;

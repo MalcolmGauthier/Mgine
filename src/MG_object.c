@@ -1,6 +1,6 @@
 #include "MG_object.h"
 
-MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* name, uint32_t flags)
+MG_OBJ MG_object_create(const char* name, MG_OBJ parent, MG_ObjectFlags flags)
 {
 	MG_Object* object = calloc(1, sizeof(MG_Object));
 	if (!object)
@@ -10,61 +10,59 @@ MG_ID MG_object_create(MG_Instance* instance, MG_Object* parent, const char* nam
 		return 0;
 	}
 
-	object->instance = instance;
-	object->parent = parent;
+	object->parent = parent ? MG_object_ptr(parent) : NULL;
 	object->flags = flags;
-	object->name = MG_ID_get_id(name);
-	object->id = instance->game_data.next_object_id;
-	instance->game_data.next_object_id++;
+	object->name = MG_ID_hash_string(name);
+	object->id = MG_INSTANCE->game_data.next_object_id;
 
-	if (MG_LL_add(&instance->game_data.object_list, object))
+	if (MG_LL_add(&MG_INSTANCE->game_data.object_list, object))
 	{
 		printf("Failed to add object to instance object list\n");
 		free(object);
 		return 0;
 	}
 
-	instance->game_data.object_count++;
+	if (parent && MG_object_add_child(parent, object))
+	{
+		printf("Failed to add object to parent\n");
+		free(object);
+		MG_object_free(object);
+		return 0;
+	}
+
+	MG_INSTANCE->game_data.next_object_id++;
+	MG_INSTANCE->game_data.object_count++;
 	return object->id;
 }
 
-MG_ID MG_object_create_by_copy(MG_Object* object)
+MG_ID MG_object_create_by_copy(MG_OBJ src)
 {
-	if (!object)
+	if (!src)
 	{
 		printf("Failed to copy object: object is NULL\n");
 		return 0;
 	}
+	
+	MG_Object* src_obj = MG_object_ptr(instance, src);
+	MG_ID obj_id = MG_object_create(instance, src_obj->id, "", src_obj->flags);
+	MG_Object* obj = MG_object_ptr(instance, obj_id);
 
-	MG_ID obj_id = MG_object_create(object->instance, object->parent, "", object->flags);
-	MG_Object* obj = MG_object_get_by_id(object->instance, obj_id);
-
-	obj->name = object->name;
-	obj->children = MG_LL_copy(object->children, MG_object_create_tracked_copy);
+	obj->name = src_obj->name;
+	obj->children = MG_LL_copy(src_obj->children, MG_object_create_tracked_copy);
 	// can't use real copy function because that takes 2 params and LL_Copy only takes 1
-	obj->components = MG_LL_copy(object->components, MG_component_copy_untracked);
+	// thus, we need to manually set the component's owner to the new object
+	obj->components = MG_LL_copy(src_obj->components, MG_component_copy_untracked);
 	MG_Component_LL* c = obj->components;
 	while (c && c->data)
 	{
-		((MG_Component*)c->data)->owner = obj;
+		((MG_Component*)c->data)->id.owner = obj;
 		c = c->next;
 	}
 
 	return obj_id;
 }
 
-MG_ID MG_object_create_with_parent(MG_Object* parent_object, const char* name, uint32_t flags)
-{
-	if (!parent_object)
-	{
-		printf("Failed to create object: parent is NULL\n");
-		return 0;
-	}
-
-	return MG_object_create(parent_object->instance, parent_object, name, flags);
-}
-
-MG_Object* MG_object_create_untracked_copy(MG_Object* source)
+MG_Object* MG_object_create_untracked_copy(MG_OBJ source)
 {
 	if (!source)
 	{
@@ -79,9 +77,9 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* source)
 		return NULL;
 	}
 	memcpy_s(object, sizeof(MG_Object), source, sizeof(MG_Object));
-	object->instance = source->instance;
 	object->children = NULL;
 	object->components = NULL;
+	object->id = 0;
 
 	if (source->children)
 		object->children = MG_LL_copy(source->children, MG_object_create_untracked_copy);
@@ -99,19 +97,14 @@ MG_Object* MG_object_create_tracked_copy(MG_Object* source)
 		return NULL;
 	}
 	MG_ID obj_id = MG_object_create_by_copy(source);
-	return MG_object_get_by_id(source->instance, obj_id);
+	return MG_object_ptr(obj_id);
 }
 
 
-MG_Object* MG_object_get_by_id(MG_Instance* instance, MG_ID id)
+//TODO: it is of upmost importance to optimize this as much as possible.
+MG_Object* MG_object_ptr(MG_OBJ id)
 {
-	if (!instance)
-	{
-		printf("Failed to get object: instance is NULL\n");
-		return NULL;
-	}
-
-	MG_Object_LL* current = instance->game_data.object_list;
+	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
 	while (current)
 	{
 		if (((MG_Object*)current->data)->id == id)
@@ -125,22 +118,16 @@ MG_Object* MG_object_get_by_id(MG_Instance* instance, MG_ID id)
 	return NULL;
 }
 
-MG_Object* MG_object_get_by_name(MG_Instance* instance, const char* name)
+MG_OBJ MG_object_get_by_name(const char* name)
 {
-	if (!instance)
-	{
-		printf("Failed to get object: instance is NULL\n");
-		return NULL;
-	}
+	MG_NAME name_id = MG_ID_hash_string(name);
 
-	MG_ID name_id = MG_ID_get_id(name);
-
-	MG_Object_LL* current = instance->game_data.object_list;
+	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
 	while (current)
 	{
 		if (((MG_Object*)current->data)->name == name_id)
 		{
-			return current->data;
+			return ((MG_Object*)current->data)->id;
 		}
 		current = current->next;
 	}
@@ -149,27 +136,11 @@ MG_Object* MG_object_get_by_name(MG_Instance* instance, const char* name)
 	return NULL;
 }
 
-MG_Object_LL* MG_object_get_all(MG_Instance* instance)
+
+MG_Object_LL* MG_object_get_all_top_level()
 {
-	if (!instance)
-	{
-		printf("Failed to get all objects: instance is NULL\n");
-		return NULL;
-	}
-
-	return instance->game_data.object_list;
-}
-
-MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
-{
-	if (!instance)
-	{
-		printf("Failed to get top-level objects: instance is NULL\n");
-		return NULL;
-	}
-
 	MG_Object_LL* top_level_objects = NULL;
-	MG_Object_LL* current = instance->game_data.object_list;
+	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
 	while (current)
 	{
 		if (!((MG_Object*)current->data)->parent)
@@ -183,11 +154,13 @@ MG_Object_LL* MG_object_get_all_top_level(MG_Instance* instance)
 }
 
 
-int MG_object_add_child(MG_Object* parent, MG_Object* child)
+int MG_object_add_child(MG_OBJ parent_id, MG_OBJ child_id)
 {
+	MG_Object* parent = MG_object_ptr(parent_id);
+	MG_Object* child = MG_object_ptr(child_id);
 	if (!parent || !child)
 	{
-		printf("Failed to add child: parent or child is NULL\n");
+		printf("Failed to add child: parent or child does not exist\n");
 		return -1;
 	}
 
@@ -197,6 +170,7 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 	{
 		if (current->parent == child)
 		{
+			// say no to incest!
 			printf("Failed to add child: child is parent of new parent\n");
 			return -2;
 		}
@@ -207,7 +181,7 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 
 	if (child->parent)
 	{
-		MG_object_remove_child(child->parent, child->id);
+		MG_object_remove_child(child->parent->id, child->id);
 	}
 
 	child->parent = parent;
@@ -215,21 +189,50 @@ int MG_object_add_child(MG_Object* parent, MG_Object* child)
 	return 0;
 }
 
-int MG_object_remove_child(MG_Object* parent, MG_ID child_id)
+int MG_object_remove_child(MG_OBJ parent_id, MG_OBJ child_id)
 {
-	if (!parent)
+	MG_Object* child = MG_object_ptr(child_id);
+	MG_Object* parent = MG_object_ptr(parent_id);
+	if (!parent || !child)
 	{
-		printf("Failed to remove child: parent is NULL\n");
+		printf("Failed to remove child: parent/child does not exist\n");
 		return -1;
 	}
 
-	if (MG_LL_remove(&parent->children, MG_object_get_by_id(parent->instance, child_id)))
+	if (MG_LL_remove(&parent->children, child))
 		return 0;
 
 	printf("Failed to remove child with ID %u: not found\n", (uint32_t)child_id);
 	return -2;
 }
 
+
+MG_Component* MG_object_add_component(MG_OBJ object, MG_ID component_template, void* data)
+{
+	MG_ComponentTemplate* comp_template_ptr = MG_component_get_template_by_id(comp_template);
+
+	MG_Component* component = calloc(1, sizeof(comp_template_ptr->size));
+	if (!component)
+	{
+		printf("ERROR: out of memory, unable to allocate new component");
+		return NULL;
+	}
+
+	component->base = comp_template;
+
+	// copy everything except first 2 pointers
+	size_t offset = offsetof(MG_Component, flags);
+	size_t size = sizeof(comp_template_ptr->size) - offset;
+	if (size > 0 && data)
+		memcpy_s((char*)component + offset, size, (char*)data + offset, size);
+
+	MG_LL_add(&object->components, component);
+
+	if (component->base->on_create)
+		component->base->on_create(component);
+
+	return component;
+}
 
 MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* name)
 {
@@ -239,7 +242,7 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 		return NULL;
 	}
 
-	MG_ID id = MG_ID_get_id(name);
+	MG_ID id = MG_ID_hash_string(name);
 
 	MG_Component_LL* current = object->components;
 	while (current)
@@ -254,7 +257,7 @@ MG_Component* MG_object_get_component_by_name(MG_Object* object, const char* nam
 	return NULL;
 }
 
-MG_Component* MG_object_get_component_by_id(MG_Object* object, MG_ID component_id)
+MG_Component* MG_object_get_component(MG_Object* object, MG_ID component_id)
 {
 	if (!object)
 	{
@@ -375,19 +378,23 @@ void MG_object_free_components(MG_Object* object)
 }
 
 
-int MG_object_delete(MG_Instance* instance, MG_ID id)
+void MG_object_delete(MG_OBJ object)
 {
-	if (!instance)
-	{
-		printf("Failed to delete object: instance is NULL\n");
-		return -1;
-	}
+	MG_Object* obj = MG_object_ptr(object);
 
-	MG_Object* object = MG_object_get_by_id(instance, id);
+	if (obj)
+	{
+		obj->flags |= MG_OBJECT_FLAG_MARKED_FOR_DELETION;
+	}
+}
+
+// frees memory. not to be used during game runtime.
+int MG_object_free(MG_Object* object)
+{
 	if (!object)
 	{
-		printf("Failed to delete object with ID %u: not found\n", id);
-		return 1;
+		printf("Failed to delete null object\n");
+		return -1;
 	}
 
 	// delete children recursively
@@ -409,7 +416,14 @@ void MG_object_delete_by_ptr(MG_Object* object)
 		return;
 	}
 
-	MG_object_delete(object->instance, object->id);
+	// delete children recursively
+	MG_LL_free(&object->children, MG_object_delete_by_ptr);
+	// call on_destroy for all components
+	MG_LL_free(&object->components, MG_component_free);
+
+	if (MG_LL_remove(&object->instance->game_data.object_list, object))
+		object->instance->game_data.object_count--;
+	free(object);
 }
 
 int MG_object_delete_non_recursive(MG_Instance* instance, MG_ID id)

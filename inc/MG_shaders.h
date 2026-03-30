@@ -11,14 +11,16 @@
 extern "C" {
 #endif
 
-MG_API MG_Shader* MG_shader_create(MG_Instance* instance, const char* vertex_shader, const char* fragment_shader);
-MG_API MG_Shader* MG_shader_create_from_filepaths(MG_Instance* instance, const char* vertex_shader_path, const char* fragment_shader_path);
-MG_API int MG_shader_define(char** ptr_to_shader_file_text, int define_count, ...);
-MG_API int MG_shader_compile(MG_Shader* shader);
+//TODO: does the user need to see all the functions that call opengl? it wouldnt do anything, since the gl instance is bound to the render thread.
+
+MG_API MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shader);
+MG_API MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const char* fragment_shader_path);
+MG_API int MG_shader_define(char** ptr_to_shader_code, int define_count, ...);
+MG_API int MG_shader_compile(MG_SHADER shader);
 MG_API void MG_shader_use(MG_Shader* shader);
 MG_API void MG_shader_free(MG_Shader* shader);
 
-MG_API int MG_material_register_variable(MG_Material* material, const char* name, GLenum type, uint32_t offset_in_material);
+MG_API int MG_material_register_variable(MG_MATERIAL material, const char* name, GLenum type, uint32_t offset_in_material);
 MG_API void MG_material_free(MG_Material* material);
 
 MG_API void MG_shader_set_int(MG_Shader* shader, const char* name, int value);

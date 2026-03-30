@@ -20,7 +20,7 @@ extern "C" {
 #define HAUTEUR_DEFAUT 10.0f
 #define ESPACE_DEFAUT 3.0f
 
-MG_API void MG_debug_panic_text(MG_Instance* instance, char* text, MG_Vec2 position, float size, uint32_t color_rgba);
+MG_API void MG_debug_panic_text(const char* text, MG_Vec2 position, float size, uint32_t color_rgba);
 
 #ifdef __cplusplus
 }

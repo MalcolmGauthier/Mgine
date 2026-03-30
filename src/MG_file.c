@@ -24,7 +24,6 @@
 
 #define MG_PATH_MAX 1024
 
-// triple pointer is ugly, but it's a reference to a dynamic array of pointers.
 int MG_asset_add(void*** asset_list_ref, uint32_t* asset_count_ref, void* asset)
 {
 	if (!asset_list_ref || !asset_count_ref || !asset)
@@ -291,7 +290,7 @@ static void MG_load_shaders(FILE* file, MG_Instance* instance, char** shader_cod
 		}
 
 		if (MG_shader_compile(shader))
-			shader->ID = 0;
+			shader->GL_id = 0;
 	}
 }
 
@@ -356,7 +355,7 @@ static void** MG_load_asset_list(FILE* file, uint32_t asset_count, size_t asset_
 		current_asset += asset_size;
 	}
 
-	return asset_list;
+	return &asset_list;
 }
 
 static void MG_load_materials(FILE* file, MG_Instance* instance, uint32_t material_count)
@@ -558,7 +557,7 @@ static void MG_load_objects(FILE* file, MG_Instance* instance, MG_Object* parent
 		}
 		fread(name, sizeof(char), prefab_name_len, file);
 		name[prefab_name_len] = '\0';
-		prefab->id = MG_ID_get_id(name);
+		prefab->id = MG_ID_hash_string(name);
 
 		fread(&prefab->flags, sizeof(uint32_t), 1, file);
 
@@ -646,7 +645,7 @@ static void MG_load_scenes(FILE* file, MG_Instance* instance, uint16_t scene_cou
 		}
 		fread(name, sizeof(char), scene_name_len, file);
 		name[scene_name_len] = '\0';
-		scene->id = MG_ID_get_id(name);
+		scene->id = MG_ID_hash_string(name);
 		
 		MG_load_objects(file, instance, NULL, &scene->objects);
 

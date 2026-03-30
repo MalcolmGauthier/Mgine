@@ -12,7 +12,7 @@ typedef struct MG_MaterialShaderVariable
 }
 MG_MaterialShaderVariable;
 
-//typedef MG_Generic_LL MG_MaterialShaderVariable_LL;
+typedef MG_ID MG_MATERIAL;
 
 typedef struct MG_Material
 {
@@ -22,6 +22,7 @@ typedef struct MG_Material
 
 	bool contains_transparency;
 
+	MG_MATERIAL id;
 	struct MG_Shader* shader;
 	uint32_t shader_variable_count;
 	MG_MaterialShaderVariable* shader_variables;

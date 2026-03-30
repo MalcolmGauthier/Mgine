@@ -26,8 +26,6 @@ typedef MG_Generic_LL MG_SFX_LL;
 // all the audio info, part of an instance
 typedef struct MG_Audio
 {
-	struct MG_Instance* instance;
-
 	struct MG_Sound* music_sound;
 	struct MG_Sound* cued_music_sound;
 	Mix_Music* music;
@@ -45,12 +43,14 @@ typedef struct MG_Audio
 }
 MG_Audio;
 
+typedef MG_ID MG_SOUND;
+
 // data for a sound file
 typedef struct MG_Sound
 {
 	MG_Asset base;
 
-	MG_ID id;
+	MG_SOUND id;
 	int (*update)(struct MG_Audio* audio, struct MG_Sound* self);
 }
 MG_Sound;

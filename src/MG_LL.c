@@ -75,7 +75,7 @@ void* MG_LL_find(MG_Generic_LL* head, void* find)
 void* MG_LL_find_func(MG_Generic_LL* head, void* find, bool (*find_func)(void* data, void* find))
 {
     if (!find_func)
-		return NULL;
+		return MG_LL_find(head, find);
 
     MG_Generic_LL* current = head;
     while (current)

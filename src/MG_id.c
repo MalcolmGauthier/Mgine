@@ -1,6 +1,6 @@
 #include "MG_id.h"
 
-uint32_t MG_ID_get_id(const char* name)
+MG_NAME MG_ID_hash_string(const char* name)
 {
 	if (!name)
 	{
