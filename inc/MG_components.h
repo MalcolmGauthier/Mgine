@@ -3,7 +3,7 @@
 #include "MG_include.h"
 #include "MG_transform.h"
 #include "MG_object.h"
-#include "MG_id.h"
+#include "MG_hash.h"
 
 #ifdef __cplusplus
 extern "C" {

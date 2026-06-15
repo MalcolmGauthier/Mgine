@@ -61,11 +61,11 @@ int MG_init()
     // The event thread handles I/O. It responds to window events and any keyboard/mouse/controller inputs.
     // The logic thread runs the game's logic. By default it runs at 60 ticks per second.
     // The render thread renders the game to the screen at a rate hopefully higher than that of the logic thread, using interpolation.
-    MG_INSTANCE->event_thread = SDL_CreateThread(MG_window_loop, "MGine WindowEvents", MG_INSTANCE);
-    MG_INSTANCE->logic_thread = SDL_CreateThread(MG_logic_loop, "MGine Logic", MG_INSTANCE);
+    MG_INSTANCE->event_thread = SDL_CreateThread((SDL_ThreadFunction)MG_window_loop, "MGine WindowEvents", MG_INSTANCE);
+    MG_INSTANCE->logic_thread = SDL_CreateThread((SDL_ThreadFunction)MG_logic_loop, "MGine Logic", MG_INSTANCE);
     if (!MG_W_NO_WINDOW)
-        MG_INSTANCE->render_thread = SDL_CreateThread(MG_render_loop, "MGine Rendering", MG_INSTANCE);
-
+        MG_INSTANCE->render_thread = SDL_CreateThread((SDL_ThreadFunction)MG_render_loop, "MGine Rendering", MG_INSTANCE);
+    
     MG_INSTANCE->rendering_enabled = !MG_W_NO_WINDOW;
     MG_INSTANCE->initialized = true;
 
@@ -118,7 +118,7 @@ void MG_ready()
 		SDL_Delay(1);
 }
 
-void MG_quit()
+void MG_quit(void)
 {
     if (!MG_INSTANCE)
         return;
@@ -133,7 +133,7 @@ void MG_quit()
     timeEndPeriod(1);
     MG_instance_free();
     SDL_Quit();
-    return 0;
+    return;
 }
 
 // Initializes SDL and creates a window with an OpenGL context.
@@ -228,15 +228,27 @@ static void MG_instance_init()
 	if (!MG_INSTANCE)
 		return;
 
+    int error = 0;
+
+    //TODO: make bucket counts be engine options
+	error += MG_hashmap_init(&MG_INSTANCE->shader_list.assets, 32);
+	error += MG_hashmap_init(&MG_INSTANCE->material_list.assets, 128);
+	error += MG_hashmap_init(&MG_INSTANCE->prefab_list.assets, 128);
+	error += MG_hashmap_init(&MG_INSTANCE->scene_list.assets, 8);
+
+	error += MG_hashmap_init(&MG_INSTANCE->model_list.assets, 256);
+	error += MG_hashmap_init(&MG_INSTANCE->texture_list.assets, 256);
+	error += MG_hashmap_init(&MG_INSTANCE->sound_list.assets, 256);
+
+	error += MG_hashmap_init(&MG_INSTANCE->component_template_list.assets, 32);
+	error += MG_hashmap_init(&MG_INSTANCE->string_list.assets, 64);
+
     MG_INSTANCE->window_data.width = MG_W_WIDTH;
     MG_INSTANCE->window_data.height = MG_W_HEIGHT;
     MG_INSTANCE->window_data.windowed_mode = true;
     MG_INSTANCE->window_data.focused = true;
 
-    MG_INSTANCE->game_data.tickrate = MG_L_TRICKRATE;
     MG_INSTANCE->game_data.global_timer = 0;
-    MG_INSTANCE->game_data.next_object_id = 1;
-    MG_INSTANCE->game_data.object_count = 0;
     MG_INSTANCE->game_data.object_list = NULL;
 
     extern MG_Audio* mg_audio;
@@ -248,7 +260,8 @@ static void MG_instance_init()
 
     MG_INSTANCE->render_data.transparency_list = NULL;
 
-    MG_INSTANCE->active = true;
+    if (!error)
+        MG_INSTANCE->active = true;
     // instance_id CANNOT be an MG_ID, because this function adds in a 64bit number, which would overflow onto another struct field.
     // learned this the hard way...
     QueryPerformanceCounter((LARGE_INTEGER*)&MG_INSTANCE->instance_id);
@@ -264,31 +277,18 @@ static void MG_instance_free()
     MG_logic_free(&instance_data.game_data);
     MG_audio_free(&instance_data.audio_data);
 	MG_render_free(&instance_data.render_data);
-	MG_LL_free(&instance_data.component_list, NULL);
 
-    for (uint32_t i = 0; i < instance_data.shader_count; i++)
-		MG_shader_free(instance_data.shader_list[i]);
-	for (uint32_t i = 0; i < instance_data.material_count; i++)
-		MG_material_free(instance_data.material_list[i]);
-    for (uint32_t i = 0; i < instance_data.prefab_count; i++)
-		MG_object_free_prefab(instance_data.prefab_list[i]);
-	for (uint32_t i = 0; i < instance_data.scene_count; i++)
-        MG_scene_free(instance_data.scene_list[i]);
+    MG_hashmap_free(&instance_data.shader_list.assets, MG_shader_free);
+    MG_hashmap_free(&instance_data.material_list.assets, MG_material_free);
+    MG_hashmap_free(&instance_data.prefab_list.assets, MG_object_free_prefab);
+    MG_hashmap_free(&instance_data.scene_list.assets, MG_scene_free);
 
-    for (uint32_t i = 0; i < instance_data.model_count; i++)
-        MG_model_free(instance_data.model_list[i]);
-    for (uint32_t i = 0; i < instance_data.texture_count; i++)
-        MG_texture_free(instance_data.texture_list[i]);
-    for (uint32_t i = 0; i < instance_data.sound_count; i++)
-        MG_sound_free(instance_data.sound_list[i]);
+    MG_hashmap_free(&instance_data.model_list.assets, MG_model_free);
+    MG_hashmap_free(&instance_data.texture_list.assets, MG_texture_free);
+    MG_hashmap_free(&instance_data.sound_list.assets, MG_sound_free);
 
-    free(instance_data.shader_list);
-    free(instance_data.material_list);
-    free(instance_data.prefab_list);
-    free(instance_data.scene_list);
-    free(instance_data.model_list);
-    free(instance_data.texture_list);
-	free(instance_data.sound_list);
+	MG_hashmap_free(&instance_data.component_template_list.assets, MG_component_template_free);
+	MG_hashmap_free(&instance_data.string_list.assets, MG_string_free);
 
     instance_data.active = false;
 	instance_data.initialized = false;

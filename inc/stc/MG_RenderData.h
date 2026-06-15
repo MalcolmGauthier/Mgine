@@ -1,9 +1,10 @@
 #pragma once
 
 #include "stc/MG_Shader.h"
+#include "stc/MG_Transform.h"
 
-typedef MG_Generic_LL MG_Mesh_LL;
-typedef MG_Generic_LL MG_TransparentDraw_LL;
+typedef MG_LinkedList MG_Mesh_LL;
+typedef MG_LinkedList MG_TransparentDraw_LL;
 
 typedef struct MG_RenderData
 {

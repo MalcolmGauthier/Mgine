@@ -13,28 +13,20 @@ MG_ComponentTemplate* MG_component_register(size_t struct_size, const char* name
 		return NULL;
 	}
 
-	comp_template->id = MG_ID_hash_string(name);
+	comp_template->id = MG_id_hash_string(name);
 	comp_template->on_create = on_create;
 	comp_template->on_tick = on_update;
 	comp_template->on_destroy = on_destroy;
 	comp_template->size = struct_size;
 
-	if (MG_INSTANCE->component_list)
+	if (MG_hashmap_get(MG_INSTANCE->component_template_list.assets, comp_template->id))
 	{
-		MG_ComponentTemplate_LL* temp_ll = MG_INSTANCE->component_list;
-		while (temp_ll)
-		{
-			if (((MG_ComponentTemplate*)temp_ll->data)->id == comp_template->id)
-			{
-				printf("ERROR: component with name '%s' already registered\n", name);
-				free(comp_template);
-				return NULL;
-			}
-			temp_ll = temp_ll->next;
-		}
+		printf("ERROR: component with name '%s' already registered\n", name);
+		free(comp_template);
+		return NULL;
 	}
 
-	MG_LL_add(&MG_INSTANCE->component_list, comp_template);
+	MG_asset_add(&MG_INSTANCE->component_template_list, comp_template);
 	
 	return comp_template;
 }
@@ -55,43 +47,36 @@ void MG_initialize_components()
 
 MG_ComponentTemplate* MG_component_get_template_ptr(MG_ID id)
 {
-	MG_ComponentTemplate_LL* temp_ll = MG_INSTANCE->component_list;
-	while (temp_ll)
-	{
-		MG_ComponentTemplate* temp = (MG_ComponentTemplate*)temp_ll->data;
-		if (temp->id == id)
-			return temp;
-		temp_ll = temp_ll->next;
-	}
-	return NULL;
+	return MG_hashmap_get(MG_INSTANCE->component_template_list.assets, id);
 }
 
 MG_ComponentTemplate* MG_component_get_template_by_name(const char* name)
 {
-	MG_ID id = MG_ID_hash_string(name);
+	MG_ID id = MG_id_hash_string(name);
 	return MG_component_get_template_ptr(id);
 }
 
 
-MG_Component* MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_parent)
+MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_parent)
 {
 	// dst_parent allowed to be null for untracked copies
 	MG_Component* src_comp = MG_object_get_component(src);
 	if (!src_comp)
 	{
 		printf("Failed to create component copy: source/parent is NULL\n");
-		return NULL;
+		return (MG_ComponentInstanceID){ 0 };
 	}
 
-	// msize is windows-specific, but who tf cares. id rather be vendor locked than trust the template size
-	MG_Component* dst_comp = calloc(1, _msize(src_comp));
+	// msize is windows-specific, but idc. id rather be vendor locked than trust the template size
+	size_t comp_size = _msize(src_comp);
+	MG_Component* dst_comp = calloc(1, comp_size);
 	if (!dst_comp)
 	{
 		printf("Failed to allocate memory for component copy\n");
-		return NULL;
+		return (MG_ComponentInstanceID){ 0 };
 	}
 
-	memcpy(dst_comp, src_comp, _msize(src_comp));
+	memcpy(dst_comp, src_comp, comp_size);
 
 	if (dst_parent)
 	{
@@ -99,25 +84,26 @@ MG_Component* MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_parent)
 		MG_LL_add(&obj->components, dst_comp);
 	}
 	dst_comp->id.owner = dst_parent;
-	return dst_comp;
+	return dst_comp->id;
 }
 
-// ???????????
-//MG_Component* MG_component_copy_untracked(MG_ComponentInstanceID source)
-//{
-//	return MG_component_create(source, NULL);
-//}
+// used for MG_LL generic copy functions
+MG_Component* MG_component_copy_untracked(MG_Component* source)
+{
+	return MG_component_get(MG_component_copy(source->id, 0));
+}
 
 
 void MG_component_free(MG_Component* component)
 {
 	if (!component) return;
 
-	if (component->base->on_destroy)
+	// run destroy code on free, but no use running code if the game is shutting down
+	if (component->base->on_destroy && MG_INSTANCE->active)
 	{
 		component->base->on_destroy(component);
 	}
 
-	// also frees extra data used by component
+	// frees extra data used by component
 	free(component);
 }

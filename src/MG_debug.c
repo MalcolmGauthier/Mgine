@@ -284,7 +284,7 @@ static int16_t GetListEntry(char c)
 	return 0;
 }
 
-void MG_debug_panic_text(char* text, MG_Vec2 position, float size, uint32_t color_rgba)
+void MG_debug_panic_text(const char* text, MG_Vec2 position, float size, uint32_t color_rgba)
 {
 	size_t strlen = SDL_strlen(text);
 

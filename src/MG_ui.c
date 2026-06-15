@@ -1,13 +1,13 @@
 #include "MG_ui.h"
 
-MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color)
+MG_TEXTURE MG_UI_texture_from_text(const char* font_name, const wchar_t* text, int font_size, MG_FontStyle font_style, MG_Vec4 color)
 {
     if (!font_name || !text)
-        return NULL;
+        return 0;
 
     TTF_Font* font = TTF_OpenFont(MG_UI_find_font_file_windows(font_name), font_size);
     if (!font)
-        return NULL;
+        return 0;
 
     TTF_SetFontStyle(font, font_style);
 
@@ -17,7 +17,7 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
     if (!utf8)
     {
         TTF_CloseFont(font);
-        return NULL;
+        return 0;
     }
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, utf8, sdl_color);
     free(utf8);
@@ -25,7 +25,7 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
     if (!surface)
     {
         TTF_CloseFont(font);
-        return NULL;
+        return 0;
     }
 
     // create managed texture struct and manually set its data
@@ -33,12 +33,12 @@ MG_Texture* MG_UI_texture_from_text(const char* font_name, const wchar_t* text, 
     tex->base.asset_file_data = surface->pixels;
 	tex->base.asset_file_size = (size_t)surface->w * (size_t)surface->h * surface->format->BytesPerPixel;
     if (MG_texture_load(tex))
-        return NULL;
+        return 0;
 
     SDL_FreeSurface(surface);
     TTF_CloseFont(font);
 
-    return tex;
+    return tex->id;
 }
 
 char* MG_UI_find_font_file_windows(const char* font_name)

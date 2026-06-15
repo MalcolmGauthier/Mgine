@@ -3,7 +3,7 @@
 #include "MG_LL.h"
 #include "MG_Transform.h"
 #include "MG_Asset.h"
-#include "MG_id.h"
+#include "MG_hash.h"
 
 // a loaded (or intended to be loaded) sound effect
 typedef struct MG_SFX
@@ -21,7 +21,7 @@ typedef struct MG_SFX
 }
 MG_SFX;
 
-typedef MG_Generic_LL MG_SFX_LL;
+typedef MG_LinkedList MG_SFX_LL;
 
 // all the audio info, part of an instance
 typedef struct MG_Audio

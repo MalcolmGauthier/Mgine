@@ -34,7 +34,7 @@ MG_TEXTURE MG_texture_init(const char* path)
 MG_TEXTURE MG_texture_init_raw()
 {
 	MG_TEXTURE t = MG_texture_init_MGA(NULL, 0);
-	MG_Texture* tex = MG_texture_ptr();
+	MG_Texture* tex = MG_texture_ptr(t);
 	if (tex) tex->base.loaded = true;
 	return tex ? tex->id : 0;
 }
@@ -42,10 +42,10 @@ MG_TEXTURE MG_texture_init_raw()
 MG_TEXTURE MG_texture_init_MGA(const char* path, int32_t index_in_file)
 {
 	MG_Texture* texture = calloc(1, sizeof(MG_Texture));
-	if (!texture || MG_asset_add(&MG_INSTANCE->texture_list, &MG_INSTANCE->texture_count, texture))
+	if (!texture || MG_asset_add(&MG_INSTANCE->texture_list, texture))
 	{
 		printf("Failed to allocate memory for new texture metadata\n");
-		return NULL;
+		return 0;
 	}
 
 	texture->base.path = (char*)path;
@@ -53,6 +53,11 @@ MG_TEXTURE MG_texture_init_MGA(const char* path, int32_t index_in_file)
 	texture->GL_id = 0;
 
 	return texture->id;
+}
+
+MG_Texture* MG_texture_ptr(MG_TEXTURE id)
+{
+	return MG_hashmap_get(MG_INSTANCE->texture_list.assets, id);
 }
 
 int MG_texture_load(MG_Texture* texture)

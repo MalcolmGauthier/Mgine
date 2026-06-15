@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_file.h"
+#include "MG_asset.h"
 #include "stc/MG_Model.h"
 // assimp c++ stuff breaks cuz of windows minmax macros
 #undef min

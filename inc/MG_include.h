@@ -48,6 +48,9 @@ struct MG_Instance* MG_INSTANCE;
 #define instance MG_INSTANCE
 #endif
 
+typedef uint32_t MG_ID;
+typedef uint32_t MG_NAME;
+
 ///////////////////////////////
 // ENGINE SETTINGS
 

@@ -1,12 +1,14 @@
 #include "MG_logic.h"
 
 // The main logic loop of the game engine
-int MG_logic_loop()
+int MG_logic_loop(void* instance)
 {
+	UNUSED(instance)
+
 	MG_GameData* game_data = &MG_INSTANCE->game_data;
 
-	if (game_data->tickrate > 0)
-		game_data->delta_time = 1.0f / game_data->tickrate;
+	if (MG_L_TRICKRATE > 0)
+		game_data->delta_time = 1.0f / MG_L_TRICKRATE;
 	else
 		game_data->delta_time = FLT_EPSILON;
 
@@ -74,9 +76,9 @@ int MG_logic_loop()
 
 		current_time = SDL_GetPerformanceCounter();
 
-		if (game_data->tickrate > 0)
+		if (MG_L_TRICKRATE > 0)
 		{
-			int64_t counter_ticks_per_game_tick = timer_frequency / game_data->tickrate;
+			int64_t counter_ticks_per_game_tick = timer_frequency / MG_L_TRICKRATE;
 			// can't use unsigned here, because it causes underflow
 			int64_t time_remaining = counter_ticks_per_game_tick - (current_time - last_tick_time);
 			
@@ -107,5 +109,5 @@ void MG_logic_free(MG_GameData* game_data)
 		return;
 
 	extern void MG_object_free(MG_Object * object);
-	MG_LL_free(&game_data->object_list, MG_object_free);
+	MG_hashmap_free(&game_data->object_list->assets, MG_object_free);
 }

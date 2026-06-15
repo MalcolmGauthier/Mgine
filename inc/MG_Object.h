@@ -4,6 +4,7 @@
 #include "stc/MG_object.h"
 #include "MG_components.h"
 #include "MG_transform.h"
+#include "MG_asset.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +38,7 @@ MG_API MG_OBJ_ARRAY MG_object_get_all_with_component_flags(MG_ObjectFlags flags)
 MG_API int MG_object_add_child(MG_OBJ parent, MG_OBJ child);
 MG_API int MG_object_remove_child(MG_OBJ parent, MG_OBJ child_id);
 
-MG_API int MG_object_add_component(MG_OBJ object, const char* component_name);
+MG_API MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, const char* component_name);
 MG_API int MG_object_remove_component(MG_OBJ object, MG_ID type);
 
 MG_API MG_Component* MG_object_get_component(MG_ComponentInstanceID component_id);

@@ -4,7 +4,7 @@
 #include "MG_window.h"
 #include "MG_logic.h"
 #include "MG_render.h"
-#include "MG_file.h"
+#include "MG_asset.h"
 #include "MG_audio.h"
 #include "MG_scene.h"
 #include "MG_model.h"

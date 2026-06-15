@@ -14,9 +14,8 @@ extern "C" {
 
 //TODO: make ALL these hidden to the public. the horror!
 
-// takes in pointer to asset list in MG_Instance struct, pointer to the count of that asset list, and pointer to asset to add
-// triple pointer is ugly, but it's a reference to a dynamic array of pointers.
-MG_API int MG_asset_add(void*** asset_list_ref, uint32_t* asset_count_ref, void* asset);
+// takes in pointer to asset list in MG_Instance struct, and pointer to asset to add
+MG_API MG_ID MG_asset_add(struct MG_AssetList* asset_list, void* asset);
 
 // pass NULL as file to open new file descriptor
 MG_API byte* MG_asset_load(FILE* file, MG_Asset* asset);

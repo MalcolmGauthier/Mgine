@@ -1,10 +1,8 @@
 #include "MG_camera.h"
 
-MG_Camera MG_camera_init(float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
+void MG_camera_init(float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
 {
-	MG_Camera output = { 0 };
-	MG_camera_set_perspective(&output, FOV, screen_width, screen_height, near_clip, far_clip);
-	return output;
+	MG_camera_set_perspective(FOV, screen_width, screen_height, near_clip, far_clip);
 }
 
 MG_Vec3 MG_camera_get_world_position()
@@ -33,12 +31,8 @@ MG_Vec3 MG_camera_get_world_rotation()
     if (!camera->focus)
 		return result;
 
-    MG_Object* obj = MG_object_ptr(camera->focus);
-    if (!obj)
-		return result;
-
     MG_Vec3 cam_pos = MG_camera_get_world_position();
-    MG_Vec3 world_pos = MG_object_get_world_position(obj);
+    MG_Vec3 world_pos = MG_object_get_world_position(camera->focus);
     vec3 diff = {
         world_pos.x - cam_pos.x,
         world_pos.y - cam_pos.y,
@@ -82,8 +76,9 @@ MG_Matrix MG_camera_get_view_matrix(MG_GameData* game_data)
     return view;
 }
 
-void MG_camera_set_perspective(MG_Camera* camera, float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
+void MG_camera_set_perspective(float FOV, float screen_width, float screen_height, float near_clip, float far_clip)
 {
+	MG_Camera* camera = &MG_INSTANCE->game_data.camera;
 	camera->fov = FOV;
 	if (screen_height == 0) screen_height = 1;
 	camera->screen_width = screen_width;
@@ -104,8 +99,9 @@ void MG_camera_set_perspective(MG_Camera* camera, float FOV, float screen_width,
 	glm_perspective(glm_rad(FOV), screen_width / screen_height, near_clip, far_clip, (vec4*)&camera->projection_matrix);
 }
 
-void MG_camera_set_orthographic(MG_Camera* camera, float left, float right, float bottom, float top, float near_clip, float far_clip)
+void MG_camera_set_orthographic(float left, float right, float bottom, float top, float near_clip, float far_clip)
 {
+	MG_Camera* camera = &MG_INSTANCE->game_data.camera;
 	camera->fov = 0.0f;
 	camera->screen_width = right - left;
 	camera->screen_height = top - bottom;

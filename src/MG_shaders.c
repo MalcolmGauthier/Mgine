@@ -4,7 +4,7 @@ MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shade
 {
 	MG_Shader* shader = calloc(1, sizeof(MG_Shader));
 	// returns error code if shader is null
-	if (MG_asset_add(&MG_INSTANCE->shader_list, &MG_INSTANCE->shader_count, shader))
+	if (MG_asset_add(&MG_INSTANCE->shader_list, shader))
 	{
 		printf("Failed to add shader to instance shader list.\n");
 		free(shader);
@@ -237,6 +237,17 @@ int MG_shader_compile(MG_SHADER shader_id)
 	free(shader->fragment_shader_code);
 	shader->status = MG_SHADER_STATUS_OK;
 	return 0;
+}
+
+MG_Shader* MG_shader_ptr(MG_SHADER shader_id)
+{
+	MG_Shader* shader = MG_hashmap_get(&MG_INSTANCE->shader_list.assets, shader_id);
+	if (!shader)
+	{
+		printf("Failed to get shader pointer: shader is NULL\n");
+		return NULL;
+	}
+	return shader;
 }
 
 

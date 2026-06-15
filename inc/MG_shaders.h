@@ -4,7 +4,7 @@
 #include "stc/MG_Shader.h"
 #include "stc/MG_Transform.h"
 #include "stc/MG_Material.h"
-#include "MG_file.h"
+#include "MG_asset.h"
 #include "MG_LL.h"
 
 #ifdef __cplusplus
@@ -17,6 +17,7 @@ MG_API MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragmen
 MG_API MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const char* fragment_shader_path);
 MG_API int MG_shader_define(char** ptr_to_shader_code, int define_count, ...);
 MG_API int MG_shader_compile(MG_SHADER shader);
+MG_API MG_Shader* MG_shader_ptr(MG_SHADER shader_id);
 MG_API void MG_shader_use(MG_Shader* shader);
 MG_API void MG_shader_free(MG_Shader* shader);
 

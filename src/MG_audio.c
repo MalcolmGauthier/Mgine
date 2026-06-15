@@ -1,6 +1,6 @@
 #include "MG_audio.h"
 
-static MG_Sound* MG_audio_get_sound(const char* sfx_name);
+static MG_Sound* MG_audio_get_asset_from_name(const char* sfx_name);
 static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* position_ref);
 static int MG_audio_load_sfx(MG_SOUND sfx);
 static inline void MG_audio_start_sfx(MG_SOUND sfx);
@@ -13,7 +13,7 @@ int MG_audio_play_sfx(const char* sfx_name)
 		return -1;
 	}
 
-	MG_Sound* sound = MG_audio_get_sound(sfx_name);
+	MG_Sound* sound = MG_audio_get_asset_from_name(sfx_name);
 	if (!sound)
 	{
 		printf("Error: Cannot play sound. SFX '%s' not found.\n", sfx_name);
@@ -21,7 +21,7 @@ int MG_audio_play_sfx(const char* sfx_name)
 	}
 	
 	//TODO: rename to create/add when cache added
-	MG_SFX* sfx = MG_audio_create_sfx(sound, (MG_Vec3){0}, MG_INSTANCE->audio_data.ears);
+	MG_SFX* sfx = MG_audio_create_sfx(sound->id, (MG_Vec3){0}, MG_INSTANCE->audio_data.ears);
 	if (!sfx)
 	{
 		printf("Error: Cannot play sound. Failed to create SFX for '%s'.\n", sfx_name);
@@ -32,7 +32,7 @@ int MG_audio_play_sfx(const char* sfx_name)
 	return 0;
 }
 
-static MG_Sound* MG_audio_get_sound(const char* sfx_name)
+static MG_Sound* MG_audio_get_asset_from_name(const char* sfx_name)
 {
 	if (!sfx_name)
 	{
@@ -40,7 +40,7 @@ static MG_Sound* MG_audio_get_sound(const char* sfx_name)
 		return NULL;
 	}
 
-	MG_ID id = MG_ID_hash_string(sfx_name);
+	MG_ID id = MG_id_hash_string(sfx_name);
 	//TODO: implement caching
 	for (uint32_t i = 0; i < MG_INSTANCE->sound_count; i++)
 	{
@@ -77,7 +77,7 @@ static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* po
 	sfx->position = position;
 	sfx->position_ref = position_ref;
 
-	MG_asset_add(&MG_INSTANCE->sound_list, &MG_INSTANCE->sound_count, sound);
+	MG_LL_add(&MG_INSTANCE->audio_data.sfx_list, sfx);
 
 	if (!sound->base.asset_file_loaded || !sound->base.loaded)
 	{
@@ -91,8 +91,9 @@ static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* po
 	return sfx;
 }
 
-static int MG_audio_load_sfx(MG_SOUND sfx)
+static int MG_audio_load_sfx(MG_SOUND sound)
 {
+	MG_SFX* sfx = MG_sound_ptr(sound);
 	if (!sfx)
 	{
 		printf("Error: Cannot get SFX. SFX is NULL.\n");

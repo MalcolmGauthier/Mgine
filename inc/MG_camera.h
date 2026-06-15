@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-MG_API MG_Camera MG_camera_init(float FOV, float screen_width, float screen_height, float near_clip, float far_clip);
+MG_API void MG_camera_init(float FOV, float screen_width, float screen_height, float near_clip, float far_clip);
 MG_API MG_Matrix MG_camera_get_view_matrix(MG_GameData* game_data);
 
 MG_API MG_Camera* MG_camera_get();

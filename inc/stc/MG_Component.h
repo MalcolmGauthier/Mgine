@@ -2,7 +2,7 @@
 
 #include "stc/MG_Transform.h"
 #include "stc/MG_Model.h"
-#include "MG_id.h"
+#include "MG_hash.h"
 
 typedef enum
 {
@@ -48,7 +48,7 @@ typedef struct MG_ComponentTemplate
 }
 MG_ComponentTemplate;
 
-typedef MG_Generic_LL MG_ComponentTemplate_LL;
+typedef MG_LinkedList MG_ComponentTemplate_LL;
 
 
 #ifdef __cplusplus

@@ -16,13 +16,13 @@ MG_MODEL MG_model_init_raw()
 MG_MODEL MG_model_init_MGA(const char* path, int32_t index_in_file)
 {
     if (!path)
-		return NULL;
+		return 0;
 
     MG_Model* model = calloc(1, sizeof(MG_Model*));
     if (!model)
     {
         printf("Failed to allocate memory for model.\n");
-        return NULL;
+        return 0;
 	}
 
 	char* path_mem = malloc(strlen(path) + 1);
@@ -30,31 +30,32 @@ MG_MODEL MG_model_init_MGA(const char* path, int32_t index_in_file)
     {
         printf("Failed to allocate memory for model path.\n");
         free(model);
-        return NULL;
+        return 0;
 	}
 
-    if (MG_asset_add(&MG_INSTANCE->model_list, &MG_INSTANCE->model_count, model))
+    if (MG_asset_add(&MG_INSTANCE->model_list, model))
     {
         printf("Failed to add shader to instance shader list.\n");
         free(model);
 		free(path_mem);
-        return NULL;
+        return 0;
     }
 
 	model->base.path = path_mem;
     model->base.index_in_file = index_in_file;
 
-    return model;
+    return model->id;
 }
 
-int MG_model_load(MG_MODEL model)
+int MG_model_load(MG_MODEL model_id)
 {
+    MG_Model* model = MG_model_ptr(model_id);
     if (!model)
         return -1;
 
     const struct aiScene* scene = aiImportFileFromMemory(
         (const char*)model->base.asset_file_data,
-        (uint32_t)model->base.asset_file_size,
+        (unsigned int)model->base.asset_file_size,
         aiProcess_Triangulate |
         aiProcess_GenNormals |
         aiProcess_CalcTangentSpace |
@@ -171,8 +172,9 @@ fail:
     return -2;
 }
 
-void MG_model_enable(MG_MODEL model, bool static_model)
+void MG_model_enable(MG_MODEL model_id, bool static_model)
 {
+    MG_Model* model = MG_model_ptr(model_id);
     if (!model || !model->meshes)
     {
 		printf("MG_model_enable: model is NULL, empty or uninitialized\n");

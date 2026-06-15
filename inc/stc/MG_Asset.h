@@ -1,6 +1,8 @@
 #pragma once
 #include "MG_include.h"
 
+// ALL DYNAMICALLY-LOADED ASSETS MUST HAVE THIS AS THEIR FIRST STRUCT MEMBER.
+// type casting used when loading assets from file.
 typedef struct MG_Asset
 {
 	// copy of the data from the asset file
@@ -18,3 +20,9 @@ typedef struct MG_Asset
 	int32_t index_in_file;
 }
 MG_Asset;
+
+struct MG_AssetList
+{
+	MG_ID next_id;
+	struct MG_Hashmap* assets;
+};

@@ -4,8 +4,10 @@ static int MG_window_event_parse(SDL_WindowEvent window_event);
 static int MG_key_event_parse(SDL_Scancode key_code, bool toggle);
 static void MG_mouse_button_event_parse(SDL_MouseButtonEvent button_event, bool toggle);
 
-int MG_window_loop()
+int MG_window_loop(void* instance)
 {
+	UNUSED(instance)
+
 	// default exit info. If these values are not altered, the loop was ended by another thread.
 	int exit_code = 0;
 	const char* exit_type = "REQUESTED BY ANOTHER THREAD";

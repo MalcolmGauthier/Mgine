@@ -13,8 +13,10 @@ static void MG_render_WBOIT_composite();
 
 // The main render loop of the game engine. This renders the game objects to the screen.
 // It iterates down the component tree of each object and renders the found models.
-int MG_render_loop()
+int MG_render_loop(void* instance)
 {
+	UNUSED(instance)
+
 	MG_RenderData* render_data = &MG_INSTANCE->render_data;
 	render_data->transparency_list = calloc(1, sizeof(MG_TransparentDraw_LL));
 	if (!render_data->transparency_list)
@@ -67,7 +69,7 @@ int MG_render_loop()
 			// infinite loop possible here, but only if user forgoes calling functions and instead just fucks with struct data
 			if (current->data && !((MG_Object*)current->data)->parent)
 			{
-				MG_render_object(render_data, current->data);
+				MG_render_object(current->data);
 			}
 
 			current = current->next;
@@ -131,9 +133,9 @@ static void MG_render_update_interp_value()
 
 	float time_since_latest = (float)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency() - (float)rd->latest_data.uptime;
 
-	if (rd->latest_data.tickrate != 0)
+	if (MG_L_TRICKRATE != 0)
 	{
-		float tick_len = 1.0f / rd->latest_data.tickrate;
+		float tick_len = 1.0f / MG_L_TRICKRATE;
 		rd->interp_value = time_since_latest / tick_len;
 	}
 	else

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_id.h"
+#include "MG_hash.h"
 
 typedef enum
 {

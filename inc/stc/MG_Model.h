@@ -48,8 +48,8 @@ typedef struct MG_TransparentDraw
 }
 MG_TransparentDraw;
 
-typedef MG_Generic_LL MG_Mesh_LL;
-typedef MG_Generic_LL MG_TransparentDraw_LL;
+typedef MG_LinkedList MG_Mesh_LL;
+typedef MG_LinkedList MG_TransparentDraw_LL;
 typedef MG_ID MG_MODEL;
 
 typedef struct MG_Model

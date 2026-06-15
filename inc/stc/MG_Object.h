@@ -23,8 +23,8 @@ typedef enum MG_ObjectFlags
 }
 MG_ObjectFlags;
 
-typedef MG_Generic_LL MG_Object_LL;
-typedef MG_Generic_LL MG_Component_LL;
+typedef MG_LinkedList MG_Object_LL;
+typedef MG_LinkedList MG_Component_LL;
 
 // In order to make serialization easy and possible in many contexts and also to avoid letting the user face the terrifying world of public struct members and raw 
 // pointers in a C++ world, all asset interactions are done with an ID, strongly encouraging the requirement of having no pointers in component fields.

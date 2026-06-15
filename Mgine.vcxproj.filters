@@ -83,19 +83,22 @@
     <ClCompile Include="lib\glad.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\MG_file.c">
+    <ClCompile Include="src\MG_asset.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_audio.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\MG_id.c">
+    <ClCompile Include="src\MG_hash.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_ui.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\MG_debug.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MG_string.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -178,7 +181,7 @@
     <ClInclude Include="inc\MG_textures.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="inc\MG_file.h">
+    <ClInclude Include="inc\MG_asset.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\stc\MG_Audio.h">
@@ -190,7 +193,7 @@
     <ClInclude Include="inc\stc\MG_Asset.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
     </ClInclude>
-    <ClInclude Include="inc\MG_id.h">
+    <ClInclude Include="inc\MG_hash.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="inc\MG_ui.h">
@@ -204,6 +207,12 @@
     </ClInclude>
     <ClInclude Include="inc\stc\MG_Texture.h">
       <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stc\MG_Hashmap.h">
+      <Filter>Fichiers d%27en-tête\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MG_string.h">
+      <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

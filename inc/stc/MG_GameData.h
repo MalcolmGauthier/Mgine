@@ -1,27 +1,23 @@
 #pragma once
 
 #include "MG_include.h"
-#include "MG_LL.h"
 #include "stc/MG_Camera.h"
-#include "MG_id.h"
+#include "MG_LL.h"
+#include "MG_hash.h"
 
-typedef MG_Generic_LL MG_Object_LL;
+typedef MG_LinkedList MG_Object_LL;
 
+// This is the entire gamestate. 
 typedef struct MG_GameData
 {
 	uint64_t global_timer;
-	MG_ID next_object_id;
-	MG_ID next_component_id;
-	unsigned int tickrate;
 	// this should be constant unless tickrate is uncapped.
 	// however, this still acurately reports tick length even when tickrate is capped. useful for lag detection.
 	float delta_time;
 	double uptime;
 
 	// list of ALL currently existing objects. not just orphan objects.
-	MG_Object_LL* object_list;
-	// complete count of objects, including children.
-	uint32_t object_count;
+	struct MG_AssetList* object_list;
 
 	MG_Camera camera;
 }

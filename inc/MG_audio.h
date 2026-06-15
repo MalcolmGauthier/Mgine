@@ -3,7 +3,7 @@
 #include "MG_include.h"
 #include "stc/MG_Audio.h"
 #include "stc/MG_Asset.h"
-#include "MG_file.h"
+#include "MG_asset.h"
 
 #ifdef __cplusplus
 extern "C" {

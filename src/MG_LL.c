@@ -1,11 +1,11 @@
 #include "MG_LL.h"
 
-int MG_LL_add(MG_Generic_LL** head_ptr, void* value)
+int MG_LL_add(MG_LinkedList** head_ptr, void* value)
 {
     if (!head_ptr)
         return -1;
 
-    MG_Generic_LL* new_node = malloc(sizeof(MG_Generic_LL));
+    MG_LinkedList* new_node = malloc(sizeof(MG_LinkedList));
     if (!new_node)
         return -2;
 
@@ -18,7 +18,7 @@ int MG_LL_add(MG_Generic_LL** head_ptr, void* value)
         return 0;
     }
 
-    MG_Generic_LL* head = *head_ptr;
+    MG_LinkedList* head = *head_ptr;
     while (head->next)
     {
         head = head->next;
@@ -28,13 +28,13 @@ int MG_LL_add(MG_Generic_LL** head_ptr, void* value)
     return 0;
 }
 
-void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find)
+void* MG_LL_remove(MG_LinkedList** head_ptr, void* find)
 {
     if (!head_ptr || !*head_ptr || !find)
         return NULL;
 
-    MG_Generic_LL* current = *head_ptr;
-    MG_Generic_LL* previous = NULL;
+    MG_LinkedList* current = *head_ptr;
+    MG_LinkedList* previous = NULL;
     while (current)
     {
         if (current->data == find)
@@ -58,9 +58,9 @@ void* MG_LL_remove(MG_Generic_LL** head_ptr, void* find)
     return NULL;
 }
 
-void* MG_LL_find(MG_Generic_LL* head, void* find)
+void* MG_LL_find(MG_LinkedList* head, void* find)
 {
-    MG_Generic_LL* current = head;
+    MG_LinkedList* current = head;
     while (current)
     {
         if (current->data == find)
@@ -72,12 +72,12 @@ void* MG_LL_find(MG_Generic_LL* head, void* find)
     return NULL;
 }
 
-void* MG_LL_find_func(MG_Generic_LL* head, void* find, bool (*find_func)(void* data, void* find))
+void* MG_LL_find_func(MG_LinkedList* head, void* find, bool (*find_func)(void* data, void* find))
 {
     if (!find_func)
 		return MG_LL_find(head, find);
 
-    MG_Generic_LL* current = head;
+    MG_LinkedList* current = head;
     while (current)
     {
         if (find_func(current->data, find))
@@ -89,13 +89,13 @@ void* MG_LL_find_func(MG_Generic_LL* head, void* find, bool (*find_func)(void* d
     return NULL;
 }
 
-int MG_LL_remove_free(MG_Generic_LL** head_ptr, void* find, void (*free_func)(void* data))
+int MG_LL_remove_free(MG_LinkedList** head_ptr, void* find, void (*free_func)(void* data))
 {
     if (!head_ptr || !*head_ptr || !find)
         return -1;
 
-    MG_Generic_LL* current = *head_ptr;
-    MG_Generic_LL* previous = NULL;
+    MG_LinkedList* current = *head_ptr;
+    MG_LinkedList* previous = NULL;
     while (current)
     {
         if (current->data == find)
@@ -120,21 +120,21 @@ int MG_LL_remove_free(MG_Generic_LL** head_ptr, void* find, void (*free_func)(vo
     return 1;
 }
 
-MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
+MG_LinkedList* MG_LL_copy(MG_LinkedList* head, void* (*copy_func)(void* source))
 {
     if (!head)
         return NULL;
 
-    MG_Generic_LL* new_head = calloc(1, sizeof(MG_Generic_LL));
+    MG_LinkedList* new_head = calloc(1, sizeof(MG_LinkedList));
     if (!new_head)
         return NULL;
     new_head->data = copy_func ? copy_func(head->data) : head->data;
 
-    MG_Generic_LL* current_dst = new_head;
-    MG_Generic_LL* current_src = head->next;
+    MG_LinkedList* current_dst = new_head;
+    MG_LinkedList* current_src = head->next;
     while (current_src)
     {
-        MG_Generic_LL* new_node = calloc(1, sizeof(MG_Generic_LL));
+        MG_LinkedList* new_node = calloc(1, sizeof(MG_LinkedList));
         if (!new_node)
         {
             // this causes a memory leak if the data contains dynamic alloc.
@@ -151,15 +151,15 @@ MG_Generic_LL* MG_LL_copy(MG_Generic_LL* head, void* (*copy_func)(void* source))
     return new_head;
 }
 
-void MG_LL_free(MG_Generic_LL** head_ptr, void (*free_func)(void* data))
+void MG_LL_free(MG_LinkedList** head_ptr, void (*free_func)(void* data))
 {
     if (!head_ptr || !*head_ptr)
         return;
 
-    MG_Generic_LL* current = *head_ptr;
+    MG_LinkedList* current = *head_ptr;
     while (current)
     {
-        MG_Generic_LL* next = current->next;
+        MG_LinkedList* next = current->next;
         free_func ? free_func(current->data) : free(current->data);
         free(current);
         current = next;
@@ -167,15 +167,15 @@ void MG_LL_free(MG_Generic_LL** head_ptr, void (*free_func)(void* data))
     *head_ptr = NULL;
 }
 
-void MG_LL_free_LL_only(MG_Generic_LL** head_ptr)
+void MG_LL_free_LL_only(MG_LinkedList** head_ptr)
 {
     if (!head_ptr || !*head_ptr)
         return;
 
-    MG_Generic_LL* current = *head_ptr;
+    MG_LinkedList* current = *head_ptr;
     while (current)
     {
-        MG_Generic_LL* next = current->next;
+        MG_LinkedList* next = current->next;
         free(current);
         current = next;
     }

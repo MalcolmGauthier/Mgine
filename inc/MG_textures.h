@@ -2,7 +2,7 @@
 
 #include "MG_include.h"
 #include "stc/MG_Scene.h"
-#include "MG_file.h"
+#include "MG_asset.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +15,7 @@ MG_API extern uint8_t _MG_default_texture[_MG_default_tex_width * _MG_default_te
 MG_API MG_TEXTURE MG_texture_init(const char* path);
 MG_API MG_TEXTURE MG_texture_init_raw();
 MG_API MG_TEXTURE MG_texture_init_MGA(const char* path, int32_t index_in_file);
+MG_API MG_Texture* MG_texture_ptr(MG_TEXTURE id);
 //TODO: user doesn't need this
 MG_API int MG_texture_load(MG_Texture* texture);
 MG_API void MG_texture_free(MG_Texture* texture);

@@ -1,7 +1,10 @@
 #pragma once
 
+#include "MG_include.h"
 #include "stc/MG_Transform.h"
-#include "MG_id.h"
+#include "MG_hash.h"
+
+typedef MG_ID MG_OBJ;
 
 typedef struct MG_Camera
 {

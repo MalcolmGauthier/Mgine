@@ -5,6 +5,7 @@
 #include "MG_GameData.h"
 #include "MG_RenderData.h"
 #include "MG_Audio.h"
+#include "MG_asset.h"
 
 typedef enum
 {
@@ -14,7 +15,7 @@ typedef enum
 }
 MG_GameDataLockOwner;
 
-typedef MG_Generic_LL MG_ComponentTemplate_LL;
+typedef MG_LinkedList MG_ComponentTemplate_LL;
 
 typedef struct MG_Instance
 {
@@ -34,29 +35,24 @@ typedef struct MG_Instance
 	int instance_exit_code;
 	uint64_t instance_id;
 
-	// these are lists instead of linked lists, because realistically outside of the initial loading phase, these lists will not be modified much.
-	// using arrays means using realloc to add new data which means storing an index to the list or a pointer to the list is a no-go.
-	// all of these are arrays of pointers to each asset.
-	uint32_t shader_count;
-	struct MG_Shader** shader_list;
-	// note: materials have variable size
-	uint32_t material_count;
-	struct MG_Material** material_list;
-	uint32_t prefab_count;
-	struct MG_Object** prefab_list;
-	uint32_t scene_count;
-	struct MG_Scene** scene_list;
+	// these are hashmaps because due to the ID system, we need as much speed in pointer retreival as we can get.
+	// assets can be extracted with the functions in MG_asset.c
 
-	// these three take up more meory, so unlike the previous assets,
+	struct MG_AssetList shader_list;
+	struct MG_AssetList material_list;
+	struct MG_AssetList prefab_list;
+	struct MG_AssetList scene_list;
+
+	// these three take up more memory, so unlike the previous assets,
 	// they're not always loaded, and thus need to be loaded from a file before use.
-	uint32_t model_count;
-	struct MG_Model** model_list;
-	uint32_t texture_count;
-	struct MG_Texture** texture_list;
-	uint32_t sound_count;
-	struct MG_Sound** sound_list;
 
-	MG_ComponentTemplate_LL* component_list;
+	struct MG_AssetList model_list;
+	struct MG_AssetList texture_list;
+	struct MG_AssetList sound_list;
+
+	struct MG_AssetList component_template_list;
+	// whilst not assets, strings need to be treated as such to be properly serialized in component struct values.
+	struct MG_AssetList string_list;
 
 	bool active : 1;
 	bool initialized : 1;
