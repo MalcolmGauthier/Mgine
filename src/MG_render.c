@@ -1,5 +1,6 @@
 #include "MG_render.h"
 
+// PRIVATE
 static void MG_render_update_data();
 static void MG_render_update_interp_value();
 static MG_Matrix MG_render_calculate_interp_model_matrix(MG_Matrix* new_matrix, MG_ID obj_id);
@@ -10,6 +11,17 @@ static void MG_render_object(MG_Object* object);
 static void MG_render_model(MG_Model* model, MG_Matrix* pos, MG_ID obj_id);
 static void MG_render_OIT();
 static void MG_render_WBOIT_composite();
+
+// EXTERN
+extern MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* object);
+extern void MG_shader_use(MG_Shader* shader);
+extern void MG_shader_set_int(MG_Shader* shader, const char* name, int value);
+extern void MG_shader_set_ivec2(MG_Shader* shader, const char* name, int* value);
+extern void MG_shader_set_ivec3(MG_Shader* shader, const char* name, int* value);
+extern void MG_shader_set_float(MG_Shader* shader, const char* name, float value);
+extern void MG_shader_set_vec2(MG_Shader* shader, const char* name, MG_Vec2 value);
+extern void MG_shader_set_vec3(MG_Shader* shader, const char* name, MG_Vec3 value);
+extern void MG_shader_set_mat4(MG_Shader* shader, const char* name, MG_Matrix* value);
 
 // The main render loop of the game engine. This renders the game objects to the screen.
 // It iterates down the component tree of each object and renders the found models.
@@ -62,14 +74,14 @@ int MG_render_loop(void* instance)
 		// STEP 3: RENDER ALL OPAQUE OBJECTS
 		glEnable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
-		MG_Object_LL* current = render_data->latest_data.object_list;
+		struct MG_HashmapNode* current = render_data->latest_data.object_list->assets->first;
 		while (current)
 		{
 			// render function goes down child list, so only call orphan objects
 			// infinite loop possible here, but only if user forgoes calling functions and instead just fucks with struct data
-			if (current->data && !((MG_Object*)current->data)->parent)
+			if (current->value && !((MG_Object*)current->value)->parent)
 			{
-				MG_render_object(current->data);
+				MG_render_object(current->value);
 			}
 
 			current = current->next;
@@ -115,7 +127,7 @@ static void MG_render_update_data()
 	memcpy_s(&rd->latest_data, sizeof(MG_GameData), &MG_INSTANCE->game_data, sizeof(MG_GameData));
 
 	// copy the object list from the game data to the render data
-	rd->latest_data.object_list = MG_LL_copy(MG_INSTANCE->game_data.object_list, MG_object_create_untracked_copy);
+	rd->latest_data.object_list->assets = MG_hashmap_copy(MG_INSTANCE->game_data.object_list->assets, MG_object_create_untracked_copy);
 
 	MG_INSTANCE->lock_owner = MG_GAME_DATA_LOCK_OWNER_NONE;
 	return;
@@ -171,15 +183,15 @@ static MG_Matrix MG_render_calculate_interp_model_matrix(MG_Matrix* new_matrix, 
 	MG_Matrix output;
 
 	// can't call MG_object_find_by_id here because it wants the instance, but we can only provide game data.
-	MG_Object_LL* current = MG_INSTANCE->render_data.old_data.object_list;
+	struct MG_HashmapNode* current = MG_INSTANCE->render_data.old_data.object_list->assets->first;
 	while (current)
 	{
-		if (((MG_Object*)current->data)->id == obj_id)
+		if (((MG_Object*)current->value)->id == obj_id)
 		{
-			if (((MG_Object*)current->data)->flags & MG_OBJECT_FLAG_NO_INTERP)
+			if (((MG_Object*)current->value)->flags & MG_OBJECT_FLAG_NO_INTERP)
 				return *new_matrix;
 
-			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(current->data, "transform");
+			MG_ComponentTransform* t = (MG_ComponentTransform*)MG_object_get_component_by_name(((MG_Object*)current->value)->id, "transform");
 			if (!t) return *new_matrix;
 			old_transform = &t->transform;
 			break;
@@ -283,11 +295,10 @@ static void MG_render_object(MG_Object* object)
 
 	if (!object->components) return;
 
-	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object, "Model");
+	MG_ComponentModel* current_model = (MG_ComponentModel*)MG_object_get_component_by_name(object->id, "Model");
 	if (!current_model || !current_model->model->meshes)
 		return;
 
-	extern MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* object);
 	MG_Matrix current_matrix = MG_object_calculate_world_transform_matrix(object);
 
 	MG_render_model(current_model->model, &current_matrix, object->id);
@@ -408,18 +419,18 @@ static void MG_render_model(MG_Model* model, MG_Matrix* pos, MG_ID obj_id)
 static void MG_render_OIT_init()
 {
 	MG_RenderData* render_data = &MG_INSTANCE->render_data;
-	MG_Shader* wboit_shader_a = MG_shader_create_from_filepaths("shaders/MG_std_vert.glsl", "shaders/MG_wboit_accum_frag.glsl");
-	MG_Shader* wboit_shader_c = MG_shader_create_from_filepaths("shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
+	MG_SHADER wboit_shader_a = MG_shader_create_from_filepaths("shaders/MG_std_vert.glsl", "shaders/MG_wboit_accum_frag.glsl");
+	MG_SHADER wboit_shader_c = MG_shader_create_from_filepaths("shaders/MG_wboit_comp_vert.glsl", "shaders/MG_wboit_comp_frag.glsl");
 	MG_shader_compile(wboit_shader_a);
 	MG_shader_compile(wboit_shader_c);
-	if (!wboit_shader_a || !wboit_shader_c || wboit_shader_a->status != MG_SHADER_STATUS_OK || wboit_shader_c->status != MG_SHADER_STATUS_OK)
+	if (!wboit_shader_a || !wboit_shader_c || MG_shader_status(wboit_shader_a) != MG_SHADER_STATUS_OK || MG_shader_status(wboit_shader_c) != MG_SHADER_STATUS_OK)
 	{
 		printf("Error: Failed to compile OIT shaders.\n");
 		MG_INSTANCE->active = false;
 		return;
 	}
-	render_data->OIT_shader_accum = wboit_shader_a;
-	render_data->OIT_shader_comp = wboit_shader_c;
+	render_data->OIT_shader_accum = MG_shader_ptr(wboit_shader_a);
+	render_data->OIT_shader_comp = MG_shader_ptr(wboit_shader_c);
 
 	glGenVertexArrays(1, &render_data->OIT_VAO_reveal);
 

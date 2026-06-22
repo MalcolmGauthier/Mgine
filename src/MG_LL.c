@@ -138,7 +138,7 @@ MG_LinkedList* MG_LL_copy(MG_LinkedList* head, void* (*copy_func)(void* source))
         if (!new_node)
         {
             // this causes a memory leak if the data contains dynamic alloc.
-            // but this branch is taken if the world is ending, so whatever.
+            // but this branch is only taken if the world is ending, so whatever.
             MG_LL_free(&new_head, NULL);
             return NULL;
         }

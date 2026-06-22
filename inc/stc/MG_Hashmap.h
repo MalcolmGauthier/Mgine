@@ -18,7 +18,10 @@ typedef struct MG_Hashmap
 	uint32_t bucket_count;
 	MG_HashmapNode_LL** buckets;
 
+	// allows for O(1) iteration through the nodes from oldest to newest (and back)
 	struct MG_HashmapNode* first;
 	struct MG_HashmapNode* last;
+
+	uint32_t count;
 }
 MG_Hashmap;

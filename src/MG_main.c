@@ -13,6 +13,12 @@ static void MG_instance_init();
 static void MG_instance_free();
 
 extern void MG_object_free_prefab(MG_Object* prefab);
+extern void MG_scene_free(MG_Scene* scene);
+extern void MG_shader_free(MG_Shader* shader);
+extern void MG_material_free(MG_Material* material);
+extern void MG_model_free(MG_Model* model);
+extern void MG_component_template_free(MG_ComponentTemplate* comp_template);
+extern void MG_string_free(MG_String* string);
 
 struct MG_Instance* MG_INSTANCE = NULL;
 static MG_Instance instance_data = { 0 };
@@ -107,6 +113,8 @@ int MG_init()
     //    }
     // 
     //}
+
+    return 0;
 }
 
 void MG_ready()

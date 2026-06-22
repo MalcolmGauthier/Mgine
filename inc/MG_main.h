@@ -9,6 +9,7 @@
 #include "MG_scene.h"
 #include "MG_model.h"
 #include "MG_textures.h"
+#include "MG_string.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,12 +20,12 @@ extern "C" {
 // When done with the engine, call MG_quit().
 MG_API int MG_init();
 
-// Loops infinitely, waiting until the instance is initialized and ready to be used, or when it closes after a bootup error.
+// Idles, waiting until the instance is initialized and ready to be used, or when it closes after a bootup error.
 // Ideally, this should be called immediately after MG_init().
 MG_API void MG_ready();
 
 // Quits the engine safely, freeing all the memory.
-MG_API void MG_quit();
+MG_API void MG_quit(void);
 
 #ifdef __cplusplus
 }

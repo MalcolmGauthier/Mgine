@@ -1,5 +1,7 @@
 #include "MG_logic.h"
 
+extern void MG_object_free(MG_Object* object);
+
 // The main logic loop of the game engine
 int MG_logic_loop(void* instance)
 {
@@ -21,11 +23,11 @@ int MG_logic_loop(void* instance)
 	{
 		MG_input_poll_pressed();
 
-		MG_Object_LL* current = game_data->object_list;
+		struct MG_HashmapNode* current = game_data->object_list->assets->first;
 		MG_Object* object = NULL;
 		while (current)
 		{
-			object = (MG_Object*)current->data;
+			object = (MG_Object*)current->value;
 
 			if (!object)
 			{
@@ -108,6 +110,5 @@ void MG_logic_free(MG_GameData* game_data)
 	if (!game_data)
 		return;
 
-	extern void MG_object_free(MG_Object * object);
 	MG_hashmap_free(&game_data->object_list->assets, MG_object_free);
 }

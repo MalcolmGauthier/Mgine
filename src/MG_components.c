@@ -56,6 +56,11 @@ MG_ComponentTemplate* MG_component_get_template_by_name(const char* name)
 	return MG_component_get_template_ptr(id);
 }
 
+void MG_component_template_free(MG_ComponentTemplate* comp_template)
+{
+	free(comp_template);
+}
+
 
 MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_parent)
 {

@@ -5,7 +5,7 @@
 #include "MG_Asset.h"
 #include "MG_hash.h"
 
-// a loaded (or intended to be loaded) sound effect
+// a sound effect asset currently playing (or about to)
 typedef struct MG_SFX
 {
 	struct MG_Sound* sound;
@@ -14,7 +14,6 @@ typedef struct MG_SFX
 	int sdl_channel;
 
 	int loops;
-	int8_t volume;
 
 	MG_Vec3 position;
 	MG_Vec3* position_ref;
@@ -45,12 +44,14 @@ MG_Audio;
 
 typedef MG_ID MG_SOUND;
 
-// data for a sound file
+// data for any sound file the engine knows about (loaded or not)
 typedef struct MG_Sound
 {
 	MG_Asset base;
-
 	MG_SOUND id;
-	int (*update)(struct MG_Audio* audio, struct MG_Sound* self);
+
+	int8_t volume;
+
+	int (*update)(struct MG_Sound* self);
 }
 MG_Sound;

@@ -1,4 +1,5 @@
 #include "MG_asset.h"
+#include "cJSON.h"
 
 #define MG_SHADER_CODE_MAX 1024
 #define MG_SHADER_CODE_SIZE_MAX 65536
@@ -330,18 +331,18 @@ static void MG_load_asset_list(FILE* file, struct MG_AssetList* asset_list, uint
 		}
 		asset_path[path_length] = '\0';
 
-		char** path_ptr = ((MG_Asset*)current_asset)->path;
+		char** path_ptr = &((MG_Asset*)current_asset)->path;
 		*path_ptr = asset_path;
 
-		uint32_t* index_ptr = ((MG_Asset*)current_asset)->index_in_file;
-		if (fread(index_ptr, sizeof(uint32_t), 1, file) != 1)
+		int32_t* index_ptr = &((MG_Asset*)current_asset)->index_in_file;
+		if (fread(index_ptr, sizeof(int32_t), 1, file) != 1)
 		{
 			printf("Error: Failed to read asset index for asset %u\n", i);
 			// leave index as zero
 		}
 	}
 
-	return &asset_list;
+	return;
 }
 
 static void MG_load_materials(FILE* file, uint32_t material_count)
@@ -372,13 +373,13 @@ static void MG_load_materials(FILE* file, uint32_t material_count)
 		uint32_t diffuse_texture_index = 0;
 		fread(&diffuse_texture_index, sizeof(uint32_t), 1, file);
 		// IDs are sequential and 1-based, so index is ID - 1
-		material->diffuse_texture = MG_hashmap_get(&MG_INSTANCE->texture_list, diffuse_texture_index + 1);
+		material->diffuse_texture = MG_hashmap_get(MG_INSTANCE->texture_list.assets, diffuse_texture_index + 1);
 		fread(&material->contains_transparency, sizeof(uint8_t), 1, file);
 		if (material->contains_transparency > 1)
 			material->contains_transparency = 1;
 		uint32_t shader_index = 0;
 		fread(&shader_index, sizeof(uint32_t), 1, file);
-		material->shader = MG_hashmap_get(&MG_INSTANCE->shader_list, shader_index + 1);
+		material->shader = MG_hashmap_get(MG_INSTANCE->shader_list.assets, shader_index + 1);
 
 		byte* material_end = (byte*)material + sizeof(MG_Material);
 		fread(material_end, 1, material_extra_size, file);
@@ -424,7 +425,7 @@ static void MG_load_materials(FILE* file, uint32_t material_count)
 			fread(&svt->type, sizeof(uint32_t), 1, file);
 			fread(&svt->size, sizeof(uint32_t), 1, file);
 			fread(&svt->offset_in_material, sizeof(uint32_t), 1, file);
-			MG_material_register_variable(material, svt->name, svt->type, svt->offset_in_material);
+			MG_material_register_variable(material->id, svt->name, svt->type, svt->offset_in_material);
 		}
 	}
 }
@@ -441,14 +442,14 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 	}
 	if (!parent && output == NULL)
 	{
-		instance->prefab_list = calloc(obj_count, sizeof(MG_Object));
-		if (!instance->prefab_list)
+		MG_INSTANCE->prefab_list = calloc(obj_count, sizeof(MG_Object));
+		if (!MG_INSTANCE->prefab_list)
 		{
 			printf("Error: Failed to allocate memory for prefabs\n");
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
-		instance->prefab_count = obj_count;
+		MG_INSTANCE->prefab_count = obj_count;
 	}
 
 	for (uint32_t i = 0; i < obj_count; i++)
@@ -460,7 +461,7 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 		{
 			uint32_t index = 0;
 			fread(&index, sizeof(uint32_t), 1, file);
-			if (index >= instance->prefab_count)
+			if (index >= MG_INSTANCE->prefab_count)
 			{
 				printf("Error: Invalid prefab reference index %u\n", index);
 				continue;
@@ -469,11 +470,11 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 			// If loading into a parent or output list, create an untracked copy and add to the list
 			if (parent || output)
 			{
-				MG_Object* copy = MG_object_create_untracked_copy(instance->prefab_list[index]);
+				MG_Object* copy = MG_object_create_untracked_copy(MG_INSTANCE->prefab_list[index]);
 				if (!copy)
 				{
 					printf("Error: Failed to create untracked copy of prefab %u\n", index);
-					instance->active = false;
+					MG_INSTANCE->active = false;
 					return;
 				}
 				if (parent)
@@ -483,14 +484,14 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 			}
 			else
 			{
-				MG_Object* copy = MG_object_create_untracked_copy(instance->prefab_list[index]);
+				MG_Object* copy = MG_object_create_untracked_copy(MG_INSTANCE->prefab_list[index]);
 				if (!copy)
 				{
 					printf("Error: Failed to create untracked copy of prefab %u\n", index);
-					instance->active = false;
+					MG_INSTANCE->active = false;
 					return;
 				}
-				instance->prefab_list[i] = copy;
+				MG_INSTANCE->prefab_list[i] = copy;
 				// Free the temporary allocation but do not deep free children pointers
 				free(copy);
 			}
@@ -517,7 +518,7 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 		}
 		else
 		{
-			prefab = instance->prefab_list[i];
+			prefab = MG_INSTANCE->prefab_list[i];
 		}
 
 		if (prefab_name_len > MG_PREFAB_NAME_MAX)
@@ -583,7 +584,8 @@ static void MG_load_objects(FILE* file, MG_Object* parent, MG_Object_LL** output
 					fread(component_data, 1, component_data_size - 2 * sizeof(void*), file);
 			}
 
-			MG_component_create(prefab, MG_component_get_template_by_name(component_name), component_data);
+			//TODO: copy data manually
+			MG_object_add_component(prefab->id, MG_component_get_template(component_name), component_data);
 			free(component_name);
 			if (component_data)
 				free(component_data);
@@ -598,7 +600,7 @@ static void MG_load_scenes(FILE* file, uint16_t scene_count)
 {
 	for (uint16_t i = 0; i < scene_count; i++)
 	{
-		MG_Scene* scene = instance->scene_list[i];
+		MG_Scene* scene = MG_INSTANCE->scene_list[i];
 		uint32_t scene_name_len = 0;
 		fread(&scene_name_len, sizeof(uint32_t), 1, file);
 		if (scene_name_len > MG_SCENE_NAME_MAX)
@@ -610,37 +612,37 @@ static void MG_load_scenes(FILE* file, uint16_t scene_count)
 		if (!name)
 		{
 			printf("Error: Failed to allocate memory for scene name\n");
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
 		fread(name, sizeof(char), scene_name_len, file);
 		name[scene_name_len] = '\0';
 		scene->id = MG_id_hash_string(name);
 		
-		MG_load_objects(file, instance, NULL, &scene->objects);
+		MG_load_objects(file, MG_INSTANCE, NULL, &scene->objects);
 
 		uint32_t texture_count = 0;
 		fread(&texture_count, sizeof(uint32_t), 1, file);
 		if (texture_count > MG_TEXTURE_MAX)
 		{
 			printf("Error: Scene texture count exceeds maximum limit: %u (max %u)\n", texture_count, MG_TEXTURE_MAX);
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
 		scene->texture_count = texture_count;
 		scene->textures = calloc(texture_count, sizeof(MG_Texture*));
 		if (!scene->textures)
 		{
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
 		for (uint32_t j = 0; j < texture_count; j++)
 		{
 			uint32_t texture_index = 0;
 			fread(&texture_index, sizeof(uint32_t), 1, file);
-			if (texture_index < instance->texture_count)
+			if (texture_index < MG_INSTANCE->texture_count)
 			{
-				scene->textures[j] = instance->texture_list[texture_index];
+				scene->textures[j] = MG_INSTANCE->texture_list[texture_index];
 			}
 		}
 
@@ -649,23 +651,23 @@ static void MG_load_scenes(FILE* file, uint16_t scene_count)
 		if (model_count > MG_MODEL_MAX)
 		{
 			printf("Error: Scene model count exceeds maximum limit: %u (max %u)\n", model_count, MG_MODEL_MAX);
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
 		scene->model_count = model_count;
 		scene->models = calloc(model_count, sizeof(MG_Model*));
 		if (!scene->models)
 		{
-			instance->active = false;
+			MG_INSTANCE->active = false;
 			return;
 		}
 		for (uint32_t j = 0; j < model_count; j++)
 		{
 			uint32_t model_index = 0;
 			fread(&model_index, sizeof(uint32_t), 1, file);
-			if (model_index < instance->model_count)
+			if (model_index < MG_INSTANCE->model_count)
 			{
-				scene->models[j] = instance->model_list[model_index];
+				scene->models[j] = MG_INSTANCE->model_list[model_index];
 			}
 		}
 	}

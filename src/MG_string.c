@@ -17,7 +17,15 @@ MG_String* MG_stringA(const char* text)
 		return NULL;
 	}
 
-	mbstowcs_s(NULL, str->data, str->length + 1, text, str->length);
+	if (mbstowcs_s(NULL, str->data, str->length + 1, text, str->length))
+	{
+		free(str->data);
+		free(str);
+		return NULL;
+	}
+
+	str->id = MG_asset_add(&MG_INSTANCE->string_list, str);
+
 	return str;
 }
 
@@ -38,6 +46,22 @@ MG_String* MG_string(const wchar_t* text)
 		return NULL;
 	}
 
-	wcscpy_s(str->data, str->length, text);
+	if (wcscpy_s(str->data, str->length + 1, text))
+	{
+		free(str->data);
+		free(str);
+		return NULL;
+	}
+
+	str->id = MG_asset_add(&MG_INSTANCE->string_list, str);
 	return str;
+}
+
+void MG_string_free(MG_String* string)
+{
+	if (!string)
+		return;
+	if (string->data)
+		free(string->data);
+	free(string);
 }

@@ -1,7 +1,9 @@
 #include "MG_object.h"
 
-extern MG_Component* MG_component_copy_untracked(MG_Component* source);
 void MG_object_free(MG_Object* object);
+MG_Object* MG_object_create_tracked_copy(MG_Object* source);
+
+extern MG_Component* MG_component_copy_untracked(MG_Component* source);
 
 MG_OBJ MG_object_create(MG_OBJ parent, const char* name, MG_ObjectFlags flags)
 {
@@ -57,7 +59,7 @@ MG_OBJ MG_object_create_by_copy(MG_OBJ src)
 	MG_Component_LL* c = obj->components;
 	while (c && c->data)
 	{
-		((MG_Component*)c->data)->id.owner = obj;
+		((MG_Component*)c->data)->id.owner = obj->id;
 		c = c->next;
 	}
 
@@ -92,15 +94,9 @@ MG_Object* MG_object_create_untracked_copy(MG_Object* src)
 	return object;
 }
 
-MG_OBJ MG_object_create_tracked_copy(MG_Object* source)
+MG_Object* MG_object_create_tracked_copy(MG_Object* source)
 {
-	if (!source)
-	{
-		printf("Failed to create tracked copy: source is NULL\n");
-		return 0;
-	}
-	MG_ID obj_id = MG_object_create_by_copy(source->id);
-	return obj_id;
+	return MG_object_ptr(MG_object_create_by_copy(source->id));
 }
 
 
@@ -113,36 +109,36 @@ MG_OBJ MG_object_get_by_name(const char* name)
 {
 	MG_NAME name_id = MG_id_hash_string(name);
 
-	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
+	struct MG_HashmapNode* current = MG_INSTANCE->game_data.object_list->assets->first;
 	while (current)
 	{
-		if (((MG_Object*)current->data)->name == name_id)
+		if (((MG_Object*)current->value)->name == name_id)
 		{
-			return ((MG_Object*)current->data)->id;
+			return ((MG_Object*)current->value)->id;
 		}
 		current = current->next;
 	}
 
 	printf("Failed to get object with name %s: not found\n", name);
-	return NULL;
+	return 0;
 }
 
 
-MG_OBJ_ARRAY MG_object_get_all_top_level()
-{
-	MG_Object_LL* top_level_objects = NULL;
-	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
-	while (current)
-	{
-		if (!((MG_Object*)current->data)->parent)
-		{
-			MG_LL_add(&top_level_objects, current->data);
-		}
-		current = current->next;
-	}
-
-	return top_level_objects;
-}
+//MG_OBJ_ARRAY MG_object_get_all_top_level()
+//{
+//	MG_Object_LL* top_level_objects = NULL;
+//	MG_Object_LL* current = MG_INSTANCE->game_data.object_list;
+//	while (current)
+//	{
+//		if (!((MG_Object*)current->data)->parent)
+//		{
+//			MG_LL_add(&top_level_objects, current->data);
+//		}
+//		current = current->next;
+//	}
+//
+//	return top_level_objects;
+//}
 
 
 int MG_object_add_child(MG_OBJ parent_id, MG_OBJ child_id)
@@ -198,14 +194,14 @@ int MG_object_remove_child(MG_OBJ parent_id, MG_OBJ child_id)
 }
 
 
-MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, MG_ID component_template, void* data)
+MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, const char* component_name)
 {
-	MG_ComponentTemplate* comp_template_ptr = MG_component_get_template_ptr(component_template);
+	MG_ComponentTemplate* comp_template_ptr = MG_component_get_template_ptr(MG_component_get_template(component_name));
 	MG_Object* object_ptr = MG_object_ptr(object);
 
 	if (!comp_template_ptr || !object_ptr)
 	{
-		printf("Failed to add component: component template with ID %u or object with ID %u not found\n", component_template, object);
+		printf("Failed to add component: component template with name %s or object with ID %u not found\n", component_name, object);
 		return (MG_ComponentInstanceID){ 0 };
 	}
 
@@ -218,18 +214,18 @@ MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, MG_ID component_te
 
 	component->base = comp_template_ptr;
 
-	// copy everything except first 2 pointers
-	size_t offset = offsetof(MG_Component, flags);
-	size_t size = sizeof(comp_template_ptr->size) - offset;
-	if (size > 0 && data)
-		memcpy_s((char*)component + offset, size, (char*)data + offset, size);
+	// copy everything except first 2 pointers.
+	//UPDATE: not safe enough, just force user to initialize everything in on_create. objects loaded from mg file or prefab will have data copied by the engine shortly after this function.
+	//size_t offset = offsetof(MG_Component, flags);
+	//size_t size = sizeof(comp_template_ptr->size) - offset;
+	//if (size > 0 && data)
+	//    memcpy_s((char*)component + offset, size, (char*)data + offset, size);
 
 	MG_LL_add(&object_ptr->components, component);
 
 	if (component->base->on_create && component->base->on_create(component) == MG_COMPONENT_FUNC_RESULT_DELETE_OBJ)
 	{
 		MG_object_delete(object);
-		//return 1;
 	}
 
 	return component->id;
@@ -237,8 +233,8 @@ MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, MG_ID component_te
 
 MG_Component* MG_object_get_component_by_name(MG_OBJ object, const char* name)
 {
-	MG_Object* obj;
-	if (!(obj = MG_object_ptr(object)))
+	MG_Object* obj = MG_object_ptr(object);
+	if (!obj)
 	{
 		printf("Failed to get component: object is NULL\n");
 		return NULL;
@@ -259,10 +255,10 @@ MG_Component* MG_object_get_component_by_name(MG_OBJ object, const char* name)
 	return NULL;
 }
 
-MG_Component* MG_object_get_component(MG_OBJ object, MG_ID component_id)
+MG_Component* MG_object_get_component(MG_ComponentInstanceID component_id)
 {
-	MG_Object* obj;
-	if (!(obj = MG_object_ptr(object)))
+	MG_Object* obj = MG_object_ptr(component_id.owner);
+	if (!obj)
 	{
 		printf("Failed to get component: object is NULL\n");
 		return NULL;
@@ -271,7 +267,7 @@ MG_Component* MG_object_get_component(MG_OBJ object, MG_ID component_id)
 	MG_Component_LL* current = obj->components;
 	while (current)
 	{
-		if (current->data && ((MG_Component*)current->data)->base->id == component_id)
+		if (current->data && ((MG_Component*)current->data)->base->id == component_id.self_id)
 		{
 			return current->data;
 		}
@@ -284,10 +280,10 @@ MG_Component* MG_object_get_component(MG_OBJ object, MG_ID component_id)
 
 MG_Vec3 MG_object_get_world_position(MG_OBJ object)
 {
-	MG_Object* obj;
-	if (!(obj = MG_object_ptr(object)))
+	MG_Object* obj = MG_object_ptr(object);
+	if (!obj)
 	{
-		printf("Failed to get world position: object is NULL\n");
+		printf("Failed to get world position: object not foun\n");
 		return (MG_Vec3){ 0 };
 	}
 
@@ -296,7 +292,7 @@ MG_Vec3 MG_object_get_world_position(MG_OBJ object)
 	MG_Object* current = obj;
 	while (current)
 	{
-		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current->id, "transform");
 		if (transform)
 		{
 			world_pos = MG_vec3_add(world_pos, transform->transform.position);
@@ -310,10 +306,10 @@ MG_Vec3 MG_object_get_world_position(MG_OBJ object)
 
 MG_Vec3 MG_object_get_world_rotation(MG_OBJ object)
 {
-	MG_Object* obj;
-	if (!(obj = MG_object_ptr(object)))
+	MG_Object* obj = MG_object_ptr(object);
+	if (!obj)
 	{
-		printf("Failed to get world rotation: object is NULL\n");
+		printf("Failed to get world rotation: object not found\n");
 		return (MG_Vec3) { 0 };
 	}
 
@@ -322,7 +318,7 @@ MG_Vec3 MG_object_get_world_rotation(MG_OBJ object)
 	MG_Object* current = obj;
 	while (current)
 	{
-		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current->id, "transform");
 		if (transform)
 		{
 			world_rot = MG_vec3_add(world_rot, transform->transform.rotation);
@@ -334,10 +330,9 @@ MG_Vec3 MG_object_get_world_rotation(MG_OBJ object)
 	return world_rot;
 }
 
-MG_Matrix MG_object_calculate_world_transform_matrix(MG_OBJ object)
+MG_Matrix MG_object_calculate_world_transform_matrix(MG_Object* obj)
 {
-	MG_Object* obj;
-	if (!(obj = MG_object_ptr(object)))
+	if (!obj)
 	{
 		printf("Failed to get world transform matrix: object is NULL\n");
 		return (MG_Matrix) { MG_MATRIX_IDENTITY };
@@ -350,7 +345,7 @@ MG_Matrix MG_object_calculate_world_transform_matrix(MG_OBJ object)
 	MG_Object* current = obj;
 	while (current)
 	{
-		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current, "transform");
+		MG_ComponentTransform* transform = (MG_ComponentTransform*)MG_object_get_component_by_name(current->id, "transform");
 		if (transform)
 		{
 			world_pos = MG_vec3_add(world_pos, transform->transform.position);
@@ -403,9 +398,8 @@ void MG_object_free(MG_Object* object)
 	MG_LL_free(&object->children, MG_object_free);
 	// call on_destroy for all components
 	MG_LL_free(&object->components, MG_component_free);
-	MG_hashmap_remove(&MG_INSTANCE->game_data.object_list->assets, object->id);
+	MG_hashmap_remove(MG_INSTANCE->game_data.object_list->assets, object->id);
 
-	//MG_INSTANCE->game_data.object_count--;
 	free(object);
 	return;
 }

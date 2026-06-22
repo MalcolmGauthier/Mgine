@@ -1,5 +1,7 @@
 #include "MG_model.h"
 
+MG_Model* MG_model_ptr(MG_MODEL model_id);
+
 MG_MODEL MG_model_init(const char* path)
 {
 	return MG_model_init_MGA(path, -1);
@@ -207,6 +209,11 @@ void MG_model_enable(MG_MODEL model_id, bool static_model)
 
 	//model->enabled = true;
     model->base.loaded = true;
+}
+
+MG_Model* MG_model_ptr(MG_MODEL model_id)
+{
+	return MG_hashmap_get(MG_INSTANCE->model_list.assets, model_id);
 }
 
 void MG_model_free(MG_Model* model)

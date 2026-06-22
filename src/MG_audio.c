@@ -1,68 +1,64 @@
 #include "MG_audio.h"
 
-static MG_Sound* MG_audio_get_asset_from_name(const char* sfx_name);
-static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* position_ref);
-static int MG_audio_load_sfx(MG_SOUND sfx);
-static inline void MG_audio_start_sfx(MG_SOUND sfx);
+static MG_SFX* MG_audio_sfx_create(MG_SOUND sound, MG_Vec3 position, MG_Vec3* position_ref);
+static int MG_audio_sfx_load(MG_SFX* sfx);
+static inline void MG_audio_sfx_start(MG_SFX* sfx);
 
-int MG_audio_play_sfx(const char* sfx_name)
+int MG_audio_sfx_play(MG_SOUND audio_asset)
 {
-	if (!sfx_name)
+	if (!audio_asset)
 	{
-		printf("Error: Cannot play sound. Audio or SFX name is NULL.\n");
-		return -1;
-	}
-
-	MG_Sound* sound = MG_audio_get_asset_from_name(sfx_name);
-	if (!sound)
-	{
-		printf("Error: Cannot play sound. SFX '%s' not found.\n", sfx_name);
+		printf("Error: Cannot play sound. audio asset is invalid.\n");
 		return -1;
 	}
 	
 	//TODO: rename to create/add when cache added
-	MG_SFX* sfx = MG_audio_create_sfx(sound->id, (MG_Vec3){0}, MG_INSTANCE->audio_data.ears);
+	MG_SFX* sfx = MG_audio_sfx_create(audio_asset, (MG_Vec3){0}, MG_INSTANCE->audio_data.ears);
 	if (!sfx)
 	{
-		printf("Error: Cannot play sound. Failed to create SFX for '%s'.\n", sfx_name);
+		printf("Error: Cannot play sound. Failed to create SFX for sound with ID '%u'.\n", audio_asset);
 		return -2;
 	}
 
-	MG_audio_start_sfx(sfx);
+	MG_audio_sfx_start(sfx);
 	return 0;
 }
 
-static MG_Sound* MG_audio_get_asset_from_name(const char* sfx_name)
+MG_SOUND MG_audio_get_from_name(const char* sfx_name)
 {
 	if (!sfx_name)
 	{
-		printf("Error: Cannot get SFX. SFX name is NULL.\n");
-		return NULL;
+		printf("Error: Cannot get SFX. Inputted name is NULL.\n");
+		return 0;
 	}
 
-	MG_ID id = MG_id_hash_string(sfx_name);
-	//TODO: implement caching
-	for (uint32_t i = 0; i < MG_INSTANCE->sound_count; i++)
+	MG_Sound* ret = MG_hashmap_get(MG_INSTANCE->sound_list.assets, MG_id_hash_string(sfx_name));
+	if (!ret)
 	{
-		if (MG_INSTANCE->sound_list[i]->id == id)
-			return MG_INSTANCE->sound_list[i];
+		printf("Error: Cannot get SFX. Sound asset with name '%s' not found.\n", sfx_name);
+		return 0;
 	}
 
-	return NULL;
+	return ret->id;
+}
+
+MG_Sound* MG_audio_get_ptr(MG_SOUND sound)
+{
+	return MG_hashmap_get(MG_INSTANCE->sound_list.assets, sound);
 }
 
 //TODO
-void MG_audio_cache_sfx(MG_Sound* sound)
+void MG_audio_sfx_cache(MG_Sound* sound)
 {
 	UNUSED(sound)
 }
 
 
-static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* position_ref)
+static MG_SFX* MG_audio_sfx_create(MG_SOUND sound, MG_Vec3 position, MG_Vec3* position_ref)
 {
 	if (!sound)
 	{
-		printf("Error: Cannot create SFX. Sound is NULL.\n");
+		printf("Error: Cannot create SFX. Sound is invalid.\n");
 		return NULL;
 	}
 
@@ -73,17 +69,27 @@ static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* po
 		return NULL;
 	}
 
-	sfx->sound = sound;
+	MG_Sound* sound_ptr = MG_audio_get_ptr(sound);
+	if (!sound_ptr)
+	{
+		printf("Error: Cannot create SFX. Sound asset with ID %u not found.\n", sound);
+		free(sfx);
+		return NULL;
+	}
+
+	sfx->sound = sound_ptr;
 	sfx->position = position;
 	sfx->position_ref = position_ref;
 
 	MG_LL_add(&MG_INSTANCE->audio_data.sfx_list, sfx);
 
-	if (!sound->base.asset_file_loaded || !sound->base.loaded)
+	if (!sound_ptr->base.asset_file_loaded || !sound_ptr->base.loaded)
 	{
-		if (MG_audio_load_sfx(sfx))
+		if (MG_audio_sfx_load(sfx))
 		{
-			printf("Error: failed to load sound effect asset: %u.", sound->id);
+			printf("Error: failed to load sound effect asset: %u.", sound_ptr->id);
+			MG_LL_remove(&MG_INSTANCE->audio_data.sfx_list, sfx);
+			free(sfx);
 			return NULL;
 		}
 	}
@@ -91,9 +97,8 @@ static MG_SFX* MG_audio_create_sfx(MG_SOUND sound, MG_Vec3 position, MG_Vec3* po
 	return sfx;
 }
 
-static int MG_audio_load_sfx(MG_SOUND sound)
+static int MG_audio_sfx_load(MG_SFX* sfx)
 {
-	MG_SFX* sfx = MG_sound_ptr(sound);
 	if (!sfx)
 	{
 		printf("Error: Cannot get SFX. SFX is NULL.\n");
@@ -134,14 +139,14 @@ static int MG_audio_load_sfx(MG_SOUND sound)
 	return 0;
 }
 
-static inline void MG_audio_start_sfx(MG_SOUND sfx)
+static inline void MG_audio_sfx_start(MG_SFX* sfx)
 {
 	Mix_PlayChannel(-1, sfx->chunk, sfx->loops);
-	Mix_Volume(sfx->sdl_channel, sfx->volume);
+	Mix_Volume(sfx->sdl_channel, sfx->sound->volume);
 }
 
 
-static void MG_audio_free_sfx(MG_SFX* sfx)
+static void MG_audio_sfx_free(MG_SFX* sfx)
 {
 	if (!sfx)
 		return;
@@ -173,7 +178,7 @@ void MG_audio_free_channel(int channel)
 			continue;
 		}
 
-		MG_audio_free_sfx(sfx);
+		MG_audio_sfx_free(sfx);
 		current->data = NULL;
 		break;
 	}
@@ -182,7 +187,7 @@ void MG_audio_free_channel(int channel)
 void MG_audio_free()
 {
 	Mix_PauseAudio(1);
-	MG_LL_free(&MG_INSTANCE->audio_data.sfx_list, MG_audio_free_sfx);
+	MG_LL_free(&MG_INSTANCE->audio_data.sfx_list, MG_audio_sfx_free);
 	Mix_FreeMusic(MG_INSTANCE->audio_data.music);
 
 	Mix_CloseAudio();

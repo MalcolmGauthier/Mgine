@@ -3,12 +3,13 @@
 MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shader)
 {
 	MG_Shader* shader = calloc(1, sizeof(MG_Shader));
+	MG_SHADER id;
 	// returns error code if shader is null
-	if (MG_asset_add(&MG_INSTANCE->shader_list, shader))
+	if (!(id = MG_asset_add(&MG_INSTANCE->shader_list, shader)))
 	{
 		printf("Failed to add shader to instance shader list.\n");
 		free(shader);
-		return NULL;
+		return 0;
 	}
 	
 	size_t vert_len = strlen(vertex_shader);
@@ -22,8 +23,8 @@ MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shade
 	{
 		printf("Failed to allocate memory for shader code.\n");
 		free(shader->vertex_shader_code);
-		free(shader);
-		return NULL;
+		MG_hashmap_remove(MG_INSTANCE->shader_list.assets, shader->id);
+		return 0;
 	}
 
 	memcpy(shader->vertex_shader_code, vertex_shader, vert_len);
@@ -32,7 +33,7 @@ MG_SHADER MG_shader_create(const char* vertex_shader, const char* fragment_shade
 	shader->fragment_shader_code[frag_len] = '\0';
 
 	shader->status = MG_SHADER_STATUS_NOT_IMPLEMENTED;
-	return shader->id;
+	return shader->id = id;
 }
 
 MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const char* fragment_shader_path)
@@ -49,7 +50,7 @@ MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const 
 		printf("Failed to open shader file: %s\n", vertex_shader_path);
 		if (file_vert) fclose(file_vert);
 		if (file_frag) fclose(file_frag);
-		return NULL;
+		return 0;
 	}
 	fseek(file_vert, 0, SEEK_END);
 	fseek(file_frag, 0, SEEK_END);
@@ -65,7 +66,7 @@ MG_SHADER MG_shader_create_from_filepaths(const char* vertex_shader_path, const 
 		free(vertex_shader_code);
 		free(fragment_shader_code);
 		fclose(file_vert);
-		return NULL;
+		return 0;
 	}
 	fread(vertex_shader_code, 1, vert_len, file_vert);
 	fread(fragment_shader_code, 1, frag_len, file_frag);
@@ -168,7 +169,7 @@ int MG_shader_define(char** shader_file_text_ref, int define_count, ...)
 
 int MG_shader_compile(MG_SHADER shader_id)
 {
-	MG_Shader* shader = MG_shader_get(shader_id);
+	MG_Shader* shader = MG_shader_ptr(shader_id);
 	if (!shader)
 	{
 		printf("Failed to compile shader: shader is NULL\n");
@@ -239,21 +240,26 @@ int MG_shader_compile(MG_SHADER shader_id)
 	return 0;
 }
 
-MG_Shader* MG_shader_ptr(MG_SHADER shader_id)
+int MG_shader_status(MG_SHADER shader_id)
 {
-	MG_Shader* shader = MG_hashmap_get(&MG_INSTANCE->shader_list.assets, shader_id);
+	MG_Shader* shader = MG_shader_ptr(shader_id);
 	if (!shader)
 	{
-		printf("Failed to get shader pointer: shader is NULL\n");
-		return NULL;
+		printf("Failed to get shader status: shader is NULL\n");
+		return -1;
 	}
-	return shader;
+	return shader->status;
+}
+
+MG_Shader* MG_shader_ptr(MG_SHADER shader_id)
+{
+	return MG_hashmap_get(MG_INSTANCE->shader_list.assets, shader_id);
 }
 
 
 int MG_material_register_variable(MG_MATERIAL material_id, const char* name, GLenum type, uint32_t offset_in_material)
 {
-	MG_Material* material = MG_material_get(material_id);
+	MG_Material* material = MG_material_ptr(material_id);
 
 	if (!material || !material->shader || !name)
 	{
@@ -400,6 +406,17 @@ int MG_material_register_variable(MG_MATERIAL material_id, const char* name, GLe
 	return 0;
 }
 
+MG_Material* MG_material_ptr(MG_MATERIAL material_id)
+{
+	MG_Material* material = MG_hashmap_get(MG_INSTANCE->material_list.assets, material_id);
+	if (!material)
+	{
+		printf("Failed to get material pointer: material is NULL\n");
+		return NULL;
+	}
+	return material;
+}
+
 void MG_material_free(MG_Material* material)
 {
 	if (!material)
@@ -415,6 +432,12 @@ void MG_material_free(MG_Material* material)
 
 void MG_shader_use(MG_Shader* shader)
 {
+	if (!shader)
+	{
+		printf("Warning: Failed to use shader: shader was not found\n");
+		return;
+	}
+
 	if (!shader || shader->status != MG_SHADER_STATUS_OK)
 	{
 		printf("Warning: Failed to use shader: shader is NULL or not compiled\n");

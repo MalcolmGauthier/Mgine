@@ -9,6 +9,7 @@ MG_NAME MG_id_hash_string(const char* name)
 	}
 
 	// FNV-1a hash
+	//TODO: 64-bit?
 	uint32_t hash = 2166136261u;
 	const char* ptr = name;
 	while (*ptr)
@@ -21,28 +22,28 @@ MG_NAME MG_id_hash_string(const char* name)
 }
 
 
-int MG_hashmap_init(MG_Hashmap** hashset_ref, uint32_t bucket_count)
+int MG_hashmap_init(MG_Hashmap** hashmap_ref, uint32_t bucket_count)
 {
-	if (!hashset_ref || bucket_count == 0)
+	if (!hashmap_ref || bucket_count == 0)
 	{
-		printf("Failed to initialize hashset: invalid bucket count or hashset_ref is NULL\n");
+		printf("Failed to initialize hashmap: invalid bucket count or hashmap_ref is NULL\n");
 		return -1;
 	}
 
-	*hashset_ref = malloc(sizeof(MG_Hashmap));
-	if (!*hashset_ref)
+	*hashmap_ref = calloc(1, sizeof(MG_Hashmap));
+	if (!*hashmap_ref)
 	{
-		printf("Failed to initialize hashset: out of memory\n");
+		printf("Failed to initialize hashmap: out of memory\n");
 		return -2;
 	}
 
-	(*hashset_ref)->bucket_count = bucket_count;
-	(*hashset_ref)->buckets = calloc(bucket_count, sizeof(MG_HashmapNode_LL*));
-	if (!(*hashset_ref)->buckets)
+	(*hashmap_ref)->bucket_count = bucket_count;
+	(*hashmap_ref)->buckets = calloc(bucket_count, sizeof(MG_HashmapNode_LL*));
+	if (!(*hashmap_ref)->buckets)
 	{
-		printf("Failed to initialize hashset: out of memory\n");
-		free(*hashset_ref);
-		*hashset_ref = NULL;
+		printf("Failed to initialize hashmap: out of memory\n");
+		free(*hashmap_ref);
+		*hashmap_ref = NULL;
 		return -3;
 	}
 
@@ -51,60 +52,84 @@ int MG_hashmap_init(MG_Hashmap** hashset_ref, uint32_t bucket_count)
 
 static bool MG_hashmap_find_func(void* data, void* find)
 {
+	// all warning suppression in this file is due to casting types of different width. however, no data is lost.
+#pragma warning(suppress: 4311)
 	return ((struct MG_HashmapNode*)data)->key == (MG_ID)find;
 }
 
-int MG_hashmap_add(MG_Hashmap* hashset, MG_ID key, void* value)
+int MG_hashmap_add(MG_Hashmap* hashmap, MG_ID key, void* value)
 {
-	if (!hashset)
+	if (!hashmap)
 	{
-		printf("Failed to add to hashset: hashset is NULL\n");
+		printf("Failed to add to hashmap: hashmap is NULL\n");
 		return -1;
 	}
 
-	uint32_t bucket_index = key % hashset->bucket_count;
-	if (MG_LL_find_func(hashset->buckets[bucket_index], (void*)key, MG_hashmap_find_func))
+	uint32_t bucket_index = key % hashmap->bucket_count;
+#pragma warning(suppress: 4312)
+	if (MG_LL_find_func(hashmap->buckets[bucket_index], (void*)key, MG_hashmap_find_func))
 	{
-		printf("Refused to add to hashset: key %u already exists\n", key);
+		printf("Refused to add to hashmap: key %u already exists\n", key);
 		return 1;
 	}
 	
-	struct MG_HashmapNode* node = malloc(sizeof(struct MG_HashmapNode));
+	struct MG_HashmapNode* node = calloc(1, sizeof(struct MG_HashmapNode));
 	if (!node)
 	{
-		printf("Failed to add to hashset: out of memory\n");
+		printf("Failed to add to hashmap: out of memory\n");
 		return -2;
 	}
 	node->key = key;
 	node->value = value;
 
-	int err = MG_LL_add(&hashset->buckets[bucket_index], node);
+	int err = MG_LL_add(&hashmap->buckets[bucket_index], node);
 	if (err)
 	{
 		free(node);
 		return err - 2;
 	}
 
+	if (hashmap->last)
+		hashmap->last->next = node;
+	if (!hashmap->first)
+		hashmap->first = node;
+	node->prev = hashmap->last;
+	hashmap->last = node;
+	hashmap->count++;
+
 	return 0;
 }
 
-void* MG_hashmap_remove(MG_Hashmap* hashset, MG_ID key)
+void* MG_hashmap_remove(MG_Hashmap* hashmap, MG_ID key)
 {
-	if (!hashset)
+	if (!hashmap)
 	{
-		printf("Failed to remove from hashset: hashset is NULL\n");
+		printf("Failed to remove from hashmap: hashmap is NULL\n");
 		return NULL;
 	}
 
-	uint32_t bucket_index = key % hashset->bucket_count;
-	struct MG_HashmapNode* node = MG_LL_find_func(hashset->buckets[bucket_index], (void*)key, MG_hashmap_find_func);
+	uint32_t bucket_index = key % hashmap->bucket_count;
+#pragma warning(suppress: 4312)
+	struct MG_HashmapNode* node = MG_LL_find_func(hashmap->buckets[bucket_index], (void*)key, MG_hashmap_find_func);
 	if (!node)
 	{
-		printf("Failed to remove from hashset: key %u not found\n", key);
+		printf("Failed to remove from hashmap: key %u not found\n", key);
 		return NULL;
 	}
 
-	MG_LL_remove(&hashset->buckets[bucket_index], node);
+	if (hashmap->first == node)
+		hashmap->first = node->next;
+	else
+		node->prev->next = node->next;
+
+	if (hashmap->last == node)
+		hashmap->last = node->prev;
+	else
+		node->next->prev = node->prev;
+
+	hashmap->count--;
+
+	MG_LL_remove(&hashmap->buckets[bucket_index], node);
 	void* value = node->value;
 	free(node);
 	return value;
@@ -118,6 +143,7 @@ void* MG_hashmap_get(MG_Hashmap* hashmap, MG_ID key)
 		return NULL;
 	}
 
+#pragma warning(suppress: 4312)
 	struct MG_HashmapNode* node = MG_LL_find_func(hashmap->buckets[key % hashmap->bucket_count], (void*)key, MG_hashmap_find_func);
 	if (!node)
 	{
@@ -128,19 +154,51 @@ void* MG_hashmap_get(MG_Hashmap* hashmap, MG_ID key)
 	return node->value;
 }
 
-void MG_hashmap_free(MG_Hashmap** hashset_ref, void (*free_func)(void*))
+MG_Hashmap* MG_hashmap_copy(MG_Hashmap* src, void* (*copy_func)(void*))
 {
-	if (!hashset_ref)
+	if (!src)
+	{
+		printf("Failed to copy hashmap: source hashmap is NULL\n");
+		return NULL;
+	}
+
+	MG_Hashmap* copy = NULL;
+	if (MG_hashmap_init(&copy, src->bucket_count))
+	{
+		printf("Failed to copy hashmap: failed to initialize copy\n");
+		return NULL;
+	}
+
+	struct MG_HashmapNode* current = src->first;
+	while (current)
+	{
+		void* value_copy = copy_func ? copy_func(current->value) : current->value;
+		if (MG_hashmap_add(copy, current->key, value_copy) < 0)
+		{
+			printf("Failed to copy hashmap: failed to add key %u to copy.\n", current->key);
+			MG_hashmap_free(&copy, NULL);
+			return NULL;
+		}
+
+		current = current->next;
+	}
+
+	return copy;
+}
+
+void MG_hashmap_free(MG_Hashmap** hashmap_ref, void (*free_func)(void*))
+{
+	if (!hashmap_ref)
 	{
 		return;
 	}
 
-	for (uint32_t i = 0; i < (*hashset_ref)->bucket_count; i++)
+	for (uint32_t i = 0; i < (*hashmap_ref)->bucket_count; i++)
 	{
-		MG_LL_free(&(*hashset_ref)->buckets[i], free_func);
+		MG_LL_free(&(*hashmap_ref)->buckets[i], free_func);
 	}
 
-	free((*hashset_ref)->buckets);
-	free(*hashset_ref);
-	*hashset_ref = NULL;
+	free((*hashmap_ref)->buckets);
+	free(*hashmap_ref);
+	*hashmap_ref = NULL;
 }
