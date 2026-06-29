@@ -259,9 +259,7 @@ static void MG_instance_init()
     MG_INSTANCE->game_data.global_timer = 0;
     MG_INSTANCE->game_data.object_list = NULL;
 
-    extern MG_Audio* mg_audio;
 	extern void MG_audio_free_channel(int channel);
-	mg_audio = &MG_INSTANCE->audio_data;
     MG_INSTANCE->audio_data.ears = &MG_INSTANCE->game_data.camera.position;
     MG_INSTANCE->audio_data.ears_yaw = &MG_INSTANCE->game_data.camera.rotation.y;
 	Mix_ChannelFinished(MG_audio_free_channel);

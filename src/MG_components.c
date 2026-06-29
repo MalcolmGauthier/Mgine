@@ -64,11 +64,11 @@ void MG_component_template_free(MG_ComponentTemplate* comp_template)
 
 MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_parent)
 {
-	// dst_parent allowed to be null for untracked copies
 	MG_Component* src_comp = MG_object_get_component(src);
-	if (!src_comp)
+	MG_Object* obj = MG_object_ptr(dst_parent);
+	if (!src_comp || !obj)
 	{
-		printf("Failed to create component copy: source/parent is NULL\n");
+		printf("Failed to create component copy: source/destination not found\n");
 		return (MG_ComponentInstanceID){ 0 };
 	}
 
@@ -83,11 +83,7 @@ MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_
 
 	memcpy(dst_comp, src_comp, comp_size);
 
-	if (dst_parent)
-	{
-		MG_Object* obj = MG_object_ptr(dst_parent);
-		MG_LL_add(&obj->components, dst_comp);
-	}
+	MG_LL_add(&obj->components, dst_comp);
 	dst_comp->id.owner = dst_parent;
 	return dst_comp->id;
 }
@@ -95,7 +91,24 @@ MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_OBJ dst_
 // used for MG_LL generic copy functions
 MG_Component* MG_component_copy_untracked(MG_Component* source)
 {
-	return MG_component_get(MG_component_copy(source->id, 0));
+	if (!source)
+	{
+		printf("Failed to create untracked component copy: source is NULL\n");
+		return NULL;
+	}
+
+	// msize is windows-specific, but idc. id rather be vendor locked than trust the template size
+	size_t comp_size = _msize(source);
+	MG_Component* dst_comp = calloc(1, comp_size);
+	if (!dst_comp)
+	{
+		printf("Failed to allocate memory for component copy\n");
+		return NULL;
+	}
+
+	memcpy(dst_comp, source, comp_size);
+
+	return dst_comp;
 }
 
 

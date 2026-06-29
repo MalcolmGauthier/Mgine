@@ -196,7 +196,7 @@ int MG_object_remove_child(MG_OBJ parent_id, MG_OBJ child_id)
 
 MG_ComponentInstanceID MG_object_add_component(MG_OBJ object, const char* component_name)
 {
-	MG_ComponentTemplate* comp_template_ptr = MG_component_get_template_ptr(MG_component_get_template(component_name));
+	MG_ComponentTemplate* comp_template_ptr = MG_component_get_template_by_name(component_name);
 	MG_Object* object_ptr = MG_object_ptr(object);
 
 	if (!comp_template_ptr || !object_ptr)

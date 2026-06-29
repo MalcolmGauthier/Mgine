@@ -21,7 +21,7 @@ MG_API MG_Component* MG_component_get(MG_ComponentInstanceID component);
 
 
 MG_API MG_ComponentTemplate* MG_component_get_template_ptr(MG_ID id);
-MG_API MG_ID MG_component_get_template(const char* name);
+MG_API MG_ComponentTemplate* MG_component_get_template_by_name(const char* name);
 
 // creates component in dst_parent of the same type as src's type, but also copies over all the data currently in src.
 MG_API MG_ComponentInstanceID MG_component_copy(MG_ComponentInstanceID src, MG_ID dst_parent);
